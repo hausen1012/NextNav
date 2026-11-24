@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     NextNav dev launcher.
 
@@ -34,6 +34,64 @@ if (-not $env:GOTOOLCHAIN) { $env:GOTOOLCHAIN = 'local' }
 # PowerShell 5.1 writes native stderr as errors; keep going anyway.
 $PSNativeCommandUseErrorActionPreference = $false
 
+# Reset terminal input mode on exit so Ctrl+C never leaves console in raw mode
+if (-not ([System.Management.Automation.PSTypeName]'NextNav.ConsoleHelper').Type) {
+    try {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+namespace NextNav {
+    public static class ConsoleHelper {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GetStdHandle(int nStdHandle);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+        public static void ResetInputMode() {
+            try {
+                IntPtr hIn = GetStdHandle(-10); // STD_INPUT_HANDLE
+                if (hIn != IntPtr.Zero) {
+                    // ENABLE_PROCESSED_INPUT (0x1) | ENABLE_LINE_INPUT (0x2) | ENABLE_ECHO_INPUT (0x4) | 
+                    // ENABLE_MOUSE_INPUT (0x10) | ENABLE_INSERT_MODE (0x20) | ENABLE_QUICK_EDIT_MODE (0x40) | ENABLE_EXTENDED_FLAGS (0x80)
+                    SetConsoleMode(hIn, 0x01F7);
+                }
+            } catch {}
+        }
+    }
+}
+'@ -ErrorAction SilentlyContinue
+    } catch {}
+}
+
+function Reset-ConsoleState {
+    try {
+        if (([System.Management.Automation.PSTypeName]'NextNav.ConsoleHelper').Type) {
+            [NextNav.ConsoleHelper]::ResetInputMode()
+        }
+    } catch {}
+
+    try {
+        [Console]::TreatControlCAsInput = $false
+        [Console]::ResetColor()
+        while ([Console]::KeyAvailable) {
+            [void][Console]::ReadKey($true)
+        }
+    } catch {}
+}
+
+function Stop-PortProcess([int]$Port) {
+    try {
+        $conns = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
+        foreach ($c in $conns) {
+            if ($c.OwningProcess -and $c.OwningProcess -ne $PID -and $c.OwningProcess -ne 0) {
+                try {
+                    & taskkill /PID $c.OwningProcess /T /F *>$null
+                } catch {}
+            }
+        }
+    } catch {}
+}
+
 function Require-Tool([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "'$Name' not found in PATH"
@@ -42,21 +100,19 @@ function Require-Tool([string]$Name) {
 
 function Write-Banner([string]$Text) {
     Write-Host ''
-    Write-Host '────────────────────────────────────────────' -ForegroundColor DarkGray
+    Write-Host '--------------------------------------------' -ForegroundColor DarkGray
     Write-Host "  $Text" -ForegroundColor Cyan
-    Write-Host '────────────────────────────────────────────' -ForegroundColor DarkGray
+    Write-Host '--------------------------------------------' -ForegroundColor DarkGray
     Write-Host ''
 }
 
 function Ensure-NodeModules {
     $nm = Join-Path $Root 'web\node_modules'
     $tsc = Join-Path $nm '.bin\tsc.cmd'
-    # A missing node_modules is obvious; a half-installed one is the common
-    # failure mode (interrupted install), so check for a real binary too.
     if ((Test-Path $nm) -and (Test-Path $tsc)) {
         return
     }
-    Write-Banner '安装前端依赖'
+    Write-Banner 'Install web dependencies'
     Push-Location (Join-Path $Root 'web')
     try {
         if (Test-Path 'package-lock.json') {
@@ -70,11 +126,11 @@ function Ensure-NodeModules {
 
 function Invoke-Dev {
     Require-Tool 'go'
-    Require-Tool 'npm'
+    Require-Tool 'node'
     Ensure-NodeModules
 
-    Write-Banner "开发模式  backend :$($env:PORT)  vite :$($env:WEB_PORT)"
-    Write-Host "打开 http://localhost:$($env:WEB_PORT)"
+    Write-Banner "Dev mode  backend :$($env:PORT)  vite :$($env:WEB_PORT)"
+    Write-Host "Open http://localhost:$($env:WEB_PORT)"
     Write-Host ''
 
     $backend = Start-Process -FilePath 'go' `
@@ -82,13 +138,19 @@ function Invoke-Dev {
         -WorkingDirectory (Join-Path $Root 'server') `
         -NoNewWindow -PassThru
 
-    # npm is a .cmd shim on Windows; run it through cmd so arguments survive.
-    # PORT and WEB_PORT are inherited from this process; vite.config.ts uses
-    # them for its listen port and API proxy target.
-    $frontend = Start-Process -FilePath 'cmd.exe' `
-        -ArgumentList @('/c', 'npm', 'run', 'dev') `
-        -WorkingDirectory (Join-Path $Root 'web') `
-        -NoNewWindow -PassThru
+    # Launch vite directly with node to bypass cmd.exe and batch prompt on Ctrl+C
+    $viteCli = Join-Path $Root 'web\node_modules\vite\bin\vite.js'
+    if (Test-Path $viteCli) {
+        $frontend = Start-Process -FilePath 'node' `
+            -ArgumentList @($viteCli) `
+            -WorkingDirectory (Join-Path $Root 'web') `
+            -NoNewWindow -PassThru
+    } else {
+        $frontend = Start-Process -FilePath 'cmd.exe' `
+            -ArgumentList @('/c', 'npm', 'run', 'dev') `
+            -WorkingDirectory (Join-Path $Root 'web') `
+            -NoNewWindow -PassThru
+    }
 
     Write-Host "backend pid=$($backend.Id)  frontend pid=$($frontend.Id)" -ForegroundColor DarkGray
 
@@ -99,13 +161,18 @@ function Invoke-Dev {
     }
     finally {
         Write-Host ''
-        Write-Host '正在停止…' -ForegroundColor DarkGray
+        Write-Host 'Stopping services...' -ForegroundColor DarkGray
         foreach ($p in @($backend, $frontend)) {
             if ($p -and -not $p.HasExited) {
-                # Kill the whole tree: `go run` and cmd.exe spawn children.
-                & taskkill /PID $p.Id /T /F 2>&1 | Out-Null
+                try {
+                    & taskkill /PID $p.Id /T /F *>$null
+                } catch {}
             }
         }
+        Stop-PortProcess -Port ([int]$env:PORT)
+        Stop-PortProcess -Port ([int]$env:WEB_PORT)
+        Reset-ConsoleState
+        Write-Host 'Stopped cleanly.' -ForegroundColor Green
     }
 }
 
@@ -114,23 +181,23 @@ function Invoke-Build {
     Require-Tool 'npm'
     Ensure-NodeModules
 
-    Write-Banner '构建前端'
+    Write-Banner 'Build frontend'
     Push-Location (Join-Path $Root 'web')
     try { npm run build } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { throw 'frontend build failed' }
 
-    Write-Banner '内嵌到 Go 二进制'
+    Write-Banner 'Embed web assets'
     & bash (Join-Path $Root 'scripts\embed-web.sh')
     if ($LASTEXITCODE -ne 0) { throw 'embed step failed' }
 
-    Write-Banner '编译'
+    Write-Banner 'Compile binary'
     $bin = Join-Path $Root 'bin'
     New-Item -ItemType Directory -Force $bin | Out-Null
     Push-Location (Join-Path $Root 'server')
     try { go build -trimpath -ldflags='-s -w' -o ..\bin\nextnav.exe ./cmd/nextnav } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { throw 'go build failed' }
 
-    Write-Banner "启动  http://localhost:$($env:PORT)"
+    Write-Banner "Start  http://localhost:$($env:PORT)"
     & (Join-Path $bin 'nextnav.exe')
 }
 
@@ -138,12 +205,12 @@ function Invoke-Test {
     Require-Tool 'go'
     Require-Tool 'npm'
 
-    Write-Banner 'Go 测试'
+    Write-Banner 'Go tests'
     Push-Location (Join-Path $Root 'server')
     try { go test ./... } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { throw 'go tests failed' }
 
-    Write-Banner '前端类型检查与测试'
+    Write-Banner 'Frontend typecheck and tests'
     Push-Location (Join-Path $Root 'web')
     try {
         npm run typecheck
