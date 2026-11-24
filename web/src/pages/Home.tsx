@@ -88,7 +88,6 @@ export function HomePage() {
     backupUrl: string
     categoryId: number
     description: string
-    iconUrl: string
     isPrivate: boolean
     sort: number
   }>({
@@ -99,9 +98,8 @@ export function HomePage() {
     backupUrl: '',
     categoryId: 0,
     description: '',
-    iconUrl: '',
     isPrivate: false,
-    sort: 0,
+    sort: 10,
   })
   const [linkSubmitting, setLinkSubmitting] = useState(false)
   const [linkFormError, setLinkFormError] = useState<string | null>(null)
@@ -353,9 +351,8 @@ export function HomePage() {
       backupUrl: '',
       categoryId: firstCatId,
       description: '',
-      iconUrl: '',
       isPrivate: false,
-      sort: 0,
+      sort: 10,
     })
   }
 
@@ -370,9 +367,8 @@ export function HomePage() {
       backupUrl: link.backupUrl || '',
       categoryId: link.categoryId,
       description: link.description || '',
-      iconUrl: link.iconUrl || '',
       isPrivate: link.isPrivate,
-      sort: link.sort ?? 0,
+      sort: link.sort ?? 10,
     })
   }
 
@@ -400,9 +396,8 @@ export function HomePage() {
         backupUrl: linkModal.backupUrl.trim() || null,
         categoryId: Number(linkModal.categoryId),
         description: linkModal.description.trim() || null,
-        iconUrl: linkModal.iconUrl.trim() || null,
         isPrivate: linkModal.isPrivate,
-        sort: Number(linkModal.sort) || 0,
+        sort: Number(linkModal.sort) || 10,
       }
 
       if (linkModal.mode === 'create') {
@@ -1262,20 +1257,6 @@ export function HomePage() {
                     className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
                   />
                 </div>
-              </div>
-
-              {/* 自定义图标 URL */}
-              <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
-                  自定义图标 URL
-                </label>
-                <input
-                  type='text'
-                  value={linkModal.iconUrl}
-                  onChange={(e) => setLinkModal({ ...linkModal, iconUrl: e.target.value })}
-                  placeholder='留空则自动提取 Favicon 或首字母'
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
-                />
               </div>
 
               {/* 描述 */}
