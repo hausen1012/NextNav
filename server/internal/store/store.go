@@ -1,11 +1,8 @@
 package store
 
 import (
-	"crypto/rand"
 	"database/sql"
 	"embed"
-	"encoding/hex"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -45,8 +42,9 @@ func Open(dataDir string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
-	// Single writer keeps the app free of SQLITE_BUSY handling; the workload is tiny.
-	db.SetMaxOpenConns(1)
+	// Enable concurrent reads with WAL mode; busy_timeout(5000) handles serialized writers gracefully.
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
 	db.SetConnMaxLifetime(0)
 
 	if err := db.Ping(); err != nil {
@@ -55,9 +53,6 @@ func Open(dataDir string) (*Store, error) {
 
 	s := &Store{DB: db, DataDir: dataDir}
 	if err := s.migrate(); err != nil {
-		return nil, err
-	}
-	if err := s.ensureSecrets(); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -119,24 +114,9 @@ func (s *Store) migrate() error {
 	return nil
 }
 
-func (s *Store) ensureSecrets() error {
-	var existing string
-	err := s.DB.QueryRow(`SELECT value FROM setting WHERE key = 'secret.cookie_key'`).Scan(&existing)
-	if err == nil && existing != "" {
-		return nil
-	}
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("read cookie key: %w", err)
-	}
-
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return err
-	}
-	_, err = s.DB.Exec(
-		`INSERT INTO setting(key, value, updated_at) VALUES(?, ?, ?)`,
-		"secret.cookie_key", hex.EncodeToString(buf), time.Now().UnixMilli(),
-	)
+// DeleteSetting removes a setting key.
+func (s *Store) DeleteSetting(key string) error {
+	_, err := s.DB.Exec(`DELETE FROM setting WHERE key = ?`, key)
 	return err
 }
 

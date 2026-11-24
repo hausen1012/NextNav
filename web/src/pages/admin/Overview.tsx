@@ -12,41 +12,21 @@ import {
   SlidersHorizontal,
 } from 'lucide-react'
 import { useHome, useInvalidateHome } from '@/lib/query'
-import { api, type LinkDTO } from '@/lib/api'
+import type { LinkDTO } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Field } from '@/components/Field'
 import { SiteIcon } from '@/components/SiteIcon'
+import { CategoryDialog } from '@/components/admin/CategoryDialog'
+import { LinkDialog } from '@/components/admin/LinkDialog'
 
 export function AdminOverviewPage() {
   const { data: home, isLoading } = useHome()
   const invalidate = useInvalidateHome()
 
-  // Quick link dialog
+  // Quick dialog states
   const [addLinkOpen, setAddLinkOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [url, setUrl] = useState('')
-  const [categoryId, setCategoryId] = useState<number>(0)
-  const [description, setDescription] = useState('')
-  const [sortWeight, setSortWeight] = useState('10')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // Quick category dialog
   const [addCatOpen, setAddCatOpen] = useState(false)
-  const [catName, setCatName] = useState('')
-  const [catSubmitting, setCatSubmitting] = useState(false)
-  const [catError, setCatError] = useState<string | null>(null)
 
   // Flatten links and categories
   const allCategories: { id: number; name: string; isGroup: boolean }[] = []
@@ -71,56 +51,6 @@ export function AdminOverviewPage() {
   const privateCount = allLinks.filter((l) => l.isPrivate).length
   const publicCount = allLinks.length - privateCount
 
-  async function handleCreateLink(e: React.FormEvent) {
-    e.preventDefault()
-    if (!categoryId && allCategories[0]) {
-      setCategoryId(allCategories[0].id)
-    }
-    const targetCatId = categoryId || allCategories[0]?.id
-    if (!targetCatId) {
-      setError('请先创建分类')
-      return
-    }
-
-    setIsSubmitting(true)
-    setError(null)
-    try {
-      await api.createLink({
-        categoryId: targetCatId,
-        title,
-        url,
-        description: description || null,
-        sort: sortWeight ? parseInt(sortWeight, 10) : undefined,
-      })
-      invalidate()
-      setAddLinkOpen(false)
-      setTitle('')
-      setUrl('')
-      setDescription('')
-      setSortWeight('10')
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '创建链接失败')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  async function handleCreateCategory(e: React.FormEvent) {
-    e.preventDefault()
-    setCatSubmitting(true)
-    setCatError(null)
-    try {
-      await api.createCategory({ name: catName })
-      invalidate()
-      setAddCatOpen(false)
-      setCatName('')
-    } catch (err: unknown) {
-      setCatError(err instanceof Error ? err.message : '创建分类失败')
-    } finally {
-      setCatSubmitting(false)
-    }
-  }
-
   return (
     <div className='space-y-6'>
       {/* Page Header */}
@@ -136,10 +66,7 @@ export function AdminOverviewPage() {
             size='sm'
             variant='outline'
             className='gap-1.5'
-            onClick={() => {
-              if (allCategories.length > 0) setCategoryId(allCategories[0].id)
-              setAddLinkOpen(true)
-            }}
+            onClick={() => setAddLinkOpen(true)}
           >
             <Plus className='size-4' />
             <span>新建链接</span>
@@ -335,106 +262,19 @@ export function AdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Add Link Dialog */}
-      <Dialog open={addLinkOpen} onOpenChange={setAddLinkOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>新建链接</DialogTitle>
-            <DialogDescription>录入新链接信息。</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateLink} className='space-y-4 pt-2'>
-            {error && <p className='text-xs text-destructive'>{error}</p>}
-            <Field label='链接名称' htmlFor='link-title'>
-              <Input
-                id='link-title'
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder='例如：GitHub'
-                required
-              />
-            </Field>
-            <Field label='网址 (URL)' htmlFor='link-url'>
-              <Input
-                id='link-url'
-                type='url'
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder='https://github.com'
-                required
-              />
-            </Field>
-            <Field label='归属分类' htmlFor='link-cat'>
-              <select
-                id='link-cat'
-                value={categoryId}
-                onChange={(e) => setCategoryId(Number(e.target.value))}
-                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-              >
-                {allCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label='描述说明（可选）' htmlFor='link-desc'>
-              <Input
-                id='link-desc'
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder='简要功能介绍'
-              />
-            </Field>
-            <Field label='排序' htmlFor='link-sort'>
-              <Input
-                id='link-sort'
-                type='number'
-                value={sortWeight}
-                onChange={(e) => setSortWeight(e.target.value)}
-                placeholder='数字越小越靠前，默认 10'
-              />
-            </Field>
-            <DialogFooter className='pt-2'>
-              <Button type='button' variant='outline' onClick={() => setAddLinkOpen(false)}>
-                取消
-              </Button>
-              <Button type='submit' disabled={isSubmitting}>
-                {isSubmitting ? '保存中...' : '确认添加'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Category Dialog */}
-      <Dialog open={addCatOpen} onOpenChange={setAddCatOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>新建分类</DialogTitle>
-            <DialogDescription>录入一级分类信息。</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateCategory} className='space-y-4 pt-2'>
-            {catError && <p className='text-xs text-destructive'>{catError}</p>}
-            <Field label='分类名称' htmlFor='cat-name'>
-              <Input
-                id='cat-name'
-                value={catName}
-                onChange={(e) => setCatName(e.target.value)}
-                placeholder='例如：常用工具'
-                required
-              />
-            </Field>
-            <DialogFooter className='pt-2'>
-              <Button type='button' variant='outline' onClick={() => setAddCatOpen(false)}>
-                取消
-              </Button>
-              <Button type='submit' disabled={catSubmitting}>
-                {catSubmitting ? '创建中...' : '确认创建'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Shared Modals */}
+      <LinkDialog
+        open={addLinkOpen}
+        onOpenChange={setAddLinkOpen}
+        categories={allCategories}
+        onSuccess={invalidate}
+      />
+      <CategoryDialog
+        open={addCatOpen}
+        onOpenChange={setAddCatOpen}
+        rootGroups={allCategories.filter((c) => c.isGroup)}
+        onSuccess={invalidate}
+      />
     </div>
   )
 }

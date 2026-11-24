@@ -9,6 +9,9 @@ import (
 // ErrNotFound indicates the queried record does not exist.
 var ErrNotFound = errors.New("record not found")
 
+// ErrDuplicate indicates a unique constraint violation.
+var ErrDuplicate = errors.New("duplicate record")
+
 // GetAdmin returns the administrator record, or ErrNotFound if no admin exists.
 func (s *Store) GetAdmin() (*Admin, error) {
 	var a Admin

@@ -1,23 +1,60 @@
 package service
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"nextnav/internal/auth"
 )
 
 func (s *Service) CookieKey() []byte {
-	v := s.store.GetSetting("secret.cookie_key", "")
-	raw, err := hex.DecodeString(v)
-	if err != nil || len(raw) != 32 {
-		slog.Error("invalid cookie key, sessions will not persist")
-		return []byte(v)
+	return s.cookieKey
+}
+
+func (s *Service) initCookieKey(customSecret string) {
+	if sec := strings.TrimSpace(customSecret); sec != "" {
+		if raw, err := hex.DecodeString(sec); err == nil && len(raw) == 32 {
+			s.cookieKey = raw
+			return
+		}
+		sum := sha256.Sum256([]byte(sec))
+		s.cookieKey = sum[:]
+		return
 	}
-	return raw
+
+	keyFile := filepath.Join(s.store.DataDir, ".cookie_key")
+	if data, err := os.ReadFile(keyFile); err == nil {
+		if raw, err := hex.DecodeString(strings.TrimSpace(string(data))); err == nil && len(raw) == 32 {
+			s.cookieKey = raw
+			return
+		}
+	}
+
+	// 历史兼容：如果旧数据库 setting 中留有密钥，迁移至独立受保护文件并从数据库中抹除
+	if old := s.store.GetSetting("secret.cookie_key", ""); old != "" {
+		if raw, err := hex.DecodeString(old); err == nil && len(raw) == 32 {
+			s.cookieKey = raw
+			_ = os.WriteFile(keyFile, []byte(old), 0o600)
+			_ = s.store.DeleteSetting("secret.cookie_key")
+			return
+		}
+	}
+
+	// 全新生成 32 字节高强度随机数，存储在数据目录下的受保护文件中（0600 权限）
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		slog.Error("generate cookie key failed", "err", err)
+		s.cookieKey = []byte("nextnav-cookie-fallback-key-32b!")
+		return
+	}
+	s.cookieKey = buf
+	_ = os.WriteFile(keyFile, []byte(hex.EncodeToString(buf)), 0o600)
 }
 
 func (s *Service) InitAdmin(username, password string, seedSample bool) error {

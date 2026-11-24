@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dialog'
 import { Field } from '@/components/Field'
 import { CategoryIcon } from '@/components/CategoryIcon'
+import { CategoryDialog } from '@/components/admin/CategoryDialog'
 import { cn } from '@/lib/utils'
 
 export interface FlatCategory {
@@ -48,8 +49,6 @@ export interface FlatCategory {
   isRoot: boolean
 }
 
-const PRESET_EMOJIS = ['📁', '🛠️', '🌐', '💻', '🎨', '🚀', '📚', '🎮', '📦', '⚙️', '⚡', '⭐', '🔍', '📱', '🔐', '📊']
-
 export function AdminCategoriesPage() {
   const { data: home, isLoading } = useHome()
   const invalidate = useInvalidateHome()
@@ -65,30 +64,17 @@ export function AdminCategoriesPage() {
   const [sortField, setSortField] = useState<'name' | 'sort' | 'links'>('sort')
   const [sortAsc, setSortAsc] = useState(true)
 
-  // Modals
-  const [createOpen, setCreateOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [icon, setIcon] = useState('')
-  const [parentId, setParentId] = useState<number | undefined>(undefined)
-  const [sortWeight, setSortWeight] = useState<string>('10')
-  const [description, setDescription] = useState('')
-  const [isPrivate, setIsPrivate] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // Edit modal
-  const [editItem, setEditItem] = useState<FlatCategory | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editIcon, setEditIcon] = useState('')
-  const [editParentId, setEditParentId] = useState<number | undefined>(undefined)
-  const [editSortWeight, setEditSortWeight] = useState<string>('')
-  const [editDescription, setEditDescription] = useState('')
-  const [editPrivate, setEditPrivate] = useState(false)
+  // Category Dialog state
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<FlatCategory | null>(null)
+  const [defaultParentId, setDefaultParentId] = useState<number | undefined>(undefined)
 
   // Delete modal
   const [deleteItem, setDeleteItem] = useState<FlatCategory | null>(null)
   const [deleteMode, setDeleteMode] = useState<'delete' | 'move'>('delete')
   const [targetCatId, setTargetCatId] = useState<number | undefined>(undefined)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const groups: GroupDTO[] = home?.groups || []
 
@@ -179,9 +165,9 @@ export function AdminCategoriesPage() {
 
   // Check if an editing root category currently has child categories
   const editingHasChildren = useMemo(() => {
-    if (!editItem || !editItem.isRoot) return false
-    return flatCategories.some((c) => c.parentId === editItem.id)
-  }, [editItem, flatCategories])
+    if (!editingCategory || !editingCategory.isRoot) return false
+    return flatCategories.some((c) => c.parentId === editingCategory.id)
+  }, [editingCategory, flatCategories])
 
   // Filter and sort root groups and their children
   const displayGroups = useMemo(() => {
@@ -254,88 +240,30 @@ export function AdminCategoriesPage() {
   }
 
   function openCreate(defaultParentId?: number) {
-    setName('')
-    setIcon('')
-    setParentId(defaultParentId)
-    setSortWeight('10')
-    setDescription('')
-    setIsPrivate(false)
-    setError(null)
-    setCreateOpen(true)
+    setEditingCategory(null)
+    setDefaultParentId(defaultParentId)
+    setFormOpen(true)
   }
 
   function openEdit(cat: FlatCategory) {
-    setEditItem(cat)
-    setEditName(cat.name)
-    setEditIcon(cat.icon || (cat.iconUrl && !cat.iconUrl.startsWith('/icons/') ? cat.iconUrl : '') || '')
-    setEditParentId(cat.parentId)
-    setEditSortWeight(String(cat.sort))
-    setEditDescription(cat.description || '')
-    setEditPrivate(cat.isPrivate)
-    setError(null)
-  }
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
-    try {
-      await api.createCategory({
-        name: name.trim(),
-        icon: icon.trim() || null,
-        parentId: parentId || null,
-        sort: sortWeight.trim() !== '' ? Number(sortWeight) : undefined,
-        description: description.trim() || null,
-        isPrivate,
-      })
-      invalidate()
-      if (parentId) {
-        setExpandedIds((prev) => new Set(prev).add(parentId))
-      }
-      setCreateOpen(false)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '创建分类失败')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  async function handleUpdate(e: React.FormEvent) {
-    e.preventDefault()
-    if (!editItem) return
-    setIsSubmitting(true)
-    setError(null)
-    try {
-      await api.updateCategory(editItem.id, {
-        name: editName.trim(),
-        icon: editIcon.trim() || null,
-        parentId: editParentId ?? 0,
-        sort: editSortWeight.trim() !== '' ? Number(editSortWeight) : undefined,
-        description: editDescription.trim() || null,
-        isPrivate: editPrivate,
-      })
-      invalidate()
-      setEditItem(null)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '更新分类失败')
-    } finally {
-      setIsSubmitting(false)
-    }
+    setEditingCategory(cat)
+    setDefaultParentId(undefined)
+    setFormOpen(true)
   }
 
   async function handleDelete(e: React.FormEvent) {
     e.preventDefault()
     if (!deleteItem) return
-    setIsSubmitting(true)
-    setError(null)
+    setIsDeleting(true)
+    setDeleteError(null)
     try {
       await api.deleteCategory(deleteItem.id, deleteMode, targetCatId)
       invalidate()
       setDeleteItem(null)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '删除分类失败')
+      setDeleteError(err instanceof Error ? err.message : '删除分类失败')
     } finally {
-      setIsSubmitting(false)
+      setIsDeleting(false)
     }
   }
 
@@ -699,239 +627,21 @@ export function AdminCategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className='sm:max-w-lg'>
-          <DialogHeader>
-            <DialogTitle>{parentId ? '新建子分类' : '新建分类'}</DialogTitle>
-            <DialogDescription>
-              录入分类信息。未指定上级分类时自动作为一级分类。
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreate} className='space-y-4 pt-1'>
-            {error && <p className='text-xs text-destructive'>{error}</p>}
-            
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-              <Field label='分类名称' htmlFor='cat-name-input'>
-                <Input
-                  id='cat-name-input'
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder='例如：开发工具'
-                  required
-                />
-              </Field>
-
-              <Field label='排序' htmlFor='cat-sort-input'>
-                <Input
-                  id='cat-sort-input'
-                  type='number'
-                  value={sortWeight}
-                  onChange={(e) => setSortWeight(e.target.value)}
-                  placeholder='数字越小越靠前，默认 10'
-                />
-              </Field>
-            </div>
-
-            <Field label='分类图标（可选）' htmlFor='cat-icon-input'>
-              <div className='space-y-2'>
-                <div className='flex items-center gap-2'>
-                  <div className='flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40'>
-                    <CategoryIcon icon={icon} isRoot={!parentId} className='size-4 text-primary' />
-                  </div>
-                  <Input
-                    id='cat-icon-input'
-                    value={icon}
-                    onChange={(e) => setIcon(e.target.value)}
-                    placeholder='输入 Emoji (如 🚀)、Lucide 图标名或图片 URL'
-                    className='flex-1'
-                  />
-                </div>
-                <div className='flex flex-wrap items-center gap-1 pt-0.5'>
-                  <span className='text-[11px] text-muted-foreground mr-1'>快捷推荐:</span>
-                  {PRESET_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type='button'
-                      onClick={() => setIcon(emoji)}
-                      className='px-1.5 py-0.5 text-xs hover:bg-accent rounded transition'
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </Field>
-
-            <Field label='上级分类（可选）' htmlFor='cat-parent-select'>
-              <select
-                id='cat-parent-select'
-                value={parentId ?? ''}
-                onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : undefined)}
-                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-              >
-                <option value=''>无（一级分类）</option>
-                {rootGroups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label='分类描述（可选）' htmlFor='cat-desc-input'>
-              <Input
-                id='cat-desc-input'
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder='简要介绍该分类收录的内容或用途'
-              />
-            </Field>
-
-            <div className='flex items-center gap-2 pt-1'>
-              <input
-                type='checkbox'
-                id='cat-is-priv'
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-                className='size-4 rounded border-input text-primary focus:ring-ring'
-              />
-              <label htmlFor='cat-is-priv' className='text-sm text-foreground select-none cursor-pointer'>
-                设为私有（仅管理员登录后可见）
-              </label>
-            </div>
-
-            <DialogFooter className='pt-2'>
-              <Button type='button' variant='outline' onClick={() => setCreateOpen(false)}>
-                取消
-              </Button>
-              <Button type='submit' disabled={isSubmitting}>
-                {isSubmitting ? '创建中...' : '确认创建'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
-        <DialogContent className='sm:max-w-lg'>
-          <DialogHeader>
-            <DialogTitle>编辑分类</DialogTitle>
-            <DialogDescription>修改分类图标、名称、父级归属、排序与描述。</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdate} className='space-y-4 pt-1'>
-            {error && <p className='text-xs text-destructive'>{error}</p>}
-            
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-              <Field label='分类名称' htmlFor='edit-cat-name'>
-                <Input
-                  id='edit-cat-name'
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder='例如：开发工具'
-                  required
-                />
-              </Field>
-
-              <Field label='排序' htmlFor='edit-cat-sort'>
-                <Input
-                  id='edit-cat-sort'
-                  type='number'
-                  value={editSortWeight}
-                  onChange={(e) => setEditSortWeight(e.target.value)}
-                  placeholder='数字越小越靠前，默认 10'
-                />
-              </Field>
-            </div>
-
-            <Field label='分类图标（可选）' htmlFor='edit-cat-icon'>
-              <div className='space-y-2'>
-                <div className='flex items-center gap-2'>
-                  <div className='flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/40'>
-                    <CategoryIcon icon={editIcon} isRoot={!editParentId} className='size-4 text-primary' />
-                  </div>
-                  <Input
-                    id='edit-cat-icon'
-                    value={editIcon}
-                    onChange={(e) => setEditIcon(e.target.value)}
-                    placeholder='输入 Emoji (如 🚀)、Lucide 图标名或图片 URL'
-                    className='flex-1'
-                  />
-                </div>
-                <div className='flex flex-wrap items-center gap-1 pt-0.5'>
-                  <span className='text-[11px] text-muted-foreground mr-1'>快捷推荐:</span>
-                  {PRESET_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type='button'
-                      onClick={() => setEditIcon(emoji)}
-                      className='px-1.5 py-0.5 text-xs hover:bg-accent rounded transition'
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </Field>
-
-            <Field label='上级分类（层级归属）' htmlFor='edit-cat-parent'>
-              <select
-                id='edit-cat-parent'
-                value={editParentId ?? ''}
-                disabled={editingHasChildren}
-                onChange={(e) => setEditParentId(e.target.value ? Number(e.target.value) : undefined)}
-                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50'
-              >
-                <option value=''>无（一级分类）</option>
-                {rootGroups
-                  .filter((g) => g.id !== editItem?.id)
-                  .map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-              </select>
-              {editingHasChildren && (
-                <p className='text-[11px] text-muted-foreground mt-1'>
-                  已有子分类，无法调整为二级分类。
-                </p>
-              )}
-            </Field>
-
-            <Field label='分类描述（可选）' htmlFor='edit-cat-desc'>
-              <Input
-                id='edit-cat-desc'
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                placeholder='简要介绍该分类收录的内容或用途'
-              />
-            </Field>
-
-            <div className='flex items-center gap-2 pt-1'>
-              <input
-                type='checkbox'
-                id='edit-cat-priv'
-                checked={editPrivate}
-                onChange={(e) => setEditPrivate(e.target.checked)}
-                className='size-4 rounded border-input text-primary focus:ring-ring'
-              />
-              <label htmlFor='edit-cat-priv' className='text-sm text-foreground select-none cursor-pointer'>
-                设为私有分类（仅管理员登录后可见）
-              </label>
-            </div>
-
-            <DialogFooter className='pt-2'>
-              <Button type='button' variant='outline' onClick={() => setEditItem(null)}>
-                取消
-              </Button>
-              <Button type='submit' disabled={isSubmitting}>
-                {isSubmitting ? '保存中...' : '确认保存'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Shared Category Dialog */}
+      <CategoryDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        category={editingCategory}
+        defaultParentId={defaultParentId}
+        rootGroups={rootGroups}
+        hasChildren={editingHasChildren}
+        onSuccess={(pid) => {
+          invalidate()
+          if (pid) {
+            setExpandedIds((prev) => new Set(prev).add(pid))
+          }
+        }}
+      />
 
       {/* Delete Dialog */}
       <Dialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
@@ -944,7 +654,7 @@ export function AdminCategoriesPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleDelete} className='space-y-4 pt-2'>
-            {error && <p className='text-xs text-destructive'>{error}</p>}
+            {deleteError && <p className='text-xs text-destructive'>{deleteError}</p>}
             <div className='space-y-2 text-sm'>
               <p className='font-medium text-foreground'>该分类下的链接如何处理？</p>
               <div className='flex items-center gap-2'>
@@ -998,8 +708,8 @@ export function AdminCategoriesPage() {
               <Button type='button' variant='outline' onClick={() => setDeleteItem(null)}>
                 取消
               </Button>
-              <Button type='submit' variant='destructive' disabled={isSubmitting}>
-                {isSubmitting ? '删除中...' : '确认删除'}
+              <Button type='submit' variant='destructive' disabled={isDeleting}>
+                {isDeleting ? '删除中...' : '确认删除'}
               </Button>
             </DialogFooter>
           </form>

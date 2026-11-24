@@ -361,6 +361,13 @@ func TestDuplicateLinkScopedToCategory(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("other category: %d, want 201", rec.Code)
 	}
+
+	// Updating an existing link's URL to an existing URL in the same category is rejected.
+	patchDup := map[string]any{"url": "https://dup.example.com"}
+	rec = do(t, h, "PATCH", "/api/links/1", reqOpts{cookie: cookie, fetchSite: "same-origin", body: patchDup})
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("patch duplicate URL: expected 409, got %d %s", rec.Code, rec.Body)
+	}
 }
 
 func TestEditClearsSampleFlag(t *testing.T) {
@@ -376,7 +383,7 @@ func TestEditClearsSampleFlag(t *testing.T) {
 	}
 
 	var isSample int
-	if err := api.Store.DB.QueryRow(`SELECT is_sample FROM link WHERE id = 1`).Scan(&isSample); err != nil {
+	if err := api.Service.Store().DB.QueryRow(`SELECT is_sample FROM link WHERE id = 1`).Scan(&isSample); err != nil {
 		t.Fatal(err)
 	}
 	if isSample != 0 {
@@ -389,7 +396,7 @@ func TestEditClearsSampleFlag(t *testing.T) {
 	}
 
 	var n int
-	if err := api.Store.DB.QueryRow(`SELECT COUNT(*) FROM link`).Scan(&n); err != nil {
+	if err := api.Service.Store().DB.QueryRow(`SELECT COUNT(*) FROM link`).Scan(&n); err != nil {
 		t.Fatal(err)
 	}
 	if n != 1 {
@@ -399,7 +406,7 @@ func TestEditClearsSampleFlag(t *testing.T) {
 	// The surviving link must have been moved out of the deleted sample
 	// category rather than cascaded away.
 	var movedName string
-	if err := api.Store.DB.QueryRow(
+	if err := api.Service.Store().DB.QueryRow(
 		`SELECT c.name FROM link l JOIN category c ON c.id = l.category_id WHERE l.id = 1`,
 	).Scan(&movedName); err != nil {
 		t.Fatal(err)
@@ -464,7 +471,7 @@ func TestIconPathTraversalBlocked(t *testing.T) {
 	api, h := newTestAPI(t)
 
 	// Write a file outside the icons dir that must never be served.
-	secret := filepath.Join(api.Store.DataDir, "secret.txt")
+	secret := filepath.Join(api.Service.DataDir(), "secret.txt")
 	if err := os.WriteFile(secret, []byte("top secret"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -477,7 +484,7 @@ func TestIconPathTraversalBlocked(t *testing.T) {
 	}
 
 	// A real icon file is served.
-	iconDir := filepath.Join(api.Store.DataDir, "icons", "ab", "cd")
+	iconDir := filepath.Join(api.Service.DataDir(), "icons", "ab", "cd")
 	if err := os.MkdirAll(iconDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -636,5 +643,40 @@ func TestLinkSortCRUD(t *testing.T) {
 	}](t, rec)
 	if updated.Sort != 200 {
 		t.Fatalf("updated link sort = %d, want 200", updated.Sort)
+	}
+}
+
+func TestCSRFWithForwardedHost(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, false)
+
+	req := httptest.NewRequest("POST", "/api/categories", bytes.NewReader([]byte(`{"name":"代理分类"}`)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", "https://nav.mydomain.com")
+	req.Header.Set("X-Forwarded-Host", "nav.mydomain.com")
+	req.AddCookie(cookie)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 when X-Forwarded-Host matches Origin, got %d: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestClientIPSecurity(t *testing.T) {
+	// 1. 公网直连客户端伪造 XFF 应当被忽略
+	pubReq := httptest.NewRequest("GET", "/api/health", nil)
+	pubReq.RemoteAddr = "203.0.113.195:4321"
+	pubReq.Header.Set("X-Forwarded-For", "1.1.1.1, 8.8.8.8")
+	if ip := clientIP(pubReq); ip != "203.0.113.195" {
+		t.Fatalf("public client IP should ignore forged XFF, got %q", ip)
+	}
+
+	// 2. 本地/内网反代转发时应信任 XFF
+	proxyReq := httptest.NewRequest("GET", "/api/health", nil)
+	proxyReq.RemoteAddr = "127.0.0.1:54321"
+	proxyReq.Header.Set("X-Forwarded-For", "198.51.100.22, 10.0.0.1")
+	if ip := clientIP(proxyReq); ip != "198.51.100.22" {
+		t.Fatalf("proxied client IP should resolve first XFF, got %q", ip)
 	}
 }

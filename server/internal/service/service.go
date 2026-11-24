@@ -17,11 +17,18 @@ var (
 )
 
 type Service struct {
-	store *store.Store
+	store     *store.Store
+	cookieKey []byte
 }
 
-func New(st *store.Store) *Service {
-	return &Service{store: st}
+func New(st *store.Store, cookieSecret ...string) *Service {
+	svc := &Service{store: st}
+	sec := ""
+	if len(cookieSecret) > 0 {
+		sec = cookieSecret[0]
+	}
+	svc.initCookieKey(sec)
+	return svc
 }
 
 func (s *Service) Store() *store.Store {

@@ -90,6 +90,9 @@ func (s *Service) CreateLink(input CreateLinkInput) (*LinkDTO, error) {
 
 	id, err := s.store.CreateLink(l)
 	if err != nil {
+		if errors.Is(err, store.ErrDuplicate) {
+			return nil, ErrDuplicateLink
+		}
 		return nil, err
 	}
 	return s.GetLinkDTO(id)
@@ -173,6 +176,9 @@ func (s *Service) UpdateLink(id int64, input UpdateLinkInput) (*LinkDTO, error) 
 	}
 
 	if err := s.store.UpdateLink(l); err != nil {
+		if errors.Is(err, store.ErrDuplicate) {
+			return nil, ErrDuplicateLink
+		}
 		return nil, err
 	}
 	return s.GetLinkDTO(id)

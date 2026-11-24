@@ -13,7 +13,6 @@ import (
 func NewAPI(svc *service.Service, secure bool, spaFS fs.FS) *API {
 	return &API{
 		Service:    svc,
-		Store:      svc.Store(),
 		Secure:     secure,
 		limiter:    newIPLimiter(),
 		spaHandler: newSPAHandler(spaFS),

@@ -3,6 +3,7 @@ package handler
 import (
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -89,9 +90,17 @@ func sameOrigin(r *http.Request) bool {
 	if origin == "" {
 		return true
 	}
-	host := r.Host
-	return strings.TrimSuffix(origin, "/") == "http://"+host ||
-		strings.TrimSuffix(origin, "/") == "https://"+host
+	expectedHost := r.Header.Get("X-Forwarded-Host")
+	if expectedHost == "" {
+		expectedHost = r.Host
+	}
+	if u, err := url.Parse(origin); err == nil && u.Host != "" {
+		if strings.EqualFold(u.Host, expectedHost) {
+			return true
+		}
+	}
+	trimmed := strings.TrimSuffix(origin, "/")
+	return trimmed == "http://"+expectedHost || trimmed == "https://"+expectedHost
 }
 
 // --- handlers ---
@@ -169,15 +178,38 @@ func (a *API) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func isPrivateOrLocalIP(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast()
+}
+
 func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if i := strings.IndexByte(xff, ','); i > 0 {
-			return strings.TrimSpace(xff[:i])
+	remoteHost, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remoteHost = r.RemoteAddr
+	}
+
+	// 仅当前置连接来自本地回环或私有内网地址（表明请求经由本机/内网反向代理转发）时，
+	// 才信任反向代理透传的 X-Real-IP / X-Forwarded-For；
+	// 否则直接以远程连接 IP 为准，防止公网直连客户端伪造请求头绕过防爆破限流。
+	if isPrivateOrLocalIP(remoteHost) {
+		if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
+			if net.ParseIP(xrip) != nil {
+				return xrip
+			}
 		}
-		return strings.TrimSpace(xff)
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if net.ParseIP(p) != nil {
+					return p
+				}
+			}
+		}
 	}
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
+	return remoteHost
 }

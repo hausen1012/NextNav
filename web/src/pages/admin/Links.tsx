@@ -35,9 +35,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Field } from '@/components/Field'
 import { SiteIcon } from '@/components/SiteIcon'
 import { TablePagination } from '@/components/admin/TablePagination'
+import { LinkDialog } from '@/components/admin/LinkDialog'
 
 export interface LinkWithMeta extends LinkDTO {
   categoryName: string
@@ -65,19 +65,12 @@ export function AdminLinksPage() {
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [title, setTitle] = useState('')
-  const [url, setUrl] = useState('')
-  const [categoryId, setCategoryId] = useState<number>(0)
-  const [description, setDescription] = useState('')
-  const [backupUrl, setBackupUrl] = useState('')
-  const [sortWeight, setSortWeight] = useState<string>('10')
-  const [isPrivate, setIsPrivate] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [editingLink, setEditingLink] = useState<LinkWithMeta | null>(null)
 
   // Delete modal
   const [deleteItem, setDeleteItem] = useState<LinkWithMeta | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Flatten links and category options
   const { flatCategories, flatLinks } = useMemo(() => {
@@ -169,89 +162,28 @@ export function AdminLinksPage() {
   }
 
   function openCreate() {
-    setEditingId(null)
-    setTitle('')
-    setUrl('')
-    setCategoryId(flatCategories[0]?.id ?? 0)
-    setDescription('')
-    setBackupUrl('')
-    setSortWeight('10')
-    setIsPrivate(false)
-    setError(null)
+    setEditingLink(null)
     setModalOpen(true)
   }
 
   function openEdit(link: LinkWithMeta) {
-    setEditingId(link.id)
-    setTitle(link.title)
-    setUrl(link.url)
-    setCategoryId(link.categoryId)
-    setDescription(link.description || '')
-    setBackupUrl(link.backupUrl || '')
-    setSortWeight(link.sort !== undefined && link.sort !== null ? String(link.sort) : '')
-    setIsPrivate(link.isPrivate)
-    setError(null)
+    setEditingLink(link)
     setModalOpen(true)
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
-
-    const targetCatId = categoryId || flatCategories[0]?.id
-    if (!targetCatId) {
-      setError('请选择或先创建分类')
-      setIsSubmitting(false)
-      return
-    }
-
-    const sortVal = sortWeight ? parseInt(sortWeight, 10) : undefined
-
-    try {
-      if (editingId) {
-        await api.updateLink(editingId, {
-          title,
-          url,
-          categoryId: targetCatId,
-          description: description || null,
-          backupUrl: backupUrl || null,
-          sort: sortVal,
-          isPrivate,
-        })
-      } else {
-        await api.createLink({
-          categoryId: targetCatId,
-          title,
-          url,
-          description: description || null,
-          backupUrl: backupUrl || null,
-          sort: sortVal,
-          isPrivate,
-        })
-      }
-      invalidate()
-      setModalOpen(false)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '保存失败')
-    } finally {
-      setIsSubmitting(false)
-    }
   }
 
   async function handleDelete(e: React.FormEvent) {
     e.preventDefault()
     if (!deleteItem) return
-    setIsSubmitting(true)
-    setError(null)
+    setIsDeleting(true)
+    setDeleteError(null)
     try {
       await api.deleteLink(deleteItem.id)
       invalidate()
       setDeleteItem(null)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '删除失败')
+      setDeleteError(err instanceof Error ? err.message : '删除失败')
     } finally {
-      setIsSubmitting(false)
+      setIsDeleting(false)
     }
   }
 
@@ -518,98 +450,13 @@ export function AdminLinksPage() {
       </Card>
 
       {/* Create / Edit Dialog */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>{editingId ? '编辑链接' : '新建链接'}</DialogTitle>
-            <DialogDescription>
-              {editingId ? '修改链接详细信息与归属分类。' : '录入新链接信息并保存。'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className='space-y-4 pt-2'>
-            {error && <p className='text-xs text-destructive'>{error}</p>}
-            <Field label='链接名称' htmlFor='modal-link-title'>
-              <Input
-                id='modal-link-title'
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder='例如：Tailwind CSS'
-                required
-              />
-            </Field>
-            <Field label='网址 (URL)' htmlFor='modal-link-url'>
-              <Input
-                id='modal-link-url'
-                type='url'
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder='https://tailwindcss.com'
-                required
-              />
-            </Field>
-            <Field label='归属分类' htmlFor='modal-link-cat'>
-              <select
-                id='modal-link-cat'
-                value={categoryId}
-                onChange={(e) => setCategoryId(Number(e.target.value))}
-                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-              >
-                {flatCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label='描述介绍（可选）' htmlFor='modal-link-desc'>
-              <Input
-                id='modal-link-desc'
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder='快速实用的原子类 CSS 框架'
-              />
-            </Field>
-            <Field label='备用网址（可选）' htmlFor='modal-link-backup'>
-              <Input
-                id='modal-link-backup'
-                type='url'
-                value={backupUrl}
-                onChange={(e) => setBackupUrl(e.target.value)}
-                placeholder='备用镜像或备选站点'
-              />
-            </Field>
-            <Field label='排序' htmlFor='modal-link-sort'>
-              <Input
-                id='modal-link-sort'
-                type='number'
-                value={sortWeight}
-                onChange={(e) => setSortWeight(e.target.value)}
-                placeholder='数字越小越靠前，默认 10'
-              />
-            </Field>
-            <div className='flex items-center gap-2 pt-1'>
-              <input
-                type='checkbox'
-                id='modal-link-private'
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-                className='size-4 rounded border-input text-primary focus:ring-ring'
-              />
-              <label htmlFor='modal-link-private' className='text-sm text-foreground select-none cursor-pointer'>
-                设为私有链接（仅管理员可见）
-              </label>
-            </div>
-            <DialogFooter className='pt-2'>
-              <Button type='button' variant='outline' onClick={() => setModalOpen(false)}>
-                取消
-              </Button>
-              <Button type='submit' disabled={isSubmitting}>
-                {isSubmitting ? '保存中...' : '确认保存'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <LinkDialog
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        link={editingLink}
+        categories={flatCategories}
+        onSuccess={invalidate}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
@@ -622,13 +469,13 @@ export function AdminLinksPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleDelete} className='pt-2'>
-            {error && <p className='text-xs text-destructive mb-3'>{error}</p>}
+            {deleteError && <p className='text-xs text-destructive mb-3'>{deleteError}</p>}
             <DialogFooter>
               <Button type='button' variant='outline' onClick={() => setDeleteItem(null)}>
                 取消
               </Button>
-              <Button type='submit' variant='destructive' disabled={isSubmitting}>
-                {isSubmitting ? '删除中...' : '确认删除'}
+              <Button type='submit' variant='destructive' disabled={isDeleting}>
+                {isDeleting ? '删除中...' : '确认删除'}
               </Button>
             </DialogFooter>
           </form>

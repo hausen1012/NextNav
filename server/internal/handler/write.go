@@ -134,6 +134,10 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不存在", "categoryId")
 		return
 	}
+	if errors.Is(err, service.ErrDuplicateLink) {
+		httpx.Fail(w, http.StatusConflict, "duplicate_link", "该分类下已存在相同链接")
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return

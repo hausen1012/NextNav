@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -95,6 +96,9 @@ func (s *Store) CreateLink(l *Link) (int64, error) {
 		status, l.TitleNorm, l.Host, l.PinyinFull, l.PinyinShort, l.SearchText, now, now,
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return 0, ErrDuplicate
+		}
 		return 0, err
 	}
 	return res.LastInsertId()
@@ -118,7 +122,13 @@ func (s *Store) UpdateLink(l *Link) error {
 		nullableString(l.IconPath), nullableString(l.IconSource), l.Sort, priv,
 		l.TitleNorm, l.Host, l.PinyinFull, l.PinyinShort, l.SearchText, now, l.ID,
 	)
-	return err
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return ErrDuplicate
+		}
+		return err
+	}
+	return nil
 }
 
 // DeleteLink deletes a link by ID.

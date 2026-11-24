@@ -3,6 +3,8 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -16,6 +18,21 @@ func (s *statusRecorder) WriteHeader(code int) {
 	s.ResponseWriter.WriteHeader(code)
 }
 
+func isStaticOrHealth(p string) bool {
+	if p == "/api/health" {
+		return true
+	}
+	if strings.HasPrefix(p, "/assets/") || strings.HasPrefix(p, "/icons/") {
+		return true
+	}
+	ext := path.Ext(p)
+	switch ext {
+	case ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".webmanifest", ".map":
+		return true
+	}
+	return false
+}
+
 // AccessLog logs one line per request to stdout. Static asset requests are
 // logged at debug level to keep production logs readable.
 func (a *API) AccessLog(next http.Handler) http.Handler {
@@ -25,7 +42,7 @@ func (a *API) AccessLog(next http.Handler) http.Handler {
 		next.ServeHTTP(rec, r)
 
 		level := slog.LevelInfo
-		if r.URL.Path == "/api/health" {
+		if isStaticOrHealth(r.URL.Path) {
 			level = slog.LevelDebug
 		}
 		slog.Log(r.Context(), level, "http",
