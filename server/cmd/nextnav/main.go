@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,8 +36,13 @@ func main() {
 	}
 	api := handler.NewAPI(svc, cfg.SecureCookie, webembed.FS())
 
+	addr := ":" + cfg.Port
+	if cfg.Host != "" {
+		addr = net.JoinHostPort(cfg.Host, cfg.Port)
+	}
+
 	srv := &http.Server{
-		Addr:              ":" + cfg.Port,
+		Addr:              addr,
 		Handler:           handler.NewRouter(api),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,

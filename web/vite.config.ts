@@ -96,9 +96,8 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, './src') },
   },
   server: {
-    // Bind IPv4 explicitly: on Windows, plain `localhost` can end up listening
-    // only on ::1, which makes http://127.0.0.1:5173 unreachable.
-    host: '127.0.0.1',
+    // 监听 0.0.0.0，使本机与局域网/其他 IP 均可访问
+    host: process.env.WEB_HOST || '0.0.0.0',
     port: Number(process.env.WEB_PORT) || 5173,
     proxy: {
       '/api': { target: backend, changeOrigin: false },

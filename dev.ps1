@@ -7,7 +7,7 @@
     .\dev.ps1 build    production-ish: build web, embed, single binary, run
     .\dev.ps1 test     run all tests
 
-    Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), GOTOOLCHAIN,
+    Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), WEB_HOST (vite), GOTOOLCHAIN,
     ADMIN_USERNAME, ADMIN_PASSWORD, SEED_SAMPLE.
 
 .EXAMPLE
@@ -29,6 +29,7 @@ Set-Location $Root
 
 if (-not $env:PORT)           { $env:PORT = '8787' }
 if (-not $env:WEB_PORT)       { $env:WEB_PORT = '5173' }
+if (-not $env:WEB_HOST)       { $env:WEB_HOST = '0.0.0.0' }
 if (-not $env:DATA_DIR)       { $env:DATA_DIR = Join-Path $Root 'data' }
 if (-not $env:GOTOOLCHAIN)    { $env:GOTOOLCHAIN = 'local' }
 if (-not $env:ADMIN_USERNAME) { $env:ADMIN_USERNAME = 'admin' }

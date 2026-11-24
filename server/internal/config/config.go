@@ -7,6 +7,7 @@ import (
 
 // Config holds runtime configuration read from environment variables.
 type Config struct {
+	Host          string
 	Port          string
 	DataDir       string
 	CheckInterval string
@@ -19,6 +20,7 @@ type Config struct {
 
 func Load() Config {
 	return Config{
+		Host:          env("HOST", ""),
 		Port:          env("PORT", "8787"),
 		DataDir:       env("DATA_DIR", "./data"),
 		CheckInterval: env("CHECK_INTERVAL", "1d"),
