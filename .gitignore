@@ -1,0 +1,25 @@
+# dependencies / build output
+node_modules/
+web/dist/
+bin/
+nextnav.exe
+*.tsbuildinfo
+
+# runtime data (SQLite + uploaded icons)
+data/
+server/data/
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# local env
+.env
+.env.local
+
+# go test artifacts
+*.test
+coverage.out
