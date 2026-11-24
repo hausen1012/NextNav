@@ -25,7 +25,6 @@ import {
   Copy,
   Check,
   AlertTriangle,
-  FolderPlus,
   Trash2,
 } from 'lucide-react'
 
@@ -597,7 +596,7 @@ export function HomePage() {
         }`}
       >
         {/* 顶部 Logo 与站点名称 */}
-        <div className='flex h-16 items-center justify-between px-4 border-b border-zinc-200/60 dark:border-zinc-800/60'>
+        <div className='flex h-16 items-center px-4 border-b border-zinc-200/60 dark:border-zinc-800/60'>
           <div className='flex items-center gap-2.5 truncate'>
             {data.site.logoUrl ? (
               <img
@@ -618,18 +617,6 @@ export function HomePage() {
               {data.site.name || 'NextNav'}
             </button>
           </div>
-
-          {/* 管理员添加顶级分类按钮 */}
-          {isAdmin && (
-            <button
-              type='button'
-              onClick={() => openCreateCategoryModal(null)}
-              className='flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-200/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition'
-              title='新建顶级分类'
-            >
-              <FolderPlus className='size-4' />
-            </button>
-          )}
         </div>
 
         {/* 分类导航树形列表 (纯净无编辑按钮) */}
@@ -708,36 +695,6 @@ export function HomePage() {
             )
           })}
         </nav>
-
-        {/* 侧边栏底部：快捷提示与操作 */}
-        <div className='p-3 border-t border-zinc-200/60 dark:border-zinc-800/60 flex items-center justify-between'>
-          <button
-            type='button'
-            onClick={() => {
-              searchInputRef.current?.focus()
-              searchInputRef.current?.select()
-            }}
-            className='inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-zinc-500 shadow-2xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-            title='快捷键 F1 快速搜索'
-          >
-            <span className='font-mono'>F1</span>
-            <span className='text-[10px] font-normal text-zinc-400 dark:text-zinc-500'>搜索</span>
-          </button>
-
-          {isAdmin ? (
-            <button
-              type='button'
-              onClick={() => openCreateCategoryModal(null)}
-              className='text-xs text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white font-medium'
-            >
-              + 新增分类
-            </button>
-          ) : (
-            <span className='text-[11px] text-zinc-400 dark:text-zinc-500'>
-              {totalMatched} 个链接
-            </span>
-          )}
-        </div>
       </aside>
 
       {/* ===================== 右侧主内容区 (Main Content) ===================== */}
@@ -758,102 +715,104 @@ export function HomePage() {
           <div className='w-8' />
         </div>
 
-        {/* 顶部搜索区 (经典胶囊搜索框 - 黑白灰风格) */}
-        <div className='pt-8 pb-4 px-4 sm:px-8 max-w-4xl mx-auto w-full'>
-          <form onSubmit={handleSearchSubmit} className='relative w-full'>
-            <div className='relative flex items-center rounded-full border border-zinc-200 bg-white shadow-xs transition-all focus-within:border-zinc-400 focus-within:shadow-md dark:border-zinc-700 dark:bg-[#1a1d24]'>
-              {/* 搜索引擎下拉选择 */}
-              <div ref={engineDropdownRef} className='relative shrink-0'>
-                <button
-                  type='button'
-                  onClick={() => setShowEngineDropdown(!showEngineDropdown)}
-                  className='flex items-center gap-1 pl-4 pr-3 py-3 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white transition'
-                >
-                  <span>{SEARCH_ENGINES[engineIndex].name}</span>
-                  <ChevronDown className='size-3 text-zinc-400' />
-                </button>
+        {/* 右侧主内容容器 (水平居中、左右对称留白) */}
+        <div className='w-full max-w-6xl mx-auto px-6 sm:px-10 lg:px-12 py-8 pb-44 space-y-10'>
+          {/* 顶部搜索区 (经典胶囊搜索框 - 黑白灰风格) */}
+          <div className='max-w-3xl mx-auto w-full'>
+            <form onSubmit={handleSearchSubmit} className='relative w-full'>
+              <div className='relative flex items-center rounded-full border border-zinc-200 bg-white shadow-xs transition-all focus-within:border-zinc-400 focus-within:shadow-md dark:border-zinc-700 dark:bg-[#1a1d24]'>
+                {/* 搜索引擎下拉选择 */}
+                <div ref={engineDropdownRef} className='relative shrink-0'>
+                  <button
+                    type='button'
+                    onClick={() => setShowEngineDropdown(!showEngineDropdown)}
+                    className='flex items-center gap-1 pl-4 pr-3 py-3 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white transition'
+                  >
+                    <span>{SEARCH_ENGINES[engineIndex].name}</span>
+                    <ChevronDown className='size-3 text-zinc-400' />
+                  </button>
 
-                {showEngineDropdown && (
-                  <div className='absolute left-2 top-full mt-1.5 z-40 w-28 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-[#1c1f26] text-xs'>
-                    {SEARCH_ENGINES.map((eng, idx) => (
-                      <button
-                        key={eng.id}
-                        type='button'
-                        onClick={() => {
-                          setEngineIndex(idx)
-                          setShowEngineDropdown(false)
-                          searchInputRef.current?.focus()
-                        }}
-                        className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition ${
-                          engineIndex === idx
-                            ? 'bg-zinc-100 text-zinc-950 font-semibold dark:bg-zinc-800 dark:text-zinc-100'
-                            : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/60'
-                        }`}
-                      >
-                        <span>{eng.name}</span>
-                        {engineIndex === idx && <Check className='size-3' />}
-                      </button>
-                    ))}
-                  </div>
+                  {showEngineDropdown && (
+                    <div className='absolute left-2 top-full mt-1.5 z-40 w-28 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-[#1c1f26] text-xs'>
+                      {SEARCH_ENGINES.map((eng, idx) => (
+                        <button
+                          key={eng.id}
+                          type='button'
+                          onClick={() => {
+                            setEngineIndex(idx)
+                            setShowEngineDropdown(false)
+                            searchInputRef.current?.focus()
+                          }}
+                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition ${
+                            engineIndex === idx
+                              ? 'bg-zinc-100 text-zinc-950 font-semibold dark:bg-zinc-800 dark:text-zinc-100'
+                              : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/60'
+                          }`}
+                        >
+                          <span>{eng.name}</span>
+                          {engineIndex === idx && <Check className='size-3' />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 垂直分割线 */}
+                <div className='h-4 w-px bg-zinc-200 dark:bg-zinc-700' />
+
+                {/* 搜索输入框 */}
+                <input
+                  ref={searchInputRef}
+                  type='search'
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder='请输入关键词检索或外部搜索...'
+                  className='w-full bg-transparent px-3 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-hidden dark:text-zinc-100 dark:placeholder-zinc-500'
+                />
+
+                {/* 清除按钮 */}
+                {keyword && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setKeyword('')
+                      searchInputRef.current?.focus()
+                    }}
+                    className='p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                    title='清空输入'
+                  >
+                    <X className='size-4' />
+                  </button>
                 )}
+
+                {/* 搜索按钮 */}
+                <button
+                  type='submit'
+                  className='mr-1.5 flex size-9 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white transition'
+                  title='搜索'
+                >
+                  <Search className='size-4' />
+                </button>
               </div>
+            </form>
 
-              {/* 垂直分割线 */}
-              <div className='h-4 w-px bg-zinc-200 dark:bg-zinc-700' />
-
-              {/* 搜索输入框 */}
-              <input
-                ref={searchInputRef}
-                type='search'
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder='请输入关键词检索或外部搜索...'
-                className='w-full bg-transparent px-3 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-hidden dark:text-zinc-100 dark:placeholder-zinc-500'
-              />
-
-              {/* 清除按钮 */}
-              {keyword && (
+            {/* 搜索提示或匹配统计 */}
+            {keyword.trim() && (
+              <div className='mt-2.5 flex items-center justify-between px-2 text-xs text-zinc-500 dark:text-zinc-400'>
+                <span>站内匹配到 {totalMatched} 个链接</span>
                 <button
                   type='button'
-                  onClick={() => {
-                    setKeyword('')
-                    searchInputRef.current?.focus()
-                  }}
-                  className='p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
-                  title='清空输入'
+                  onClick={() => setKeyword('')}
+                  className='text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
                 >
-                  <X className='size-4' />
+                  清除检索
                 </button>
-              )}
+              </div>
+            )}
+          </div>
 
-              {/* 搜索按钮 */}
-              <button
-                type='submit'
-                className='mr-1.5 flex size-9 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white transition'
-                title='搜索'
-              >
-                <Search className='size-4' />
-              </button>
-            </div>
-          </form>
-
-          {/* 搜索提示或匹配统计 */}
-          {keyword.trim() && (
-            <div className='mt-2.5 flex items-center justify-between px-2 text-xs text-zinc-500 dark:text-zinc-400'>
-              <span>站内匹配到 {totalMatched} 个链接</span>
-              <button
-                type='button'
-                onClick={() => setKeyword('')}
-                className='text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
-              >
-                清除检索
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* 链接分类主展示区 (右侧与底部留出充足安全边距，避免悬浮工具栏遮挡) */}
-        <div className='flex-1 px-5 sm:px-8 md:pl-8 md:pr-24 lg:pr-28 xl:pr-32 pb-44 space-y-10'>
+          {/* 链接分类展示区 */}
+          <div className='space-y-10'>
           {isInitialEmpty ? (
             <div className='rounded-2xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-800'>
               <p className='text-sm text-zinc-500 dark:text-zinc-400'>暂无导航链接数据。</p>
@@ -1024,6 +983,7 @@ export function HomePage() {
               )
             })
           )}
+          </div>
         </div>
       </main>
 
