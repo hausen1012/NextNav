@@ -23,7 +23,7 @@ export function SiteIcon({ name, url = '', iconUrl, size = 32 }: Props) {
         loading='lazy'
         decoding='async'
         onError={() => setFailed(true)}
-        className='shrink-0 rounded-md object-contain'
+        className='shrink-0 rounded-full object-contain'
         style={{ width: size, height: size }}
       />
     )
@@ -33,7 +33,7 @@ export function SiteIcon({ name, url = '', iconUrl, size = 32 }: Props) {
   return (
     <span
       aria-hidden='true'
-      className='flex shrink-0 items-center justify-center rounded-md font-semibold text-white'
+      className='flex shrink-0 items-center justify-center rounded-full font-semibold text-white'
       style={{
         width: size,
         height: size,

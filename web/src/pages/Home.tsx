@@ -602,10 +602,10 @@ export function HomePage() {
               <img
                 src={data.site.logoUrl}
                 alt={data.site.name}
-                className='size-8 object-contain rounded-md'
+                className='size-8 object-contain rounded-full overflow-hidden'
               />
             ) : (
-              <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 font-bold text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'>
+              <div className='flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 font-bold text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'>
                 {data.site.name ? data.site.name.charAt(0).toUpperCase() : 'N'}
               </div>
             )}

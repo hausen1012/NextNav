@@ -121,8 +121,8 @@ export function LinkCard({
           </div>
         )}
 
-        {/* 网站图标 */}
-        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 dark:bg-neutral-800'>
+        {/* 网站图标容器 (纯圆形，暗黑模式无白边) */}
+        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100/80 dark:bg-zinc-800/80'>
           <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={36} />
         </div>
 
