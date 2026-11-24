@@ -274,5 +274,6 @@ data/
 | 版本 | 内容 |
 |---|---|
 | 0001_init | 上述全部表、索引、`PRAGMA user_version = 1` |
+| 0002_category_description | `category` 表新增 `description TEXT` 字段，`PRAGMA user_version = 2` |
 
 后续变更一律新增 `000N_*.sql`，不改历史文件。启动时在事务内逐版本执行，失败则回滚并拒绝启动（打印到 stderr）。

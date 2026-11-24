@@ -69,44 +69,52 @@
 
 ## 1. 端点总览
 
+### 1.1 核心可用端点
+
 | 方法 | 路径 | 身份 | 说明 |
 |---|---|---|---|
 | GET | `/api/health` | 公开 | 存活检查，供容器 healthcheck |
 | GET | `/api/setup/status` | 公开 | 是否已安装 |
-| POST | `/api/setup` | 公开（仅未安装时） | 创建管理员 |
+| POST | `/api/setup` | 公开（仅未安装时） | 创建管理员并初始化示例数据 |
 | POST | `/api/login` | 公开 | 登录 |
 | POST | `/api/logout` | 公开 | 注销 |
 | GET | `/api/me` | 任意 | 当前身份 |
 | GET | `/api/home` | 任意 | 首页数据（站点信息 + 分类树 + 链接） |
-| GET | `/api/links` | 任意 | 列表 / 搜索 |
-| GET | `/api/links/{id}` | 任意 | 详情 |
-| POST | `/api/links` | 管理员 | 新增 |
-| PATCH | `/api/links/{id}` | 管理员 | 编辑 |
-| DELETE | `/api/links/{id}` | 管理员 | 删除 |
-| POST | `/api/links/reorder` | 管理员 | 同分类内排序 |
-| POST | `/api/links/move` | 管理员 | 批量移动分类 |
-| POST | `/api/links/batch-delete` | 管理员 | 批量删除 |
-| POST | `/api/links/{id}/click` | 任意 | 点击计数（游客可调用） |
-| POST | `/api/links/{id}/check` | 管理员 | 单条检测 |
-| POST | `/api/links/check-all` | 管理员 | 全站检测（后台） |
-| GET | `/api/check/status` | 管理员 | 检测进度 |
-| POST | `/api/meta` | 管理员 | 抓取 URL 元信息（添加链接前预览） |
-| GET | `/api/categories` | 任意 | 分类树 |
-| POST | `/api/categories` | 管理员 | 新建 |
-| PATCH | `/api/categories/{id}` | 管理员 | 编辑 |
-| DELETE | `/api/categories/{id}` | 管理员 | 删除（指定链接去向） |
-| POST | `/api/categories/reorder` | 管理员 | 同层级排序 |
-| GET | `/api/checks` | 管理员 | 检测记录查询（失效清单） |
-| GET | `/api/settings` | 公开 | 站点设置（公开子集） |
+| GET | `/api/categories` | 任意 | 分类列表（支持游客与管理员视图） |
+| POST | `/api/categories` | 管理员 | 新建分类 |
+| PATCH | `/api/categories/{id}` | 管理员 | 编辑分类 |
+| DELETE | `/api/categories/{id}` | 管理员 | 删除分类（支持级联删除或迁移链接） |
+| POST | `/api/links` | 管理员 | 新增链接 |
+| PATCH | `/api/links/{id}` | 管理员 | 编辑链接 |
+| DELETE | `/api/links/{id}` | 管理员 | 删除链接 |
+| POST | `/api/links/reorder` | 管理员 | 同分类内链接重排序 |
+| GET | `/api/settings` | 公开 | 站点公开设置 |
 | PATCH | `/api/settings` | 管理员 | 修改站点设置 |
-| POST | `/api/settings/account` | 管理员 | 修改用户名 / 密码 |
-| GET | `/api/settings/token` | 管理员 | token 状态 |
-| POST | `/api/settings/token` | 管理员 | 生成 / 轮换 token |
-| DELETE | `/api/settings/token` | 管理员 | 吊销 token |
+| POST | `/api/settings/account` | 管理员 | 修改管理员用户名与密码 |
+| POST | `/api/sample/clear` | 管理员 | 清空预置示例数据 |
+| GET | `/icons/*` | 公开 | 图标静态资源托管 |
+
+### 1.2 规划中扩展端点
+
+| 方法 | 路径 | 身份 | 说明 |
+|---|---|---|---|
+| GET | `/api/links` | 任意 | 独立链接列表 / 服务端高级搜索 |
+| GET | `/api/links/{id}` | 任意 | 链接详情 |
+| POST | `/api/links/move` | 管理员 | 批量移动分类 |
+| POST | `/api/links/batch-delete` | 管理员 | 批量删除链接 |
+| POST | `/api/links/{id}/click` | 任意 | 点击计数上报 |
+| POST | `/api/links/{id}/check` | 管理员 | 单条健康检测 |
+| POST | `/api/links/check-all` | 管理员 | 全站健康检测 |
+| GET | `/api/check/status` | 管理员 | 检测进度查询 |
+| POST | `/api/meta` | 管理员 | 抓取 URL 元信息预览 |
+| POST | `/api/categories/reorder` | 管理员 | 同层级分类排序 |
+| GET | `/api/checks` | 管理员 | 检测记录查询（失效清单） |
+| GET | `/api/settings/token` | 管理员 | API Token 状态 |
+| POST | `/api/settings/token` | 管理员 | 生成 / 轮换 API Token |
+| DELETE | `/api/settings/token` | 管理员 | 吊销 API Token |
 | POST | `/api/links/{id}/icon` | 管理员 | 上传自定义图标 |
-| POST | `/api/sample/clear` | 管理员 | 清空示例数据 |
-| GET | `/api/backup/export` | 管理员 | 导出 JSON |
-| POST | `/api/backup/import` | 管理员 | 导入 JSON |
+| GET | `/api/backup/export` | 管理员 | 备份导出 JSON |
+| POST | `/api/backup/import` | 管理员 | 备份导入 JSON |
 
 非 `/api` 的静态路径：`/icons/*`（图标，长缓存）、`/manifest.webmanifest`、`/sw.js`；其余路径一律返回 SPA 的 `index.html`。
 
@@ -174,18 +182,19 @@
   },
   "groups": [
     {
-      "id": 1, "name": "开发", "iconUrl": null, "description": null, "sort": 1000,
+      "id": 1, "name": "开发", "icon": "Code", "iconUrl": null, "description": "常用开发技术与平台", "sort": 1000,
       "links": [],
       "categories": [
         {
-          "id": 3, "name": "代码托管", "iconUrl": null, "description": null, "sort": 1000,
+          "id": 3, "name": "代码托管", "icon": "FolderGit", "iconUrl": null, "description": null, "sort": 1000,
+          "isPrivate": false, "parentId": 1,
           "links": [
             {
               "id": 12, "title": "GitHub", "url": "https://github.com",
               "backupUrl": null, "description": "代码托管",
               "iconUrl": "/icons/ab/cd/abcdef0123456789.webp",
               "isPrivate": false, "status": "ok",
-              "clickCount": 3, "lastCheckedAt": 1764000000000
+              "sort": 1000, "lastCheckedAt": 1764000000000
             }
           ]
         }
@@ -240,19 +249,21 @@
   "url": "https://github.com",
   "backupUrl": null,
   "description": "代码托管",
-  "isPrivate": false,
-  "iconUrl": null
+  "sort": 1000,
+  "isPrivate": false
 }
 ```
 
-- `title` 为空时服务端尝试用 host 兜底；`url` 必须 http/https。
+- `categoryId` 与 `url` 为必填项；`url` 必须为 http/https。
+- `title` 为空时服务端使用 host 兜底（最多 128 字符）。
+- `backupUrl`、`description`、`sort`、`isPrivate` 为可选项。
 - 同分类下 URL 重复 → `409 duplicate_link`。
-- 成功后异步抓取 favicon 并更新 `iconUrl`（前端可先显示占位）。
-- 响应 `201` + 完整对象。
+- 响应 `201` + 完整链接对象。
 
 ### PATCH /api/links/{id}
 
-只传需要改的字段。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。
+只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。
+响应 `200` + 完整更新后的链接对象。
 
 ### DELETE /api/links/{id}
 
@@ -332,7 +343,37 @@
 
 ### GET /api/categories
 
-返回过滤后的完整两级树（结构同 `/api/home` 的 `groups`，但不含链接）。供编辑模式的分类管理使用。
+返回过滤后的完整两级树（结构同 `/api/home` 的 `groups`，但不含链接）。供分类管理与选择器使用：
+
+```json
+{
+  "groups": [
+    {
+      "id": 1,
+      "name": "开发",
+      "icon": "Code",
+      "iconUrl": null,
+      "description": "常用开发技术与平台",
+      "sort": 1000,
+      "isPrivate": false,
+      "links": [],
+      "categories": [
+        {
+          "id": 3,
+          "name": "代码托管",
+          "icon": "FolderGit",
+          "iconUrl": null,
+          "description": null,
+          "sort": 1000,
+          "isPrivate": false,
+          "parentId": 1,
+          "links": []
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### POST /api/categories
 
@@ -354,6 +395,11 @@
 - `isPrivate`: 是否私有（布尔，默认 `false`）。
 - `description`: 分类描述（文本，可选）。
 
+响应 `201`：
+```json
+{ "id": 1, "name": "开发" }
+```
+
 ### PATCH /api/categories/{id}
 
 ```json
@@ -368,6 +414,11 @@
 ```
 
 可改 `name` / `parentId` / `icon` (`iconPath`) / `sort` / `isPrivate` / `description`。改 `name` 触发其下链接的搜索索引重算（后台任务）。用户编辑后 `is_sample` 置 0，并连同子分类。
+
+响应 `200`：
+```json
+{ "id": 1, "name": "开发工具" }
+```
 
 ### DELETE /api/categories/{id}
 
@@ -426,6 +477,11 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 ```
 
 `username` / `newPassword` 可省略其一。改密码成功后**作废现有会话**（换 cookie 密钥会导致所有已登录设备下线，属于预期行为）。
+
+响应 `200`：
+```json
+{ "username": "newname" }
+```
 
 ### GET /api/settings/token
 
