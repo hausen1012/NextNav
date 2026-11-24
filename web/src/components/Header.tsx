@@ -1,14 +1,32 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useMe, clearHomeCache } from '@/lib/query'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun, LayoutDashboard, LogOut } from 'lucide-react'
+import { Moon, Sun, LayoutDashboard, LogOut, RotateCw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export function Header({ siteName }: { siteName: string }) {
+  const qc = useQueryClient()
   const { data: me } = useMe()
   const [theme, setThemeState] = useState<Theme>(getTheme())
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function handleRefresh() {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await clearHomeCache()
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ['home'] }),
+        qc.refetchQueries({ queryKey: ['me'] }),
+      ])
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     document.title = siteName || 'NextNav'
@@ -21,6 +39,17 @@ export function Header({ siteName }: { siteName: string }) {
           {siteName || 'NextNav'}
         </Link>
         <div className='flex-1' />
+        <Button
+          variant='ghost'
+          size='icon'
+          className='size-8'
+          onClick={handleRefresh}
+          disabled={refreshing}
+          aria-label='刷新导航数据'
+          title='刷新导航数据'
+        >
+          <RotateCw className={cn('size-4', refreshing && 'animate-spin')} />
+        </Button>
         <Button
           variant='ghost'
           size='icon'

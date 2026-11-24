@@ -19,28 +19,34 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 
 export function useMe() {
-  return useQuery({ queryKey: ['me'], queryFn: api.me, staleTime: 60_000 })
+  return useQuery({ queryKey: ['me'], queryFn: api.me, staleTime: 60 * 60 * 1000 })
 }
 
 export function useHome() {
   return useQuery({ queryKey: ['home'], queryFn: api.home, staleTime: 60 * 60 * 1000 })
 }
 
-export async function clearHomeCache() {
+export async function clearAllApiCache() {
   if (typeof caches !== 'undefined') {
     try {
-      await caches.delete('api-home-cache')
+      await Promise.all([
+        caches.delete('api-home-cache'),
+        caches.delete('api-me-cache'),
+      ])
     } catch {
       // 忽略不支持的环境
     }
   }
 }
 
+export const clearHomeCache = clearAllApiCache
+
 export function useInvalidateHome() {
   const qc = useQueryClient()
   return () => {
-    void clearHomeCache()
-    void qc.invalidateQueries({ queryKey: ['home'] })
-    void qc.invalidateQueries({ queryKey: ['me'] })
+    void clearAllApiCache().then(() => {
+      void qc.invalidateQueries({ queryKey: ['home'] })
+      void qc.invalidateQueries({ queryKey: ['me'] })
+    })
   }
 }

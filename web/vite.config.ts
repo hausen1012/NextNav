@@ -59,6 +59,21 @@ export default defineConfig({
             },
           },
           {
+            // 身份状态：采用 CacheFirst 策略，1 小时内完全走本地缓存
+            urlPattern: ({ url }) => url.pathname === '/api/me' && !url.searchParams.has('nocache'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'api-me-cache',
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 60 * 60, // 1 小时内免请求
+              },
+            },
+          },
+          {
             // 站点图标：采用 CacheFirst 策略，30 天内直接使用本地缓存，避免打开新标签页重复请求图标
             urlPattern: ({ url }) => url.pathname.startsWith('/icons/'),
             handler: 'CacheFirst',
