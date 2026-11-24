@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useHome } from '@/lib/query'
 import type { CategoryDTO, GroupDTO, LinkDTO } from '@/lib/api'
 import { SiteIcon } from '@/components/SiteIcon'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -58,10 +59,16 @@ function LinkGrid({ links, newTab }: { links: LinkDTO[]; newTab: boolean }) {
   )
 }
 
-function Section({ title, links, newTab }: { title: string; links: LinkDTO[]; newTab: boolean }) {
+function Section({ category, links, newTab }: { category: CategoryDTO; links: LinkDTO[]; newTab: boolean }) {
   return (
     <section className='space-y-2.5'>
-      <h3 className='text-sm font-medium text-muted-foreground'>{title}</h3>
+      <div className='flex items-center gap-1.5'>
+        <CategoryIcon icon={category.icon || category.iconUrl} isRoot={false} className='size-3.5 text-muted-foreground' />
+        <h3 className='text-sm font-medium text-muted-foreground'>{category.name}</h3>
+        {category.description ? (
+          <span className='text-xs text-muted-foreground/75 truncate font-normal'>- {category.description}</span>
+        ) : null}
+      </div>
       <LinkGrid links={links} newTab={newTab} />
     </section>
   )
@@ -73,11 +80,19 @@ function GroupBlock({ group, newTab }: { group: GroupDTO; newTab: boolean }) {
 
   return (
     <section className='space-y-4'>
-      <h2 className='text-base font-semibold'>{group.name}</h2>
+      <div className='flex flex-wrap items-baseline gap-2'>
+        <div className='flex items-center gap-2'>
+          <CategoryIcon icon={group.icon || group.iconUrl} isRoot={true} className='size-4 text-primary' />
+          <h2 className='text-base font-semibold'>{group.name}</h2>
+        </div>
+        {group.description ? (
+          <span className='text-xs text-muted-foreground'>{group.description}</span>
+        ) : null}
+      </div>
       {group.links.length > 0 ? <LinkGrid links={group.links} newTab={newTab} /> : null}
       {group.categories.map((c: CategoryDTO) =>
         c.links.length > 0 ? (
-          <Section key={c.id} title={c.name} links={c.links} newTab={newTab} />
+          <Section key={c.id} category={c} links={c.links} newTab={newTab} />
         ) : null,
       )}
     </section>

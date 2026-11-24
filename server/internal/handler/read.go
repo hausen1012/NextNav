@@ -28,22 +28,26 @@ type linkDTO struct {
 }
 
 type categoryDTO struct {
-	ID        int64     `json:"id"`
-	Name      string    `json:"name"`
-	IconURL   *string   `json:"iconUrl"`
-	Sort      int64     `json:"sort"`
-	IsPrivate bool      `json:"isPrivate"`
-	Links     []linkDTO `json:"links"`
-	ParentID  *int64    `json:"parentId,omitempty"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	IconURL     *string   `json:"iconUrl"`
+	Icon        *string   `json:"icon,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	Sort        int64     `json:"sort"`
+	IsPrivate   bool      `json:"isPrivate"`
+	Links       []linkDTO `json:"links"`
+	ParentID    *int64    `json:"parentId,omitempty"`
 }
 
 type groupDTO struct {
-	ID         int64         `json:"id"`
-	Name       string        `json:"name"`
-	IconURL    *string       `json:"iconUrl"`
-	Sort       int64         `json:"sort"`
-	Links      []linkDTO     `json:"links"`
-	Categories []categoryDTO `json:"categories"`
+	ID          int64         `json:"id"`
+	Name        string        `json:"name"`
+	IconURL     *string       `json:"iconUrl"`
+	Icon        *string       `json:"icon,omitempty"`
+	Description *string       `json:"description,omitempty"`
+	Sort        int64         `json:"sort"`
+	Links       []linkDTO     `json:"links"`
+	Categories  []categoryDTO `json:"categories"`
 }
 
 func nilIfEmpty(s sql.NullString) *string {
@@ -114,7 +118,7 @@ func (a *API) Home(w http.ResponseWriter, r *http.Request) {
 // link arrays are empty (used by /api/categories).
 func (a *API) loadTree(admin, withLinks bool) ([]groupDTO, error) {
 	rows, err := a.Store.DB.Query(
-		`SELECT id, name, icon_path, parent_id, sort, is_private
+		`SELECT id, name, icon_path, parent_id, sort, is_private, description
 		 FROM category ORDER BY parent_id IS NOT NULL, sort, id`)
 	if err != nil {
 		return nil, err
@@ -122,18 +126,19 @@ func (a *API) loadTree(admin, withLinks bool) ([]groupDTO, error) {
 	defer rows.Close()
 
 	type row struct {
-		id        int64
-		name      string
-		iconPath  sql.NullString
-		parentID  sql.NullInt64
-		sort      int64
-		isPrivate bool
+		id          int64
+		name        string
+		iconPath    sql.NullString
+		parentID    sql.NullInt64
+		sort        int64
+		isPrivate   bool
+		description sql.NullString
 	}
 	var flat []row
 	for rows.Next() {
 		var x row
 		var priv int64
-		if err := rows.Scan(&x.id, &x.name, &x.iconPath, &x.parentID, &x.sort, &priv); err != nil {
+		if err := rows.Scan(&x.id, &x.name, &x.iconPath, &x.parentID, &x.sort, &priv, &x.description); err != nil {
 			return nil, err
 		}
 		x.isPrivate = priv == 1
@@ -171,9 +176,14 @@ func (a *API) loadTree(admin, withLinks bool) ([]groupDTO, error) {
 			continue
 		}
 		gd := groupDTO{
-			ID: g.id, Name: g.name, IconURL: iconURL(g.iconPath.String), Sort: g.sort,
-			Links:      append([]linkDTO{}, linksByCat[g.id]...),
-			Categories: []categoryDTO{},
+			ID:          g.id,
+			Name:        g.name,
+			IconURL:     iconURL(g.iconPath.String),
+			Icon:        nilIfEmpty(g.iconPath),
+			Description: nilIfEmpty(g.description),
+			Sort:        g.sort,
+			Links:       append([]linkDTO{}, linksByCat[g.id]...),
+			Categories:  []categoryDTO{},
 		}
 		for _, c := range children[g.id] {
 			if !visible(c) {
@@ -181,9 +191,15 @@ func (a *API) loadTree(admin, withLinks bool) ([]groupDTO, error) {
 			}
 			var pid int64 = g.id
 			gd.Categories = append(gd.Categories, categoryDTO{
-				ID: c.id, Name: c.name, IconURL: iconURL(c.iconPath.String),
-				Sort: c.sort, IsPrivate: c.isPrivate, ParentID: &pid,
-				Links: append([]linkDTO{}, linksByCat[c.id]...),
+				ID:          c.id,
+				Name:        c.name,
+				IconURL:     iconURL(c.iconPath.String),
+				Icon:        nilIfEmpty(c.iconPath),
+				Description: nilIfEmpty(c.description),
+				Sort:        c.sort,
+				IsPrivate:   c.isPrivate,
+				ParentID:    &pid,
+				Links:       append([]linkDTO{}, linksByCat[c.id]...),
 			})
 		}
 		if gd.Links == nil {

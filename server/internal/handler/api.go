@@ -52,6 +52,13 @@ func iconURL(path string) *string {
 	if path == "" {
 		return nil
 	}
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") || strings.HasPrefix(path, "data:") {
+		return &path
+	}
+	// If it doesn't look like a file path (no slashes and no file extension), return as-is for emoji / icon name
+	if !strings.Contains(path, "/") && !strings.Contains(path, "\\") && !strings.Contains(path, ".") {
+		return &path
+	}
 	u := "/" + strings.TrimPrefix(filepath.ToSlash(path), "/")
 	return &u
 }

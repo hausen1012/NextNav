@@ -174,11 +174,11 @@
   },
   "groups": [
     {
-      "id": 1, "name": "开发", "iconUrl": null, "sort": 1000,
+      "id": 1, "name": "开发", "iconUrl": null, "description": null, "sort": 1000,
       "links": [],
       "categories": [
         {
-          "id": 3, "name": "代码托管", "iconUrl": null, "sort": 1000,
+          "id": 3, "name": "代码托管", "iconUrl": null, "description": null, "sort": 1000,
           "links": [
             {
               "id": 12, "title": "GitHub", "url": "https://github.com",
@@ -337,15 +337,37 @@
 ### POST /api/categories
 
 ```json
-{ "name": "开发", "parentId": null, "isPrivate": false }
+{
+  "name": "开发",
+  "parentId": null,
+  "icon": "Code",
+  "sort": 1000,
+  "isPrivate": false,
+  "description": "常用开发技术与平台"
+}
 ```
 
-- `parentId` 非空时，其父级必须是一级分组，否则 `400 bad_request`。
-- 追加到同级末尾。
+- `name`: 分类名称（1–64 字符，必填）。
+- `parentId`: 父级分类 ID（可空，不选择即为一级分类）。其父级必须是一级分类，否则 `400 bad_request`。
+- `icon` / `iconPath`: 图标（支持 emoji、Lucide 图标名、图片 URL 或相对路径，可选）。
+- `sort`: 权重 / 排序值（整数，数字越小越靠前，缺省为同级末尾 `MAX(sort) + 1000`）。
+- `isPrivate`: 是否私有（布尔，默认 `false`）。
+- `description`: 分类描述（文本，可选）。
 
 ### PATCH /api/categories/{id}
 
-可改 `name` / `parentId` / `isPrivate` / `iconPath`。改 `name` 触发其下链接的搜索索引重算（后台任务）。用户编辑后 `is_sample` 置 0，并连同子分类。
+```json
+{
+  "name": "开发工具",
+  "parentId": 1,
+  "icon": "Terminal",
+  "sort": 1000,
+  "isPrivate": false,
+  "description": "开发与调试工具"
+}
+```
+
+可改 `name` / `parentId` / `icon` (`iconPath`) / `sort` / `isPrivate` / `description`。改 `name` 触发其下链接的搜索索引重算（后台任务）。用户编辑后 `is_sample` 置 0，并连同子分类。
 
 ### DELETE /api/categories/{id}
 

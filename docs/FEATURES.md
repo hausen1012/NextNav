@@ -55,7 +55,7 @@
 ```
 setting        key, value                       # 站点名、logo 等
 admin          id, username, password_hash, created_at  # 单行，首次安装向导写入
-category       id, name, icon, parent_id, sort, is_private, is_sample, created_at
+category       id, name, icon, parent_id, sort, is_private, description, is_sample, created_at
 link           id, category_id, title, url, backup_url, description,
                icon_path, sort, is_private, is_sample, click_count, last_clicked_at,
                created_at, updated_at

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -484,4 +485,80 @@ func TestIdentityInContext(t *testing.T) {
 		t.Fatalf("anonymous identity: %+v", got)
 	}
 	_ = context.Background()
+}
+
+func TestCategoryFieldsCRUD(t *testing.T) {
+	_, h := newTestAPI(t)
+	rec := do(t, h, "POST", "/api/setup", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	cookie := sessionCookie(t, rec)
+
+	// Create root group with icon, sort, description
+	rec = do(t, h, "POST", "/api/categories", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{
+			"name":        "AI 工具",
+			"icon":        "Sparkles",
+			"sort":        500,
+			"description": "常用人工智能与大模型工具",
+			"isPrivate":   false,
+		},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create category: %d %s", rec.Code, rec.Body)
+	}
+	var created struct {
+		ID int64 `json:"id"`
+	}
+	created = decode[struct {
+		ID int64 `json:"id"`
+	}](t, rec)
+
+	// Update category fields
+	rec = do(t, h, "PATCH", fmt.Sprintf("/api/categories/%d", created.ID), reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{
+			"name":        "人工智能与模型",
+			"icon":        "🤖",
+			"sort":        300,
+			"description": "更新后的大模型工具描述",
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("patch category: %d %s", rec.Code, rec.Body)
+	}
+
+	// Verify in /api/home
+	type homeWithCatMeta struct {
+		Groups []struct {
+			ID          int64   `json:"id"`
+			Name        string  `json:"name"`
+			IconURL     *string `json:"iconUrl"`
+			Description *string `json:"description"`
+			Sort        int64   `json:"sort"`
+		} `json:"groups"`
+	}
+	home := decode[homeWithCatMeta](t, do(t, h, "GET", "/api/home", reqOpts{cookie: cookie}))
+	var found bool
+	for _, g := range home.Groups {
+		if g.ID == created.ID {
+			found = true
+			if g.Name != "人工智能与模型" {
+				t.Errorf("name = %q, want 人工智能与模型", g.Name)
+			}
+			if g.IconURL == nil || *g.IconURL != "🤖" {
+				t.Errorf("icon = %v, want 🤖", g.IconURL)
+			}
+			if g.Sort != 300 {
+				t.Errorf("sort = %d, want 300", g.Sort)
+			}
+			if g.Description == nil || *g.Description != "更新后的大模型工具描述" {
+				t.Errorf("desc = %v, want 更新后的大模型工具描述", g.Description)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("created category %d not found in /api/home", created.ID)
+	}
 }

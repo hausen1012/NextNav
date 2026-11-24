@@ -308,9 +308,13 @@ func (a *API) ReorderLinks(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name      string `json:"name"`
-		ParentID  *int64 `json:"parentId"`
-		IsPrivate bool   `json:"isPrivate"`
+		Name        string  `json:"name"`
+		ParentID    *int64  `json:"parentId"`
+		Sort        *int64  `json:"sort"`
+		IsPrivate   bool    `json:"isPrivate"`
+		Description *string `json:"description"`
+		Icon        *string `json:"icon"`
+		IconPath    *string `json:"iconPath"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
 		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
@@ -338,18 +342,29 @@ func (a *API) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		parent = sql.NullInt64{Int64: *req.ParentID, Valid: true}
 	}
 
-	var maxSort int64
-	if parent.Valid {
-		_ = a.Store.DB.QueryRow(`SELECT COALESCE(MAX(sort),0) FROM category WHERE parent_id = ?`, parent.Int64).Scan(&maxSort)
+	var sortVal int64
+	if req.Sort != nil {
+		sortVal = *req.Sort
 	} else {
-		_ = a.Store.DB.QueryRow(`SELECT COALESCE(MAX(sort),0) FROM category WHERE parent_id IS NULL`).Scan(&maxSort)
+		var maxSort int64
+		if parent.Valid {
+			_ = a.Store.DB.QueryRow(`SELECT COALESCE(MAX(sort),0) FROM category WHERE parent_id = ?`, parent.Int64).Scan(&maxSort)
+		} else {
+			_ = a.Store.DB.QueryRow(`SELECT COALESCE(MAX(sort),0) FROM category WHERE parent_id IS NULL`).Scan(&maxSort)
+		}
+		sortVal = maxSort + 1000
+	}
+
+	iconVal := req.Icon
+	if iconVal == nil {
+		iconVal = req.IconPath
 	}
 
 	now := time.Now().UnixMilli()
 	res, err := a.Store.DB.Exec(
-		`INSERT INTO category(name, parent_id, sort, is_private, created_at, updated_at)
-		 VALUES(?,?,?,?,?,?)`,
-		req.Name, parent, maxSort+1000, boolInt(req.IsPrivate), now, now,
+		`INSERT INTO category(name, icon_path, parent_id, sort, is_private, description, created_at, updated_at)
+		 VALUES(?,?,?,?,?,?,?,?)`,
+		req.Name, nullable(iconVal), parent, sortVal, boolInt(req.IsPrivate), nullable(req.Description), now, now,
 	)
 	if err != nil {
 		httpx.Fail(w, 500, "internal", "保存失败")
@@ -366,9 +381,13 @@ func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name      *string `json:"name"`
-		ParentID  *int64  `json:"parentId"`
-		IsPrivate *bool   `json:"isPrivate"`
+		Name        *string `json:"name"`
+		ParentID    *int64  `json:"parentId"`
+		Sort        *int64  `json:"sort"`
+		IsPrivate   *bool   `json:"isPrivate"`
+		Description *string `json:"description"`
+		Icon        *string `json:"icon"`
+		IconPath    *string `json:"iconPath"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
 		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
@@ -376,10 +395,14 @@ func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var curName string
+	var curIcon sql.NullString
 	var curParent sql.NullInt64
+	var curSort int64
+	var curPriv int64
+	var curDesc sql.NullString
 	if err := a.Store.DB.QueryRow(
-		`SELECT name, parent_id FROM category WHERE id = ?`, id,
-	).Scan(&curName, &curParent); err != nil {
+		`SELECT name, icon_path, parent_id, sort, is_private, description FROM category WHERE id = ?`, id,
+	).Scan(&curName, &curIcon, &curParent, &curSort, &curPriv, &curDesc); err != nil {
 		httpx.Fail(w, 404, "not_found", "分类不存在")
 		return
 	}
@@ -387,30 +410,60 @@ func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	name := curName
 	if req.Name != nil {
 		name = strings.TrimSpace(*req.Name)
-		if name == "" {
-			httpx.FailField(w, 400, "invalid_name", "名称不能为空", "name")
+		if name == "" || len([]rune(name)) > 64 {
+			httpx.FailField(w, 400, "invalid_name", "名称需为 1–64 个字符", "name")
 			return
 		}
 	}
 
-	priv := 0
+	priv := int(curPriv)
 	if req.IsPrivate != nil {
 		priv = boolInt(*req.IsPrivate)
+	}
+
+	sortVal := curSort
+	if req.Sort != nil {
+		sortVal = *req.Sort
+	}
+
+	var finalDesc any
+	if req.Description != nil {
+		finalDesc = nullable(req.Description)
+	} else if curDesc.Valid {
+		finalDesc = curDesc.String
 	} else {
-		var p int64
-		_ = a.Store.DB.QueryRow(`SELECT is_private FROM category WHERE id = ?`, id).Scan(&p)
-		priv = int(p)
+		finalDesc = nil
+	}
+
+	newIcon := req.Icon
+	if newIcon == nil {
+		newIcon = req.IconPath
+	}
+	var finalIcon any
+	if newIcon != nil {
+		finalIcon = nullable(newIcon)
+	} else if curIcon.Valid {
+		finalIcon = curIcon.String
+	} else {
+		finalIcon = nil
 	}
 
 	parent := curParent
 	if req.ParentID != nil {
-		if *req.ParentID == 0 {
+		if *req.ParentID <= 0 {
 			parent = sql.NullInt64{}
 		} else {
 			if *req.ParentID == id {
 				httpx.FailField(w, 400, "bad_request", "分类不能作为自己的父级", "parentId")
 				return
 			}
+			var childCount int64
+			_ = a.Store.DB.QueryRow(`SELECT COUNT(*) FROM category WHERE parent_id = ?`, id).Scan(&childCount)
+			if childCount > 0 {
+				httpx.FailField(w, 400, "bad_request", "该主分类下包含子分类，无法移动为二级分类", "parentId")
+				return
+			}
+
 			var parentOf sql.NullInt64
 			if err := a.Store.DB.QueryRow(
 				`SELECT parent_id FROM category WHERE id = ?`, *req.ParentID,
@@ -433,8 +486,8 @@ func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 	if _, err := tx.Exec(
-		`UPDATE category SET name=?, parent_id=?, is_private=?, is_sample=0, updated_at=? WHERE id=?`,
-		name, parent, priv, time.Now().UnixMilli(), id,
+		`UPDATE category SET name=?, icon_path=?, parent_id=?, sort=?, is_private=?, description=?, is_sample=0, updated_at=? WHERE id=?`,
+		name, finalIcon, parent, sortVal, priv, finalDesc, time.Now().UnixMilli(), id,
 	); err != nil {
 		httpx.Fail(w, 500, "internal", "保存失败")
 		return

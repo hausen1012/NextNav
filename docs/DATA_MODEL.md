@@ -89,15 +89,16 @@ CREATE TABLE api_token (
 
 ```sql
 CREATE TABLE category (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  name       TEXT    NOT NULL,
-  icon_path  TEXT,                                  -- 相对 data/ 的路径，可空
-  parent_id  INTEGER REFERENCES category(id) ON DELETE CASCADE,
-  sort       INTEGER NOT NULL DEFAULT 0,
-  is_private INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
-  is_sample  INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT    NOT NULL,
+  icon_path   TEXT,                                  -- 图标：相对 data/ 的路径、外部 URL、emoji 或图标名，可空
+  parent_id   INTEGER REFERENCES category(id) ON DELETE CASCADE,
+  sort        INTEGER NOT NULL DEFAULT 0,            -- 权重/排序值，数字越小越靠前
+  is_private  INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
+  description TEXT,                                  -- 分类描述，可空
+  is_sample   INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL,
   CHECK (parent_id IS NULL OR parent_id <> id)
 );
 

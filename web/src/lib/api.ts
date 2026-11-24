@@ -21,6 +21,8 @@ export interface CategoryDTO {
   id: number
   name: string
   iconUrl: string | null
+  icon?: string | null
+  description?: string | null
   sort: number
   isPrivate: boolean
   parentId?: number
@@ -31,6 +33,8 @@ export interface GroupDTO {
   id: number
   name: string
   iconUrl: string | null
+  icon?: string | null
+  description?: string | null
   sort: number
   links: LinkDTO[]
   categories: CategoryDTO[]
@@ -143,13 +147,30 @@ export const api = {
 
   deleteLink: (id: number) => request<void>(`/api/links/${id}`, { method: 'DELETE' }),
 
-  createCategory: (body: { name: string; parentId?: number | null; isPrivate?: boolean }) =>
+  createCategory: (body: {
+    name: string
+    parentId?: number | null
+    icon?: string | null
+    sort?: number
+    isPrivate?: boolean
+    description?: string | null
+  }) =>
     request<{ id: number; name: string }>('/api/categories', {
       method: 'POST',
       ...json(body),
     }),
 
-  updateCategory: (id: number, body: Record<string, unknown>) =>
+  updateCategory: (
+    id: number,
+    body: {
+      name?: string
+      parentId?: number | null
+      icon?: string | null
+      sort?: number
+      isPrivate?: boolean
+      description?: string | null
+    },
+  ) =>
     request<{ id: number; name: string }>(`/api/categories/${id}`, {
       method: 'PATCH',
       ...json(body),
