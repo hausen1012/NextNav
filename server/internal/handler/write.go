@@ -1,51 +1,15 @@
 package handler
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
-	"nextnav/internal/auth"
 	"nextnav/internal/httpx"
+	"nextnav/internal/service"
 )
-
-func authVerify(hash, password string) bool { return auth.VerifyPassword(hash, password) }
-
-func hashPassword(password string) (string, error) { return auth.HashPassword(password) }
-
-// --- index helpers ---
-
-func normalizeTitle(s string) string {
-	return strings.ToLower(strings.Join(strings.Fields(s), " "))
-}
-
-func hostOf(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return ""
-	}
-	h := strings.ToLower(u.Hostname())
-	return strings.TrimPrefix(h, "www.")
-}
-
-func buildSearchText(parts ...string) string {
-	var b strings.Builder
-	for _, p := range parts {
-		p = strings.ToLower(strings.TrimSpace(p))
-		if p == "" {
-			continue
-		}
-		if b.Len() > 0 {
-			b.WriteByte(' ')
-		}
-		b.WriteString(p)
-	}
-	return b.String()
-}
 
 func validURL(raw string) bool {
 	u, err := url.Parse(raw)
@@ -70,82 +34,47 @@ type linkReq struct {
 func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 	var req linkReq
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 	req.URL = strings.TrimSpace(req.URL)
 	req.Title = strings.TrimSpace(req.Title)
 	if !validURL(req.URL) {
-		httpx.FailField(w, 400, "invalid_url", "URL 必须是 http 或 https 地址", "url")
+		httpx.FailField(w, http.StatusBadRequest, "invalid_url", "URL 必须是 http 或 https 地址", "url")
 		return
 	}
 	if req.Title == "" {
-		req.Title = hostOf(req.URL)
+		u, _ := url.Parse(req.URL)
+		req.Title = strings.TrimPrefix(strings.ToLower(u.Hostname()), "www.")
 	}
 	if len([]rune(req.Title)) > 128 {
-		httpx.FailField(w, 400, "invalid_name", "标题最多 128 个字符", "title")
+		httpx.FailField(w, http.StatusBadRequest, "invalid_name", "标题最多 128 个字符", "title")
 		return
 	}
-	if req.CategoryID <= 0 || !a.categoryExists(req.CategoryID) {
-		httpx.FailField(w, 400, "bad_request", "分类不存在", "categoryId")
-		return
-	}
-
-	// Duplicate detection is scoped to the category, as designed.
-	var dup int64
-	if err := a.Store.DB.QueryRow(
-		`SELECT COUNT(*) FROM link WHERE category_id = ? AND url = ?`, req.CategoryID, req.URL,
-	).Scan(&dup); err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
-		return
-	}
-	if dup > 0 {
-		httpx.Fail(w, 409, "duplicate_link", "该分类下已存在相同链接")
+	if req.CategoryID <= 0 {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不存在", "categoryId")
 		return
 	}
 
-	catName := a.categoryName(req.CategoryID)
-	desc := ""
-	if req.Description != nil {
-		desc = *req.Description
+	d, err := a.Service.CreateLink(service.CreateLinkInput{
+		CategoryID:  req.CategoryID,
+		Title:       req.Title,
+		URL:         req.URL,
+		BackupURL:   req.BackupURL,
+		Description: req.Description,
+		Sort:        req.Sort,
+		IsPrivate:   req.IsPrivate,
+	})
+	if errors.Is(err, service.ErrNotFound) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不存在", "categoryId")
+		return
 	}
-	priv := 0
-	if req.IsPrivate != nil && *req.IsPrivate {
-		priv = 1
+	if errors.Is(err, service.ErrDuplicateLink) {
+		httpx.Fail(w, http.StatusConflict, "duplicate_link", "该分类下已存在相同链接")
+		return
 	}
-	host := hostOf(req.URL)
-	titleNorm := normalizeTitle(req.Title)
-	search := buildSearchText(titleNorm, host, desc, catName)
-
-	var sortVal int64
-	if req.Sort != nil {
-		sortVal = *req.Sort
-	} else {
-		var maxSort int64
-		_ = a.Store.DB.QueryRow(
-			`SELECT COALESCE(MAX(sort), 0) FROM link WHERE category_id = ?`, req.CategoryID,
-		).Scan(&maxSort)
-		sortVal = maxSort + 1000
-	}
-
-	now := time.Now().UnixMilli()
-	res, err := a.Store.DB.Exec(
-		`INSERT INTO link(category_id, title, url, backup_url, description, sort,
-		                  is_private, last_status, title_norm, host, search_text,
-		                  created_at, updated_at)
-		 VALUES(?,?,?,?,?,?,?,'unknown',?,?,?,?,?)`,
-		req.CategoryID, req.Title, req.URL, nullable(req.BackupURL), nullable(req.Description),
-		sortVal, priv, titleNorm, host, search, now, now,
-	)
 	if err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
-		return
-	}
-	id, _ := res.LastInsertId()
-
-	d, err := a.getLink(id)
-	if err != nil {
-		httpx.Fail(w, 500, "internal", "读取失败")
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
 	httpx.JSON(w, http.StatusCreated, d)
@@ -154,7 +83,7 @@ func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(r)
 	if !ok {
-		httpx.Fail(w, 404, "not_found", "链接不存在")
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
 		return
 	}
 	var req struct {
@@ -167,89 +96,59 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		IsPrivate   *bool   `json:"isPrivate"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 
-	cur, err := a.getLinkRow(id)
-	if err != nil {
-		httpx.Fail(w, 404, "not_found", "链接不存在")
-		return
-	}
-
-	catID := cur.categoryID
-	if req.CategoryID != nil {
-		if !a.categoryExists(*req.CategoryID) {
-			httpx.FailField(w, 400, "bad_request", "分类不存在", "categoryId")
-			return
-		}
-		catID = *req.CategoryID
-	}
-	title := cur.title
 	if req.Title != nil {
-		title = strings.TrimSpace(*req.Title)
-		if title == "" {
-			httpx.FailField(w, 400, "invalid_name", "标题不能为空", "title")
+		t := strings.TrimSpace(*req.Title)
+		if t == "" {
+			httpx.FailField(w, http.StatusBadRequest, "invalid_name", "标题不能为空", "title")
 			return
 		}
 	}
-	linkURL := cur.url
 	if req.URL != nil {
-		linkURL = strings.TrimSpace(*req.URL)
-		if !validURL(linkURL) {
-			httpx.FailField(w, 400, "invalid_url", "URL 必须是 http 或 https 地址", "url")
+		u := strings.TrimSpace(*req.URL)
+		if !validURL(u) {
+			httpx.FailField(w, http.StatusBadRequest, "invalid_url", "URL 必须是 http 或 https 地址", "url")
 			return
 		}
 	}
-	desc := cur.description
-	if req.Description != nil {
-		desc = *req.Description
-	}
-	priv := cur.isPrivate
-	if req.IsPrivate != nil && *req.IsPrivate {
-		priv = 1
-	} else if req.IsPrivate != nil {
-		priv = 0
-	}
 
-	host := hostOf(linkURL)
-	titleNorm := normalizeTitle(title)
-	search := buildSearchText(titleNorm, host, desc, a.categoryName(catID))
-
-	sortVal := cur.sort
-	if req.Sort != nil {
-		sortVal = *req.Sort
-	}
-
-	_, err = a.Store.DB.Exec(
-		`UPDATE link SET category_id=?, title=?, url=?, backup_url=?, description=?,
-		                 sort=?, is_private=?, is_sample=0, title_norm=?, host=?, search_text=?,
-		                 updated_at=?
-		 WHERE id=?`,
-		catID, title, linkURL, nullableOrKeep(req.BackupURL, cur.backupURL),
-		nullableOrString(req.Description, desc), sortVal, priv,
-		titleNorm, host, search, time.Now().UnixMilli(), id,
-	)
-	if err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
+	// Verify link existence
+	if _, err := a.Service.GetLinkDTO(id); errors.Is(err, service.ErrNotFound) {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
 		return
 	}
-	d, err := a.getLink(id)
-	if err != nil {
-		httpx.Fail(w, 500, "internal", "读取失败")
+
+	d, err := a.Service.UpdateLink(id, service.UpdateLinkInput{
+		CategoryID:  req.CategoryID,
+		Title:       req.Title,
+		URL:         req.URL,
+		BackupURL:   req.BackupURL,
+		Description: req.Description,
+		Sort:        req.Sort,
+		IsPrivate:   req.IsPrivate,
+	})
+	if errors.Is(err, service.ErrNotFound) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不存在", "categoryId")
 		return
 	}
-	httpx.JSON(w, 200, d)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, d)
 }
 
 func (a *API) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(r)
 	if !ok {
-		httpx.Fail(w, 404, "not_found", "链接不存在")
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
 		return
 	}
-	if _, err := a.Store.DB.Exec(`DELETE FROM link WHERE id = ?`, id); err != nil {
-		httpx.Fail(w, 500, "internal", "删除失败")
+	if err := a.Service.DeleteLink(id); err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "删除失败")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -261,57 +160,17 @@ func (a *API) ReorderLinks(w http.ResponseWriter, r *http.Request) {
 		OrderedIDs []int64 `json:"orderedIds"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 
-	var existing []int64
-	rows, err := a.Store.DB.Query(`SELECT id FROM link WHERE category_id = ?`, req.CategoryID)
+	err := a.Service.ReorderLinks(req.CategoryID, req.OrderedIDs)
+	if errors.Is(err, service.ErrInvalidReorder) {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "排序列表必须包含该分类下全部链接")
+		return
+	}
 	if err != nil {
-		httpx.Fail(w, 500, "internal", "读取失败")
-		return
-	}
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			rows.Close()
-			httpx.Fail(w, 500, "internal", "读取失败")
-			return
-		}
-		existing = append(existing, id)
-	}
-	rows.Close()
-
-	if len(existing) != len(req.OrderedIDs) {
-		httpx.Fail(w, 400, "bad_request", "排序列表必须包含该分类下全部链接")
-		return
-	}
-	seen := map[int64]bool{}
-	for _, id := range req.OrderedIDs {
-		seen[id] = true
-	}
-	for _, id := range existing {
-		if !seen[id] {
-			httpx.Fail(w, 400, "bad_request", "排序列表必须包含该分类下全部链接")
-			return
-		}
-	}
-
-	tx, err := a.Store.DB.Begin()
-	if err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
-		return
-	}
-	defer tx.Rollback()
-	for i, id := range req.OrderedIDs {
-		if _, err := tx.Exec(`UPDATE link SET sort = ? WHERE id = ? AND category_id = ?`,
-			int64(i+1)*1000, id, req.CategoryID); err != nil {
-			httpx.Fail(w, 500, "internal", "保存失败")
-			return
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -330,67 +189,47 @@ func (a *API) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		IconPath    *string `json:"iconPath"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" || len([]rune(req.Name)) > 64 {
-		httpx.FailField(w, 400, "invalid_name", "名称需为 1–64 个字符", "name")
+		httpx.FailField(w, http.StatusBadRequest, "invalid_name", "名称需为 1–64 个字符", "name")
 		return
 	}
 
-	var parent sql.NullInt64
-	if req.ParentID != nil && *req.ParentID > 0 {
-		// Only two levels are supported: the parent must itself be a root.
-		var parentOf sql.NullInt64
-		err := a.Store.DB.QueryRow(`SELECT parent_id FROM category WHERE id = ?`, *req.ParentID).Scan(&parentOf)
-		if err != nil {
-			httpx.FailField(w, 400, "bad_request", "父级分类不存在", "parentId")
-			return
-		}
-		if parentOf.Valid {
-			httpx.FailField(w, 400, "bad_request", "只支持两级分类", "parentId")
-			return
-		}
-		parent = sql.NullInt64{Int64: *req.ParentID, Valid: true}
+	icon := req.Icon
+	if icon == nil {
+		icon = req.IconPath
 	}
 
-	var sortVal int64
-	if req.Sort != nil {
-		sortVal = *req.Sort
-	} else {
-		var maxSort int64
-		if parent.Valid {
-			_ = a.Store.DB.QueryRow(`SELECT COALESCE(MAX(sort),0) FROM category WHERE parent_id = ?`, parent.Int64).Scan(&maxSort)
-		} else {
-			_ = a.Store.DB.QueryRow(`SELECT COALESCE(MAX(sort),0) FROM category WHERE parent_id IS NULL`).Scan(&maxSort)
-		}
-		sortVal = maxSort + 1000
+	id, err := a.Service.CreateCategory(service.CreateCategoryInput{
+		Name:        req.Name,
+		ParentID:    req.ParentID,
+		Sort:        req.Sort,
+		IsPrivate:   req.IsPrivate,
+		Description: req.Description,
+		Icon:        icon,
+	})
+	if errors.Is(err, service.ErrNotFound) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "父级分类不存在", "parentId")
+		return
 	}
-
-	iconVal := req.Icon
-	if iconVal == nil {
-		iconVal = req.IconPath
+	if errors.Is(err, service.ErrInvalidParent) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "只支持两级分类", "parentId")
+		return
 	}
-
-	now := time.Now().UnixMilli()
-	res, err := a.Store.DB.Exec(
-		`INSERT INTO category(name, icon_path, parent_id, sort, is_private, description, created_at, updated_at)
-		 VALUES(?,?,?,?,?,?,?,?)`,
-		req.Name, nullable(iconVal), parent, sortVal, boolInt(req.IsPrivate), nullable(req.Description), now, now,
-	)
 	if err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
-	id, _ := res.LastInsertId()
 	httpx.JSON(w, http.StatusCreated, map[string]any{"id": id, "name": req.Name})
 }
 
 func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(r)
 	if !ok {
-		httpx.Fail(w, 404, "not_found", "分类不存在")
+		httpx.Fail(w, http.StatusNotFound, "not_found", "分类不存在")
 		return
 	}
 	var req struct {
@@ -403,212 +242,95 @@ func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		IconPath    *string `json:"iconPath"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 
-	var curName string
-	var curIcon sql.NullString
-	var curParent sql.NullInt64
-	var curSort int64
-	var curPriv int64
-	var curDesc sql.NullString
-	if err := a.Store.DB.QueryRow(
-		`SELECT name, icon_path, parent_id, sort, is_private, description FROM category WHERE id = ?`, id,
-	).Scan(&curName, &curIcon, &curParent, &curSort, &curPriv, &curDesc); err != nil {
-		httpx.Fail(w, 404, "not_found", "分类不存在")
-		return
-	}
-
-	name := curName
 	if req.Name != nil {
-		name = strings.TrimSpace(*req.Name)
-		if name == "" || len([]rune(name)) > 64 {
-			httpx.FailField(w, 400, "invalid_name", "名称需为 1–64 个字符", "name")
+		n := strings.TrimSpace(*req.Name)
+		if n == "" || len([]rune(n)) > 64 {
+			httpx.FailField(w, http.StatusBadRequest, "invalid_name", "名称需为 1–64 个字符", "name")
 			return
 		}
 	}
 
-	priv := int(curPriv)
-	if req.IsPrivate != nil {
-		priv = boolInt(*req.IsPrivate)
+	icon := req.Icon
+	if icon == nil {
+		icon = req.IconPath
 	}
 
-	sortVal := curSort
-	if req.Sort != nil {
-		sortVal = *req.Sort
-	}
-
-	var finalDesc any
-	if req.Description != nil {
-		finalDesc = nullable(req.Description)
-	} else if curDesc.Valid {
-		finalDesc = curDesc.String
-	} else {
-		finalDesc = nil
-	}
-
-	newIcon := req.Icon
-	if newIcon == nil {
-		newIcon = req.IconPath
-	}
-	var finalIcon any
-	if newIcon != nil {
-		finalIcon = nullable(newIcon)
-	} else if curIcon.Valid {
-		finalIcon = curIcon.String
-	} else {
-		finalIcon = nil
-	}
-
-	parent := curParent
-	if req.ParentID != nil {
-		if *req.ParentID <= 0 {
-			parent = sql.NullInt64{}
-		} else {
-			if *req.ParentID == id {
-				httpx.FailField(w, 400, "bad_request", "分类不能作为自己的父级", "parentId")
-				return
-			}
-			var childCount int64
-			_ = a.Store.DB.QueryRow(`SELECT COUNT(*) FROM category WHERE parent_id = ?`, id).Scan(&childCount)
-			if childCount > 0 {
-				httpx.FailField(w, 400, "bad_request", "该主分类下包含子分类，无法移动为二级分类", "parentId")
-				return
-			}
-
-			var parentOf sql.NullInt64
-			if err := a.Store.DB.QueryRow(
-				`SELECT parent_id FROM category WHERE id = ?`, *req.ParentID,
-			).Scan(&parentOf); err != nil {
-				httpx.FailField(w, 400, "bad_request", "父级分类不存在", "parentId")
-				return
-			}
-			if parentOf.Valid {
-				httpx.FailField(w, 400, "bad_request", "只支持两级分类", "parentId")
-				return
-			}
-			parent = sql.NullInt64{Int64: *req.ParentID, Valid: true}
+	name, err := a.Service.UpdateCategory(id, service.UpdateCategoryInput{
+		Name:        req.Name,
+		ParentID:    req.ParentID,
+		Sort:        req.Sort,
+		IsPrivate:   req.IsPrivate,
+		Description: req.Description,
+		Icon:        icon,
+	})
+	if errors.Is(err, service.ErrNotFound) {
+		if req.ParentID != nil && *req.ParentID > 0 {
+			httpx.FailField(w, http.StatusBadRequest, "bad_request", "父级分类不存在", "parentId")
+			return
 		}
+		httpx.Fail(w, http.StatusNotFound, "not_found", "分类不存在")
+		return
 	}
-
-	tx, err := a.Store.DB.Begin()
+	if errors.Is(err, service.ErrSelfParent) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不能作为自己的父级", "parentId")
+		return
+	}
+	if errors.Is(err, service.ErrSubcategoriesExist) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "该主分类下包含子分类，无法移动为二级分类", "parentId")
+		return
+	}
+	if errors.Is(err, service.ErrInvalidParent) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "只支持两级分类", "parentId")
+		return
+	}
 	if err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
-	defer tx.Rollback()
-	if _, err := tx.Exec(
-		`UPDATE category SET name=?, icon_path=?, parent_id=?, sort=?, is_private=?, description=?, is_sample=0, updated_at=? WHERE id=?`,
-		name, finalIcon, parent, sortVal, priv, finalDesc, time.Now().UnixMilli(), id,
-	); err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
-		return
-	}
-	// A renamed category changes the search text of its links.
-	if name != curName {
-		if err := recomputeCategorySearch(tx, id, name); err != nil {
-			httpx.Fail(w, 500, "internal", "保存失败")
-			return
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
-		return
-	}
-	httpx.JSON(w, 200, map[string]any{"id": id, "name": name})
+	httpx.JSON(w, http.StatusOK, map[string]any{"id": id, "name": name})
 }
 
 func (a *API) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, ok := parseID(r)
 	if !ok {
-		httpx.Fail(w, 404, "not_found", "分类不存在")
+		httpx.Fail(w, http.StatusNotFound, "not_found", "分类不存在")
 		return
-	}
-
-	// Collect the category and, if it is a group, its children.
-	ids := []int64{id}
-	var parentID sql.NullInt64
-	if err := a.Store.DB.QueryRow(`SELECT parent_id FROM category WHERE id = ?`, id).Scan(&parentID); err != nil {
-		httpx.Fail(w, 404, "not_found", "分类不存在")
-		return
-	}
-	if !parentID.Valid {
-		rows, err := a.Store.DB.Query(`SELECT id FROM category WHERE parent_id = ?`, id)
-		if err != nil {
-			httpx.Fail(w, 500, "internal", "删除失败")
-			return
-		}
-		for rows.Next() {
-			var cid int64
-			if err := rows.Scan(&cid); err == nil {
-				ids = append(ids, cid)
-			}
-		}
-		rows.Close()
-	}
-
-	var linkCount int64
-	for _, cid := range ids {
-		var n int64
-		_ = a.Store.DB.QueryRow(`SELECT COUNT(*) FROM link WHERE category_id = ?`, cid).Scan(&n)
-		linkCount += n
 	}
 
 	mode := r.URL.Query().Get("links")
-	if linkCount > 0 && mode == "" {
-		httpx.Fail(w, 409, "link_exists_in_category", "该分类下仍有链接，请指定 links=delete 或 links=move")
-		return
-	}
-
-	// Every check runs before the transaction: the pool has a single
-	// connection, so any s.DB query while a tx is open deadlocks.
-	var target int64
-	switch mode {
-	case "move":
-		t, err := parseIntQuery(r, "moveToCategoryId")
-		if err != nil || !a.categoryExists(t) {
-			httpx.FailField(w, 400, "bad_request", "目标分类不存在", "moveToCategoryId")
-			return
-		}
-		if containsInt64(ids, t) {
-			httpx.FailField(w, 400, "bad_request", "不能移动到被删除的分类", "moveToCategoryId")
-			return
-		}
-		target = t
-	case "delete":
-		// ON DELETE CASCADE removes the links.
-	default:
-		if linkCount > 0 {
-			httpx.Fail(w, 400, "bad_request", "未知的链接处理方式")
-			return
-		}
-	}
-
-	tx, err := a.Store.DB.Begin()
-	if err != nil {
-		httpx.Fail(w, 500, "internal", "删除失败")
-		return
-	}
-	defer tx.Rollback()
-
+	var targetID int64
 	if mode == "move" {
-		for _, cid := range ids {
-			if _, err := tx.Exec(`UPDATE link SET category_id = ? WHERE category_id = ?`, target, cid); err != nil {
-				httpx.Fail(w, 500, "internal", "删除失败")
-				return
-			}
-		}
-	}
-
-	for _, cid := range ids {
-		if _, err := tx.Exec(`DELETE FROM category WHERE id = ?`, cid); err != nil {
-			httpx.Fail(w, 500, "internal", "删除失败")
+		t, err := parseIntQuery(r, "moveToCategoryId")
+		if err != nil {
+			httpx.FailField(w, http.StatusBadRequest, "bad_request", "目标分类不存在", "moveToCategoryId")
 			return
 		}
+		targetID = t
 	}
-	if err := tx.Commit(); err != nil {
-		httpx.Fail(w, 500, "internal", "删除失败")
+
+	err := a.Service.DeleteCategory(id, mode, targetID)
+	if errors.Is(err, service.ErrNotFound) {
+		if mode == "move" {
+			httpx.FailField(w, http.StatusBadRequest, "bad_request", "目标分类不存在", "moveToCategoryId")
+			return
+		}
+		httpx.Fail(w, http.StatusNotFound, "not_found", "分类不存在")
+		return
+	}
+	if errors.Is(err, service.ErrInvalidParent) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "不能移动到被删除的分类", "moveToCategoryId")
+		return
+	}
+	if errors.Is(err, service.ErrLinkExistsInCategory) {
+		httpx.Fail(w, http.StatusConflict, "link_exists_in_category", "该分类下仍有链接，请指定 links=delete 或 links=move")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "未知的链接处理方式")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -624,33 +346,25 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		OpenInNewTab *bool   `json:"openInNewTab"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 
 	if req.Name != nil {
 		v := strings.TrimSpace(*req.Name)
 		if v == "" || len([]rune(v)) > 64 {
-			httpx.FailField(w, 400, "invalid_name", "站点名需为 1–64 个字符", "name")
+			httpx.FailField(w, http.StatusBadRequest, "invalid_name", "站点名需为 1–64 个字符", "name")
 			return
 		}
-		_ = a.Store.SetSetting("site.name", v)
-	}
-	if req.Description != nil {
-		_ = a.Store.SetSetting("site.description", strings.TrimSpace(*req.Description))
-	}
-	if req.Background != nil {
-		_ = a.Store.SetSetting("site.background", strings.TrimSpace(*req.Background))
-	}
-	if req.OpenInNewTab != nil {
-		v := "0"
-		if *req.OpenInNewTab {
-			v = "1"
-		}
-		_ = a.Store.SetSetting("link.open_in_new_tab", v)
 	}
 
-	httpx.JSON(w, 200, settingsResp{Site: a.publicSite()})
+	site := a.Service.UpdateSettings(service.UpdateSettingsInput{
+		Name:         req.Name,
+		Description:  req.Description,
+		Background:   req.Background,
+		OpenInNewTab: req.OpenInNewTab,
+	})
+	httpx.JSON(w, http.StatusOK, map[string]any{"site": site})
 }
 
 func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
@@ -660,204 +374,31 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		NewPassword     string `json:"newPassword"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, 400, "bad_request", "请求格式不正确")
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
 		return
 	}
 
-	var curUser, curHash string
-	if err := a.Store.DB.QueryRow(`SELECT username, password_hash FROM admin WHERE id = 1`).
-		Scan(&curUser, &curHash); err != nil {
-		httpx.Fail(w, 500, "internal", "读取账号失败")
+	user, err := a.Service.UpdateAccount(req.CurrentPassword, req.Username, req.NewPassword)
+	if errors.Is(err, service.ErrBadCredentials) {
+		httpx.FailField(w, http.StatusUnauthorized, "bad_credentials", "当前密码不正确", "currentPassword")
 		return
 	}
-	if !authVerify(curHash, req.CurrentPassword) {
-		httpx.FailField(w, 401, "bad_credentials", "当前密码不正确", "currentPassword")
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
-
-	user := curUser
-	if strings.TrimSpace(req.Username) != "" {
-		user = strings.TrimSpace(req.Username)
-		if len([]rune(user)) > 32 {
-			httpx.FailField(w, 400, "invalid_name", "用户名最多 32 个字符", "username")
-			return
-		}
-	}
-	hash := curHash
-	if req.NewPassword != "" {
-		if len(req.NewPassword) < 8 {
-			httpx.FailField(w, 400, "invalid_password", "密码至少 8 位", "newPassword")
-			return
-		}
-		h, err := hashPassword(req.NewPassword)
-		if err != nil {
-			httpx.Fail(w, 500, "internal", "保存失败")
-			return
-		}
-		hash = h
-	}
-
-	if _, err := a.Store.DB.Exec(
-		`UPDATE admin SET username=?, password_hash=?, updated_at=? WHERE id=1`,
-		user, hash, time.Now().UnixMilli(),
-	); err != nil {
-		httpx.Fail(w, 500, "internal", "保存失败")
-		return
-	}
-	httpx.JSON(w, 200, map[string]any{"username": user})
+	httpx.JSON(w, http.StatusOK, map[string]any{"username": user})
 }
 
 // --- sample data ---
 
 func (a *API) ClearSample(w http.ResponseWriter, r *http.Request) {
-	res, err := a.Store.ClearSample()
+	res, err := a.Service.ClearSample()
 	if err != nil {
-		httpx.Fail(w, 500, "internal", "清理失败")
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "清理失败")
 		return
 	}
-	httpx.JSON(w, 200, res)
-}
-
-// --- helpers ---
-
-type linkRow struct {
-	id          int64
-	categoryID  int64
-	title       string
-	url         string
-	backupURL   string
-	description string
-	isPrivate   int
-	iconPath    string
-	sort        int64
-}
-
-func (a *API) getLinkRow(id int64) (linkRow, error) {
-	var lr linkRow
-	var backup, desc, icon sql.NullString
-	var priv int64
-	err := a.Store.DB.QueryRow(
-		`SELECT id, category_id, title, url, backup_url, description, is_private, icon_path, sort
-		 FROM link WHERE id = ?`, id,
-	).Scan(&lr.id, &lr.categoryID, &lr.title, &lr.url, &backup, &desc, &priv, &icon, &lr.sort)
-	lr.backupURL = backup.String
-	lr.description = desc.String
-	lr.iconPath = icon.String
-	lr.isPrivate = int(priv)
-	return lr, err
-}
-
-func (a *API) getLink(id int64) (linkDTO, error) {
-	var d linkDTO
-	var backup, desc, icon sql.NullString
-	var priv int64
-	var lastCheck sql.NullInt64
-	err := a.Store.DB.QueryRow(
-		`SELECT id, title, url, backup_url, description, icon_path, category_id,
-		        is_private, last_status, sort, last_checked_at
-		 FROM link WHERE id = ?`, id,
-	).Scan(&d.ID, &d.Title, &d.URL, &backup, &desc, &icon, &d.CategoryID,
-		&priv, &d.Status, &d.Sort, &lastCheck)
-	if err != nil {
-		return d, err
-	}
-	d.BackupURL = nilIfEmpty(backup)
-	d.Description = nilIfEmpty(desc)
-	d.IconURL = iconURL(icon.String)
-	d.IsPrivate = priv == 1
-	d.LastCheckedAt = nilIfZero(lastCheck)
-	d.CategoryName = a.categoryName(d.CategoryID)
-	return d, nil
-}
-
-func (a *API) categoryExists(id int64) bool {
-	var n int
-	return a.Store.DB.QueryRow(`SELECT COUNT(*) FROM category WHERE id = ?`, id).Scan(&n) == nil && n > 0
-}
-
-func (a *API) categoryName(id int64) string {
-	var name string
-	if err := a.Store.DB.QueryRow(`SELECT name FROM category WHERE id = ?`, id).Scan(&name); err != nil {
-		return ""
-	}
-	return name
-}
-
-func recomputeCategorySearch(tx *sql.Tx, categoryID int64, categoryName string) error {
-	rows, err := tx.Query(
-		`SELECT id, title, url, description FROM link WHERE category_id = ?`, categoryID)
-	if err != nil {
-		return err
-	}
-	type item struct {
-		id          int64
-		title       string
-		url         string
-		description sql.NullString
-	}
-	var items []item
-	for rows.Next() {
-		var it item
-		if err := rows.Scan(&it.id, &it.title, &it.url, &it.description); err != nil {
-			rows.Close()
-			return err
-		}
-		items = append(items, it)
-	}
-	rows.Close()
-
-	for _, it := range items {
-		search := buildSearchText(normalizeTitle(it.title), hostOf(it.url), it.description.String, categoryName)
-		if _, err := tx.Exec(`UPDATE link SET search_text = ? WHERE id = ?`, search, it.id); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func nullable(s *string) any {
-	if s == nil {
-		return nil
-	}
-	if strings.TrimSpace(*s) == "" {
-		return nil
-	}
-	return *s
-}
-
-// nullableOrKeep returns the new value when the field was provided, otherwise
-// keeps the current stored value.
-func nullableOrKeep(newVal *string, current string) any {
-	if newVal == nil {
-		if current == "" {
-			return nil
-		}
-		return current
-	}
-	if strings.TrimSpace(*newVal) == "" {
-		return nil
-	}
-	return *newVal
-}
-
-func nullableOrString(newVal *string, fallback string) any {
-	if newVal == nil {
-		if fallback == "" {
-			return nil
-		}
-		return fallback
-	}
-	if strings.TrimSpace(*newVal) == "" {
-		return nil
-	}
-	return *newVal
-}
-
-func boolInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
+	httpx.JSON(w, http.StatusOK, res)
 }
 
 func parseIntQuery(r *http.Request, key string) (int64, error) {
@@ -866,13 +407,4 @@ func parseIntQuery(r *http.Request, key string) (int64, error) {
 		return 0, errors.New("missing " + key)
 	}
 	return strconv.ParseInt(v, 10, 64)
-}
-
-func containsInt64(list []int64, v int64) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
 }

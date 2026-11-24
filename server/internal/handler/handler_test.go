@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"nextnav/internal/httpx"
+	"nextnav/internal/service"
 	"nextnav/internal/store"
 	"nextnav/internal/webembed"
 )
@@ -27,7 +28,8 @@ func newTestAPI(t *testing.T) (*API, http.Handler) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 
-	api := NewAPI(st, false, webembed.FS())
+	svc := service.New(st)
+	api := NewAPI(svc, false, webembed.FS())
 	return api, NewRouter(api)
 }
 

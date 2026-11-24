@@ -11,6 +11,7 @@ import (
 
 	"nextnav/internal/config"
 	"nextnav/internal/handler"
+	"nextnav/internal/service"
 	"nextnav/internal/slogx"
 	"nextnav/internal/store"
 	"nextnav/internal/webembed"
@@ -34,7 +35,8 @@ func main() {
 			"dataDir", cfg.DataDir)
 	}
 
-	api := handler.NewAPI(st, cfg.SecureCookie, webembed.FS())
+	svc := service.New(st)
+	api := handler.NewAPI(svc, cfg.SecureCookie, webembed.FS())
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

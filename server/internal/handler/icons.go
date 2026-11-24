@@ -15,10 +15,10 @@ func (a *API) ServeIcon(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	full := filepath.Join(a.Store.DataDir, "icons", filepath.FromSlash(rel))
+	full := filepath.Join(a.Service.DataDir(), "icons", filepath.FromSlash(rel))
 
 	// Defense in depth: confirm the resolved path stays under the icons dir.
-	base := filepath.Join(a.Store.DataDir, "icons")
+	base := filepath.Join(a.Service.DataDir(), "icons")
 	absBase, err1 := filepath.Abs(base)
 	absFull, err2 := filepath.Abs(full)
 	if err1 != nil || err2 != nil || !strings.HasPrefix(absFull, absBase+string(os.PathSeparator)) {

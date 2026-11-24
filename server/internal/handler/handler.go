@@ -6,13 +6,14 @@ import (
 	"path"
 	"strings"
 
-	"nextnav/internal/store"
+	"nextnav/internal/service"
 )
 
 // NewAPI constructs the handler set. spaFS is the embedded frontend build.
-func NewAPI(st *store.Store, secure bool, spaFS fs.FS) *API {
+func NewAPI(svc *service.Service, secure bool, spaFS fs.FS) *API {
 	return &API{
-		Store:      st,
+		Service:    svc,
+		Store:      svc.Store(),
 		Secure:     secure,
 		limiter:    newIPLimiter(),
 		spaHandler: newSPAHandler(spaFS),
