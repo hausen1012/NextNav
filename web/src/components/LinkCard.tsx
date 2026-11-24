@@ -98,7 +98,7 @@ export function LinkCard({
                   e.stopPropagation()
                   onEdit(link)
                 }}
-                className='flex size-6 items-center justify-center rounded-md bg-white/95 text-slate-500 shadow-xs border border-slate-200 hover:text-blue-600 hover:border-blue-300 dark:bg-neutral-800/95 dark:text-neutral-400 dark:border-neutral-700 dark:hover:text-blue-400 transition'
+                className='flex size-6 items-center justify-center rounded-md bg-white/95 text-slate-500 shadow-xs border border-slate-200 hover:text-zinc-900 hover:border-zinc-400 dark:bg-neutral-800/95 dark:text-neutral-400 dark:border-neutral-700 dark:hover:text-white dark:hover:border-zinc-500 transition'
                 title='编辑链接'
               >
                 <Edit2 className='size-3' />

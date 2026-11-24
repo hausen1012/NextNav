@@ -38,7 +38,7 @@ const SEARCH_ENGINES = [
   { id: 'local', name: '站内', url: '' },
 ]
 
-// 推荐快捷图标
+// 常用推荐图标
 const COMMON_ICONS = ['folder', 'globe', 'compass', 'code', 'terminal', 'cpu', 'sparkles', 'wrench', 'music', 'server', 'star', 'tag']
 
 export function HomePage() {
@@ -219,7 +219,7 @@ export function HomePage() {
     )
   }, [qrModal.open, qrModal.url])
 
-  // 展开所有分类选项用于表单下拉（扁平化）
+  // 展开所有分类选项用于表单下拉 (扁平化)
   const { flatCategoryOptions, rootCategoryOptions } = useMemo(() => {
     const flat: { id: number; name: string }[] = []
     const roots: { id: number; name: string }[] = []
@@ -541,9 +541,9 @@ export function HomePage() {
 
   if (isLoading) {
     return (
-      <div className='flex min-h-screen items-center justify-center bg-[#f3f5f8] dark:bg-[#0f1115]'>
-        <div className='flex flex-col items-center gap-3 text-slate-400'>
-          <RotateCw className='size-8 animate-spin text-blue-500' />
+      <div className='flex min-h-screen items-center justify-center bg-[#f4f5f7] dark:bg-[#0f1114]'>
+        <div className='flex flex-col items-center gap-3 text-zinc-400'>
+          <RotateCw className='size-8 animate-spin text-zinc-600 dark:text-zinc-300' />
           <p className='text-sm font-medium'>正在加载导航数据...</p>
         </div>
       </div>
@@ -552,17 +552,17 @@ export function HomePage() {
 
   if (error) {
     return (
-      <div className='flex min-h-screen items-center justify-center bg-[#f3f5f8] dark:bg-[#0f1115] p-4'>
-        <div className='max-w-md rounded-2xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-950 dark:bg-neutral-900'>
+      <div className='flex min-h-screen items-center justify-center bg-[#f4f5f7] dark:bg-[#0f1114] p-4'>
+        <div className='max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900'>
           <div className='flex items-center gap-3 text-red-500'>
             <AlertTriangle className='size-6' />
-            <h2 className='text-base font-semibold'>加载失败</h2>
+            <h2 className='text-base font-semibold text-zinc-900 dark:text-zinc-100'>加载失败</h2>
           </div>
-          <p className='mt-2 text-sm text-slate-500 dark:text-neutral-400'>{error.message}</p>
+          <p className='mt-2 text-sm text-zinc-500 dark:text-zinc-400'>{error.message}</p>
           <button
             type='button'
             onClick={() => window.location.reload()}
-            className='mt-4 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700'
+            className='mt-4 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
           >
             重新加载
           </button>
@@ -579,7 +579,7 @@ export function HomePage() {
 
   return (
     <div
-      className='min-h-screen bg-[#f3f5f8] dark:bg-[#0f1115] text-slate-800 dark:text-slate-100 transition-colors duration-200 font-sans'
+      className='min-h-screen bg-[#f4f5f7] dark:bg-[#0f1114] text-zinc-800 dark:text-zinc-100 transition-colors duration-200 font-sans'
       style={{ background: data.site.background || undefined }}
     >
       {/* 移动端侧边栏抽屉遮罩 */}
@@ -592,12 +592,12 @@ export function HomePage() {
 
       {/* ===================== 左侧边栏 (Sidebar) ===================== */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex w-60 flex-col border-r border-slate-200/80 bg-[#f8f9fb] transition-transform duration-300 ease-in-out dark:border-neutral-800/80 dark:bg-[#16181d] md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 flex w-60 flex-col border-r border-zinc-200/80 bg-[#fafafa] transition-transform duration-300 ease-in-out dark:border-zinc-800/80 dark:bg-[#15171a] md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* 顶部 Logo 与站点名称 */}
-        <div className='flex h-16 items-center justify-between px-4 border-b border-slate-200/60 dark:border-neutral-800/60'>
+        <div className='flex h-16 items-center justify-between px-4 border-b border-zinc-200/60 dark:border-zinc-800/60'>
           <div className='flex items-center gap-2.5 truncate'>
             {data.site.logoUrl ? (
               <img
@@ -606,25 +606,25 @@ export function HomePage() {
                 className='size-8 object-contain rounded-md'
               />
             ) : (
-              <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm'>
+              <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 font-bold text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'>
                 {data.site.name ? data.site.name.charAt(0).toUpperCase() : 'N'}
               </div>
             )}
             <button
               type='button'
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className='truncate text-left text-base font-bold text-slate-800 transition hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400'
+              className='truncate text-left text-base font-bold text-zinc-900 transition hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-300'
             >
               {data.site.name || 'NextNav'}
             </button>
           </div>
 
-          {/* 管理员直接添加分类小按钮 */}
+          {/* 管理员添加顶级分类按钮 */}
           {isAdmin && (
             <button
               type='button'
               onClick={() => openCreateCategoryModal(null)}
-              className='flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200/60 hover:text-blue-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
+              className='flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-200/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition'
               title='新建顶级分类'
             >
               <FolderPlus className='size-4' />
@@ -632,7 +632,7 @@ export function HomePage() {
           )}
         </div>
 
-        {/* 分类导航树形列表 */}
+        {/* 分类导航树形列表 (纯净无编辑按钮) */}
         <nav className='flex-1 overflow-y-auto px-3 py-4 space-y-1 select-none scrollbar-thin'>
           {data.groups.map((group) => {
             const hasSub = group.categories && group.categories.length > 0
@@ -645,8 +645,8 @@ export function HomePage() {
                 <div
                   className={`group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition cursor-pointer ${
                     isGroupActive
-                      ? 'bg-blue-50/90 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800/60 dark:hover:text-white'
+                      ? 'bg-zinc-200/80 text-zinc-950 dark:bg-zinc-800/80 dark:text-zinc-100 font-semibold shadow-2xs'
+                      : 'text-zinc-600 hover:bg-zinc-200/40 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100'
                   }`}
                   onClick={() => scrollToCategory(`group-${group.id}`)}
                 >
@@ -654,48 +654,31 @@ export function HomePage() {
                     <CategoryIcon
                       icon={group.icon || group.iconUrl}
                       isRoot={true}
-                      className={`size-4 shrink-0 ${isGroupActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 group-hover:text-slate-600 dark:text-neutral-400 dark:group-hover:text-neutral-200'}`}
+                      className={`size-4 shrink-0 ${isGroupActive ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`}
                     />
                     <span className='truncate'>{group.name}</span>
                   </div>
 
-                  <div className='flex items-center gap-1 shrink-0'>
-                    {/* 管理员直接编辑分类 */}
-                    {isAdmin && (
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          openEditCategoryModal(group)
-                        }}
-                        className='opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition'
-                        title='编辑此分类'
-                      >
-                        <SquarePen className='size-3.5' />
-                      </button>
-                    )}
-
-                    {/* 折叠/展开箭头 */}
-                    {hasSub && (
-                      <button
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleGroup(group.id)
-                        }}
-                        className='rounded p-0.5 text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition'
-                      >
-                        {isGroupOpen ? (
-                          <ChevronDown className='size-3.5' />
-                        ) : (
-                          <ChevronRight className='size-3.5' />
-                        )}
-                      </button>
-                    )}
-                  </div>
+                  {/* 折叠/展开箭头 (无多余编辑按钮) */}
+                  {hasSub && (
+                    <button
+                      type='button'
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleGroup(group.id)
+                      }}
+                      className='rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition'
+                    >
+                      {isGroupOpen ? (
+                        <ChevronDown className='size-3.5' />
+                      ) : (
+                        <ChevronRight className='size-3.5' />
+                      )}
+                    </button>
+                  )}
                 </div>
 
-                {/* 二级子分类列表 */}
+                {/* 二级子分类列表 (纯净无编辑按钮) */}
                 {hasSub && isGroupOpen && (
                   <div className='pl-6 space-y-0.5 pt-0.5'>
                     {group.categories.map((sub) => {
@@ -704,34 +687,18 @@ export function HomePage() {
                         <div
                           key={sub.id}
                           onClick={() => scrollToCategory(`cat-${sub.id}`)}
-                          className={`group/sub flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition cursor-pointer ${
+                          className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition cursor-pointer ${
                             isSubActive
-                              ? 'bg-blue-50/80 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 font-medium'
-                              : 'text-slate-500 hover:bg-slate-200/40 hover:text-slate-800 dark:text-neutral-400 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'
+                              ? 'bg-zinc-200/70 text-zinc-950 dark:bg-zinc-800/60 dark:text-zinc-100 font-medium'
+                              : 'text-zinc-500 hover:bg-zinc-200/40 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/40 dark:hover:text-zinc-200'
                           }`}
                         >
-                          <div className='flex items-center gap-2 truncate'>
-                            <CategoryIcon
-                              icon={sub.icon || sub.iconUrl}
-                              isRoot={false}
-                              className='size-3 shrink-0 text-slate-400'
-                            />
-                            <span className='truncate'>{sub.name}</span>
-                          </div>
-
-                          {isAdmin && (
-                            <button
-                              type='button'
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openEditCategoryModal({ ...sub, parentId: group.id })
-                              }}
-                              className='opacity-0 group-hover/sub:opacity-100 p-0.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition'
-                              title='编辑子分类'
-                            >
-                              <SquarePen className='size-3' />
-                            </button>
-                          )}
+                          <CategoryIcon
+                            icon={sub.icon || sub.iconUrl}
+                            isRoot={false}
+                            className='size-3 shrink-0 text-zinc-400 dark:text-zinc-500'
+                          />
+                          <span className='truncate'>{sub.name}</span>
                         </div>
                       )
                     })}
@@ -743,30 +710,30 @@ export function HomePage() {
         </nav>
 
         {/* 侧边栏底部：快捷提示与操作 */}
-        <div className='p-3 border-t border-slate-200/60 dark:border-neutral-800/60 flex items-center justify-between'>
+        <div className='p-3 border-t border-zinc-200/60 dark:border-zinc-800/60 flex items-center justify-between'>
           <button
             type='button'
             onClick={() => {
               searchInputRef.current?.focus()
               searchInputRef.current?.select()
             }}
-            className='inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 shadow-2xs hover:bg-slate-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
+            className='inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-zinc-500 shadow-2xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
             title='快捷键 F1 快速搜索'
           >
             <span className='font-mono'>F1</span>
-            <span className='text-[10px] font-normal text-slate-400 dark:text-neutral-500'>搜索</span>
+            <span className='text-[10px] font-normal text-zinc-400 dark:text-zinc-500'>搜索</span>
           </button>
 
           {isAdmin ? (
             <button
               type='button'
               onClick={() => openCreateCategoryModal(null)}
-              className='text-xs text-blue-600 hover:underline dark:text-blue-400 font-medium'
+              className='text-xs text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white font-medium'
             >
               + 新增分类
             </button>
           ) : (
-            <span className='text-[11px] text-slate-400 dark:text-neutral-500'>
+            <span className='text-[11px] text-zinc-400 dark:text-zinc-500'>
               {totalMatched} 个链接
             </span>
           )}
@@ -776,38 +743,38 @@ export function HomePage() {
       {/* ===================== 右侧主内容区 (Main Content) ===================== */}
       <main className='min-h-screen flex flex-col md:ml-60 transition-all'>
         {/* 移动端顶栏 */}
-        <div className='sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-neutral-800/80 dark:bg-[#16181d]/90 md:hidden'>
+        <div className='sticky top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-zinc-800/80 dark:bg-[#15171a]/90 md:hidden'>
           <button
             type='button'
             onClick={() => setSidebarOpen(true)}
-            className='rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
+            className='rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
             aria-label='打开分类侧边栏'
           >
             <Menu className='size-5' />
           </button>
-          <span className='font-bold text-slate-800 dark:text-slate-100'>
+          <span className='font-bold text-zinc-900 dark:text-zinc-100'>
             {data.site.name || 'NextNav'}
           </span>
           <div className='w-8' />
         </div>
 
-        {/* 顶部搜索区 (OneNav 经典胶囊搜索框) */}
+        {/* 顶部搜索区 (经典胶囊搜索框 - 黑白灰风格) */}
         <div className='pt-8 pb-4 px-4 sm:px-8 max-w-4xl mx-auto w-full'>
           <form onSubmit={handleSearchSubmit} className='relative w-full'>
-            <div className='relative flex items-center rounded-full border border-slate-200 bg-white shadow-xs transition-all focus-within:border-blue-400 focus-within:shadow-md dark:border-neutral-700 dark:bg-[#1a1d24]'>
+            <div className='relative flex items-center rounded-full border border-zinc-200 bg-white shadow-xs transition-all focus-within:border-zinc-400 focus-within:shadow-md dark:border-zinc-700 dark:bg-[#1a1d24]'>
               {/* 搜索引擎下拉选择 */}
               <div ref={engineDropdownRef} className='relative shrink-0'>
                 <button
                   type='button'
                   onClick={() => setShowEngineDropdown(!showEngineDropdown)}
-                  className='flex items-center gap-1 pl-4 pr-3 py-3 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-neutral-300 dark:hover:text-white transition'
+                  className='flex items-center gap-1 pl-4 pr-3 py-3 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white transition'
                 >
                   <span>{SEARCH_ENGINES[engineIndex].name}</span>
-                  <ChevronDown className='size-3 text-slate-400' />
+                  <ChevronDown className='size-3 text-zinc-400' />
                 </button>
 
                 {showEngineDropdown && (
-                  <div className='absolute left-2 top-full mt-1.5 z-40 w-28 rounded-xl border border-slate-100 bg-white p-1 shadow-lg dark:border-neutral-800 dark:bg-[#1f232b] text-xs'>
+                  <div className='absolute left-2 top-full mt-1.5 z-40 w-28 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-[#1c1f26] text-xs'>
                     {SEARCH_ENGINES.map((eng, idx) => (
                       <button
                         key={eng.id}
@@ -819,8 +786,8 @@ export function HomePage() {
                         }}
                         className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition ${
                           engineIndex === idx
-                            ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-950/40 dark:text-blue-400'
-                            : 'text-slate-700 hover:bg-slate-100 dark:text-neutral-200 dark:hover:bg-neutral-800'
+                            ? 'bg-zinc-100 text-zinc-950 font-semibold dark:bg-zinc-800 dark:text-zinc-100'
+                            : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/60'
                         }`}
                       >
                         <span>{eng.name}</span>
@@ -832,7 +799,7 @@ export function HomePage() {
               </div>
 
               {/* 垂直分割线 */}
-              <div className='h-4 w-px bg-slate-200 dark:bg-neutral-700' />
+              <div className='h-4 w-px bg-zinc-200 dark:bg-zinc-700' />
 
               {/* 搜索输入框 */}
               <input
@@ -841,7 +808,7 @@ export function HomePage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder='请输入关键词检索或外部搜索...'
-                className='w-full bg-transparent px-3 py-3 text-sm text-slate-800 placeholder-slate-400 outline-hidden dark:text-slate-100 dark:placeholder-neutral-500'
+                className='w-full bg-transparent px-3 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-hidden dark:text-zinc-100 dark:placeholder-zinc-500'
               />
 
               {/* 清除按钮 */}
@@ -852,7 +819,7 @@ export function HomePage() {
                     setKeyword('')
                     searchInputRef.current?.focus()
                   }}
-                  className='p-1 text-slate-400 hover:text-slate-600 dark:hover:text-neutral-200'
+                  className='p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
                   title='清空输入'
                 >
                   <X className='size-4' />
@@ -862,7 +829,7 @@ export function HomePage() {
               {/* 搜索按钮 */}
               <button
                 type='submit'
-                className='mr-1.5 flex size-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
+                className='mr-1.5 flex size-9 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white transition'
                 title='搜索'
               >
                 <Search className='size-4' />
@@ -872,12 +839,12 @@ export function HomePage() {
 
           {/* 搜索提示或匹配统计 */}
           {keyword.trim() && (
-            <div className='mt-2.5 flex items-center justify-between px-2 text-xs text-slate-400 dark:text-neutral-500'>
+            <div className='mt-2.5 flex items-center justify-between px-2 text-xs text-zinc-500 dark:text-zinc-400'>
               <span>站内匹配到 {totalMatched} 个链接</span>
               <button
                 type='button'
                 onClick={() => setKeyword('')}
-                className='text-blue-600 hover:underline dark:text-blue-400'
+                className='text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
               >
                 清除检索
               </button>
@@ -885,24 +852,24 @@ export function HomePage() {
           )}
         </div>
 
-        {/* 链接分类主展示区 */}
-        <div className='flex-1 px-4 sm:px-8 pb-24 space-y-10'>
+        {/* 链接分类主展示区 (右侧与底部留出充足安全边距，避免悬浮工具栏遮挡) */}
+        <div className='flex-1 px-5 sm:px-8 md:pl-8 md:pr-24 lg:pr-28 xl:pr-32 pb-44 space-y-10'>
           {isInitialEmpty ? (
-            <div className='rounded-2xl border border-dashed border-slate-300 p-12 text-center dark:border-neutral-800'>
-              <p className='text-sm text-slate-500 dark:text-neutral-400'>暂无导航链接数据。</p>
+            <div className='rounded-2xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-800'>
+              <p className='text-sm text-zinc-500 dark:text-zinc-400'>暂无导航链接数据。</p>
               {isAdmin && (
                 <div className='mt-3 flex justify-center gap-2'>
                   <button
                     type='button'
                     onClick={() => openCreateCategoryModal(null)}
-                    className='rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200'
+                    className='rounded-xl border border-zinc-300 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
                   >
                     + 新建分类
                   </button>
                   <button
                     type='button'
                     onClick={() => openCreateLinkModal()}
-                    className='rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700'
+                    className='rounded-xl bg-zinc-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
                   >
                     + 添加链接
                   </button>
@@ -910,8 +877,8 @@ export function HomePage() {
               )}
             </div>
           ) : keyword.trim() && totalMatched === 0 ? (
-            <div className='rounded-2xl border border-dashed border-slate-300 p-12 text-center dark:border-neutral-800'>
-              <p className='text-sm text-slate-500 dark:text-neutral-400'>
+            <div className='rounded-2xl border border-dashed border-zinc-300 p-12 text-center dark:border-zinc-800'>
+              <p className='text-sm text-zinc-500 dark:text-zinc-400'>
                 未找到与 “{keyword}” 相关的站内链接。
               </p>
               <button
@@ -920,7 +887,7 @@ export function HomePage() {
                   setKeyword('')
                   searchInputRef.current?.focus()
                 }}
-                className='mt-3 text-xs text-blue-600 hover:underline dark:text-blue-400'
+                className='mt-3 text-xs text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
               >
                 清空关键词
               </button>
@@ -940,47 +907,36 @@ export function HomePage() {
                   data-nav-section
                   className='scroll-mt-6 space-y-5'
                 >
-                  {/* 一级分类标题行 */}
+                  {/* 一级分类标题行 (仅保留分类编辑按钮，无多余添加链接按钮) */}
                   <div className='flex items-center justify-between pt-2'>
                     <div className='flex items-baseline gap-2.5'>
                       <div className='flex items-center gap-2'>
                         <CategoryIcon
                           icon={group.icon || group.iconUrl}
                           isRoot={true}
-                          className='size-4 text-blue-600 dark:text-blue-400'
+                          className='size-4 text-zinc-800 dark:text-zinc-200'
                         />
-                        <h2 className='text-lg font-bold text-slate-800 dark:text-slate-100'>
+                        <h2 className='text-lg font-bold text-zinc-900 dark:text-zinc-100'>
                           {group.name}
                         </h2>
                       </div>
                       {group.description && (
-                        <span className='text-xs text-slate-400 dark:text-neutral-500 font-normal'>
+                        <span className='text-xs text-zinc-400 dark:text-zinc-500 font-normal'>
                           {group.description}
                         </span>
                       )}
                     </div>
 
-                    {/* 管理员快捷操作组 */}
+                    {/* 管理员仅编辑分类按钮 */}
                     {isAdmin && (
-                      <div className='flex items-center gap-1.5'>
-                        <button
-                          type='button'
-                          onClick={() => openCreateLinkModal(group.id)}
-                          className='flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-500 shadow-2xs hover:border-blue-300 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition'
-                          title='为此分类添加链接'
-                        >
-                          <Plus className='size-3.5' />
-                          <span className='hidden sm:inline'>添加链接</span>
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => openEditCategoryModal(group)}
-                          className='flex size-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 shadow-2xs hover:border-blue-300 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition'
-                          title='编辑此分类'
-                        >
-                          <SquarePen className='size-3.5' />
-                        </button>
-                      </div>
+                      <button
+                        type='button'
+                        onClick={() => openEditCategoryModal(group)}
+                        className='flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 shadow-2xs hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white dark:hover:border-zinc-600 transition'
+                        title='编辑此分类'
+                      >
+                        <SquarePen className='size-3.5' />
+                      </button>
                     )}
                   </div>
 
@@ -1011,44 +967,33 @@ export function HomePage() {
                         data-nav-section
                         className='scroll-mt-6 space-y-3 pt-2'
                       >
-                        {/* 二级子分类标题行 */}
+                        {/* 二级子分类标题行 (仅保留分类编辑按钮，无添加链接按钮) */}
                         <div className='flex items-center justify-between'>
                           <div className='flex items-center gap-2'>
                             <CategoryIcon
                               icon={sub.icon || sub.iconUrl}
                               isRoot={false}
-                              className='size-3.5 text-slate-400 dark:text-neutral-400'
+                              className='size-3.5 text-zinc-400 dark:text-zinc-500'
                             />
-                            <h3 className='text-sm font-semibold text-slate-700 dark:text-neutral-200'>
+                            <h3 className='text-sm font-semibold text-zinc-800 dark:text-zinc-200'>
                               {sub.name}
                             </h3>
                             {sub.description && (
-                              <span className='text-xs text-slate-400 dark:text-neutral-500 font-normal'>
+                              <span className='text-xs text-zinc-400 dark:text-zinc-500 font-normal'>
                                 - {sub.description}
                               </span>
                             )}
                           </div>
 
                           {isAdmin && (
-                            <div className='flex items-center gap-1.5'>
-                              <button
-                                type='button'
-                                onClick={() => openCreateLinkModal(sub.id)}
-                                className='flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-400 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 transition'
-                                title='为此子分类添加链接'
-                              >
-                                <Plus className='size-3' />
-                                <span className='hidden sm:inline'>添加</span>
-                              </button>
-                              <button
-                                type='button'
-                                onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
-                                className='flex size-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 transition'
-                                title='编辑子分类'
-                              >
-                                <SquarePen className='size-3' />
-                              </button>
-                            </div>
+                            <button
+                              type='button'
+                              onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
+                              className='flex size-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:hover:text-white dark:hover:border-zinc-600 transition'
+                              title='编辑子分类'
+                            >
+                              <SquarePen className='size-3' />
+                            </button>
                           )}
                         </div>
 
@@ -1068,8 +1013,8 @@ export function HomePage() {
                             ))}
                           </div>
                         ) : (
-                          <div className='rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400 dark:border-neutral-800'>
-                            暂无链接，点击右上角添加
+                          <div className='rounded-xl border border-dashed border-zinc-200 p-4 text-center text-xs text-zinc-400 dark:border-zinc-800'>
+                            暂无链接
                           </div>
                         )}
                       </div>
@@ -1082,16 +1027,16 @@ export function HomePage() {
         </div>
       </main>
 
-      {/* ===================== 右下角悬浮工具条 (Floating Action Buttons) ===================== */}
+      {/* ===================== 右下角悬浮工具条 (统一添加链接 & 控制) ===================== */}
       <div className='fixed right-6 bottom-6 z-40 flex flex-col items-center gap-2 select-none'>
-        <div className='flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-neutral-800 dark:bg-[#1a1d24]/95'>
-          {/* 添加链接快捷入口 (直接呼出前台新建链接弹窗) */}
+        <div className='flex flex-col items-center gap-1.5 rounded-2xl border border-zinc-200/80 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-zinc-800 dark:bg-[#1a1d24]/95'>
+          {/* 统一添加链接快捷入口 (黑白灰配色) */}
           {isAdmin && (
             <button
               type='button'
               onClick={() => openCreateLinkModal()}
-              className='flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs hover:bg-blue-700 transition'
-              title='直接新增链接'
+              className='flex size-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-xs hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition'
+              title='添加链接'
             >
               <Plus className='size-5' />
             </button>
@@ -1104,7 +1049,7 @@ export function HomePage() {
               toggleTheme()
               setThemeState(getTheme())
             }}
-            className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
+            className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition'
             title={theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'}
             aria-label='切换深浅主题'
           >
@@ -1116,18 +1061,18 @@ export function HomePage() {
             type='button'
             onClick={handleRefresh}
             disabled={refreshing}
-            className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition disabled:opacity-50'
+            className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition disabled:opacity-50'
             title='刷新导航数据'
             aria-label='刷新导航数据'
           >
-            <RotateCw className={`size-4 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <RotateCw className={`size-4 ${refreshing ? 'animate-spin text-zinc-900 dark:text-zinc-100' : ''}`} />
           </button>
 
           {/* 后台管理入口 */}
           {isAdmin ? (
             <Link
               to='/admin'
-              className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
+              className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition'
               title='进入管理后台'
             >
               <Settings className='size-4' />
@@ -1135,7 +1080,7 @@ export function HomePage() {
           ) : (
             <Link
               to='/login'
-              className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
+              className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition'
               title='登录'
             >
               <Settings className='size-4' />
@@ -1151,7 +1096,7 @@ export function HomePage() {
                 await clearHomeCache()
                 window.location.reload()
               }}
-              className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 dark:text-neutral-300 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition'
+              className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-red-50 hover:text-red-600 dark:text-zinc-300 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition'
               title='退出登录'
             >
               <LogOut className='size-4' />
@@ -1164,7 +1109,7 @@ export function HomePage() {
           <button
             type='button'
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className='flex size-9 items-center justify-center rounded-full border border-slate-200/80 bg-white/95 text-slate-600 shadow-md backdrop-blur-md hover:bg-blue-600 hover:text-white dark:border-neutral-800 dark:bg-[#1a1d24]/95 dark:text-neutral-300 dark:hover:bg-blue-600 dark:hover:text-white transition'
+            className='flex size-9 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-zinc-600 shadow-md backdrop-blur-md hover:bg-zinc-900 hover:text-white dark:border-zinc-800 dark:bg-[#1a1d24]/95 dark:text-zinc-300 dark:hover:bg-zinc-100 dark:hover:text-zinc-900 transition'
             title='回到顶部'
           >
             <ArrowUp className='size-4' />
@@ -1172,18 +1117,18 @@ export function HomePage() {
         )}
       </div>
 
-      {/* ===================== 前台原生链接编辑/新建 Modal ===================== */}
+      {/* ===================== 前台原生链接编辑/新建 Modal (纯净黑白灰) ===================== */}
       {linkModal.open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs overflow-y-auto'>
-          <div className='w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
-            <div className='flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800'>
-              <h3 className='text-base font-bold text-slate-800 dark:text-slate-100'>
+          <div className='w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
+            <div className='flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800'>
+              <h3 className='text-base font-bold text-zinc-900 dark:text-zinc-100'>
                 {linkModal.mode === 'create' ? '添加链接' : '编辑链接'}
               </h3>
               <button
                 type='button'
                 onClick={() => setLinkModal((prev) => ({ ...prev, open: false }))}
-                className='rounded-md p-1 text-slate-400 hover:text-slate-600 dark:hover:text-neutral-200'
+                className='rounded-md p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
               >
                 <X className='size-4' />
               </button>
@@ -1198,7 +1143,7 @@ export function HomePage() {
             <form onSubmit={handleSaveLink} className='mt-4 space-y-4 text-xs'>
               {/* 标题 */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   链接标题 <span className='text-red-500'>*</span>
                 </label>
                 <input
@@ -1207,13 +1152,13 @@ export function HomePage() {
                   onChange={(e) => setLinkModal({ ...linkModal, title: e.target.value })}
                   placeholder='例如：GitHub'
                   required
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                 />
               </div>
 
               {/* 网址 URL */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   网址 URL <span className='text-red-500'>*</span>
                 </label>
                 <input
@@ -1222,20 +1167,20 @@ export function HomePage() {
                   onChange={(e) => setLinkModal({ ...linkModal, url: e.target.value })}
                   placeholder='https://...'
                   required
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                 />
               </div>
 
               {/* 所属分类与备用网址 (两列) */}
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
                 <div>
-                  <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                     所属分类 <span className='text-red-500'>*</span>
                   </label>
                   <select
                     value={linkModal.categoryId}
                     onChange={(e) => setLinkModal({ ...linkModal, categoryId: Number(e.target.value) })}
-                    className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                    className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                   >
                     {flatCategoryOptions.map((opt) => (
                       <option key={opt.id} value={opt.id}>
@@ -1246,7 +1191,7 @@ export function HomePage() {
                 </div>
 
                 <div>
-                  <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                     备用网址
                   </label>
                   <input
@@ -1254,14 +1199,14 @@ export function HomePage() {
                     value={linkModal.backupUrl}
                     onChange={(e) => setLinkModal({ ...linkModal, backupUrl: e.target.value })}
                     placeholder='可选镜像或内网地址'
-                    className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                    className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                   />
                 </div>
               </div>
 
               {/* 描述 */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   网站描述
                 </label>
                 <textarea
@@ -1269,46 +1214,46 @@ export function HomePage() {
                   onChange={(e) => setLinkModal({ ...linkModal, description: e.target.value })}
                   placeholder='简短的功能介绍或备注信息'
                   rows={2}
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100 resize-none'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 resize-none'
                 />
               </div>
 
               {/* 排序与私有状态 */}
               <div className='flex items-center justify-between pt-1'>
                 <div className='flex items-center gap-2'>
-                  <label className='font-medium text-slate-700 dark:text-neutral-300'>排序:</label>
+                  <label className='font-medium text-zinc-700 dark:text-zinc-300'>排序:</label>
                   <input
                     type='number'
                     value={linkModal.sort}
                     onChange={(e) => setLinkModal({ ...linkModal, sort: Number(e.target.value) })}
-                    className='w-20 rounded-lg border border-slate-200 bg-slate-50/50 px-2 py-1 text-xs text-slate-800 dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                    className='w-20 rounded-lg border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-xs text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100'
                   />
                 </div>
 
-                <label className='flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-neutral-300'>
+                <label className='flex items-center gap-2 cursor-pointer font-medium text-zinc-700 dark:text-zinc-300'>
                   <input
                     type='checkbox'
                     checked={linkModal.isPrivate}
                     onChange={(e) => setLinkModal({ ...linkModal, isPrivate: e.target.checked })}
-                    className='size-4 rounded accent-blue-600'
+                    className='size-4 rounded accent-zinc-900 dark:accent-zinc-100'
                   />
                   <span>设为私有 (仅自己可见)</span>
                 </label>
               </div>
 
               {/* 底部操作按钮 */}
-              <div className='mt-6 flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-neutral-800'>
+              <div className='mt-6 flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800'>
                 <button
                   type='button'
                   onClick={() => setLinkModal((prev) => ({ ...prev, open: false }))}
-                  className='rounded-xl border border-slate-200 px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 transition'
+                  className='rounded-xl border border-zinc-200 px-4 py-2 font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 transition'
                 >
                   取消
                 </button>
                 <button
                   type='submit'
                   disabled={linkSubmitting}
-                  className='rounded-xl bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition'
+                  className='rounded-xl bg-zinc-900 px-5 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 transition'
                 >
                   {linkSubmitting ? '正在保存...' : '保存'}
                 </button>
@@ -1318,18 +1263,18 @@ export function HomePage() {
         </div>
       )}
 
-      {/* ===================== 前台原生分类编辑/新建 Modal ===================== */}
+      {/* ===================== 前台原生分类编辑/新建 Modal (纯净黑白灰) ===================== */}
       {categoryModal.open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs overflow-y-auto'>
-          <div className='w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
-            <div className='flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800'>
-              <h3 className='text-base font-bold text-slate-800 dark:text-slate-100'>
+          <div className='w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
+            <div className='flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800'>
+              <h3 className='text-base font-bold text-zinc-900 dark:text-zinc-100'>
                 {categoryModal.mode === 'create' ? '新建分类' : '编辑分类'}
               </h3>
               <button
                 type='button'
                 onClick={() => setCategoryModal((prev) => ({ ...prev, open: false }))}
-                className='rounded-md p-1 text-slate-400 hover:text-slate-600 dark:hover:text-neutral-200'
+                className='rounded-md p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
               >
                 <X className='size-4' />
               </button>
@@ -1344,7 +1289,7 @@ export function HomePage() {
             <form onSubmit={handleSaveCategory} className='mt-4 space-y-4 text-xs'>
               {/* 分类名称 */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   分类名称 <span className='text-red-500'>*</span>
                 </label>
                 <input
@@ -1353,13 +1298,13 @@ export function HomePage() {
                   onChange={(e) => setCategoryModal({ ...categoryModal, name: e.target.value })}
                   placeholder='例如：在线工具'
                   required
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                 />
               </div>
 
               {/* 父级分类 */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   父级分类
                 </label>
                 <select
@@ -1370,7 +1315,7 @@ export function HomePage() {
                       parentId: e.target.value ? Number(e.target.value) : null,
                     })
                   }
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                 >
                   <option value=''>作为顶级分类 (一级)</option>
                   {rootCategoryOptions
@@ -1385,7 +1330,7 @@ export function HomePage() {
 
               {/* 分类图标 */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   分类图标 (Emoji / 图标名 / 图片地址)
                 </label>
                 <input
@@ -1393,16 +1338,16 @@ export function HomePage() {
                   value={categoryModal.icon}
                   onChange={(e) => setCategoryModal({ ...categoryModal, icon: e.target.value })}
                   placeholder='例如：folder, globe, 🚀 或 https://...'
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                 />
                 <div className='flex flex-wrap items-center gap-1.5 mt-2'>
-                  <span className='text-[11px] text-slate-400'>快捷点选:</span>
+                  <span className='text-[11px] text-zinc-400'>快捷点选:</span>
                   {COMMON_ICONS.map((ic) => (
                     <button
                       key={ic}
                       type='button'
                       onClick={() => setCategoryModal({ ...categoryModal, icon: ic })}
-                      className='inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
+                      className='inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[11px] text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
                     >
                       <CategoryIcon icon={ic} size={12} />
                       <span>{ic}</span>
@@ -1413,7 +1358,7 @@ export function HomePage() {
 
               {/* 描述 */}
               <div>
-                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   分类描述
                 </label>
                 <input
@@ -1421,35 +1366,35 @@ export function HomePage() {
                   value={categoryModal.description}
                   onChange={(e) => setCategoryModal({ ...categoryModal, description: e.target.value })}
                   placeholder='分类的简要用途说明'
-                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
                 />
               </div>
 
               {/* 排序与私有状态 */}
               <div className='flex items-center justify-between pt-1'>
                 <div className='flex items-center gap-2'>
-                  <label className='font-medium text-slate-700 dark:text-neutral-300'>排序:</label>
+                  <label className='font-medium text-zinc-700 dark:text-zinc-300'>排序:</label>
                   <input
                     type='number'
                     value={categoryModal.sort}
                     onChange={(e) => setCategoryModal({ ...categoryModal, sort: Number(e.target.value) })}
-                    className='w-20 rounded-lg border border-slate-200 bg-slate-50/50 px-2 py-1 text-xs text-slate-800 dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                    className='w-20 rounded-lg border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-xs text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100'
                   />
                 </div>
 
-                <label className='flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-neutral-300'>
+                <label className='flex items-center gap-2 cursor-pointer font-medium text-zinc-700 dark:text-zinc-300'>
                   <input
                     type='checkbox'
                     checked={categoryModal.isPrivate}
                     onChange={(e) => setCategoryModal({ ...categoryModal, isPrivate: e.target.checked })}
-                    className='size-4 rounded accent-blue-600'
+                    className='size-4 rounded accent-zinc-900 dark:accent-zinc-100'
                   />
                   <span>设为私有分类</span>
                 </label>
               </div>
 
               {/* 底部操作按钮 */}
-              <div className='mt-6 flex items-center justify-between pt-3 border-t border-slate-100 dark:border-neutral-800'>
+              <div className='mt-6 flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800'>
                 {categoryModal.mode === 'edit' && categoryModal.id ? (
                   <button
                     type='button'
@@ -1469,14 +1414,14 @@ export function HomePage() {
                   <button
                     type='button'
                     onClick={() => setCategoryModal((prev) => ({ ...prev, open: false }))}
-                    className='rounded-xl border border-slate-200 px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 transition'
+                    className='rounded-xl border border-zinc-200 px-4 py-2 font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 transition'
                   >
                     取消
                   </button>
                   <button
                     type='submit'
                     disabled={categorySubmitting}
-                    className='rounded-xl bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition'
+                    className='rounded-xl bg-zinc-900 px-5 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 transition'
                   >
                     {categorySubmitting ? '正在保存...' : '保存'}
                   </button>
@@ -1490,11 +1435,11 @@ export function HomePage() {
       {/* ===================== 原生轻量删除分类确认 Modal ===================== */}
       {deletingCategory && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs'>
-          <div className='w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
-            <h3 className='text-base font-semibold text-slate-800 dark:text-slate-100'>
+          <div className='w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
+            <h3 className='text-base font-semibold text-zinc-900 dark:text-zinc-100'>
               确认删除分类 “{deletingCategory.name}”？
             </h3>
-            <div className='mt-3 space-y-2 text-xs text-slate-600 dark:text-neutral-300'>
+            <div className='mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-300'>
               <label className='flex items-center gap-2 cursor-pointer'>
                 <input
                   type='radio'
@@ -1519,7 +1464,7 @@ export function HomePage() {
                 <select
                   value={moveTargetCatId ?? ''}
                   onChange={(e) => setMoveTargetCatId(e.target.value ? Number(e.target.value) : undefined)}
-                  className='mt-1 w-full rounded-lg border border-slate-200 p-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800'
+                  className='mt-1 w-full rounded-lg border border-zinc-200 p-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800'
                 >
                   <option value=''>请选择目标分类</option>
                   {flatCategoryOptions
@@ -1538,7 +1483,7 @@ export function HomePage() {
                 type='button'
                 onClick={() => setDeletingCategory(null)}
                 disabled={isDeletingCat}
-                className='rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800'
+                className='rounded-xl border border-zinc-200 px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800'
               >
                 取消
               </button>
@@ -1558,34 +1503,34 @@ export function HomePage() {
       {/* ===================== 原生轻量二维码 Modal ===================== */}
       {qrModal.open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs'>
-          <div className='w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] text-center animate-in fade-in zoom-in-95 duration-150'>
-            <div className='flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800'>
-              <h3 className='text-sm font-semibold truncate text-slate-800 dark:text-slate-100'>
+          <div className='w-full max-w-xs rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] text-center animate-in fade-in zoom-in-95 duration-150'>
+            <div className='flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800'>
+              <h3 className='text-sm font-semibold truncate text-zinc-900 dark:text-zinc-100'>
                 {qrModal.title || '链接二维码'}
               </h3>
               <button
                 type='button'
                 onClick={() => setQrModal((prev) => ({ ...prev, open: false }))}
-                className='rounded-md p-1 text-slate-400 hover:text-slate-600 dark:hover:text-neutral-200'
+                className='rounded-md p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
               >
                 <X className='size-4' />
               </button>
             </div>
 
             <div className='flex flex-col items-center justify-center py-4'>
-              <div className='rounded-xl border border-slate-100 bg-white p-2.5 shadow-inner'>
+              <div className='rounded-xl border border-zinc-100 bg-white p-2.5 shadow-inner'>
                 <canvas ref={qrCanvasRef} className='block' />
               </div>
-              <p className='mt-3 max-w-full truncate px-2 text-xs text-slate-400 dark:text-neutral-500' title={qrModal.url}>
+              <p className='mt-3 max-w-full truncate px-2 text-xs text-zinc-400 dark:text-zinc-500' title={qrModal.url}>
                 {qrModal.url}
               </p>
             </div>
 
-            <div className='grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-neutral-800'>
+            <div className='grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800'>
               <button
                 type='button'
                 onClick={handleCopyQRLink}
-                className='flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 transition'
+                className='flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition'
               >
                 {qrCopied ? <Check className='size-3.5 text-green-500' /> : <Copy className='size-3.5' />}
                 <span>{qrCopied ? '已复制' : '复制链接'}</span>
@@ -1593,7 +1538,7 @@ export function HomePage() {
               <button
                 type='button'
                 onClick={handleDownloadQR}
-                className='flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 text-xs font-medium text-white hover:bg-blue-700 transition'
+                className='flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 py-2 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition'
               >
                 <Download className='size-3.5' />
                 <span>下载 PNG</span>
@@ -1606,11 +1551,11 @@ export function HomePage() {
       {/* ===================== 原生轻量删除链接确认 Modal ===================== */}
       {deletingLink && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs'>
-          <div className='w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
-            <h3 className='text-base font-semibold text-slate-800 dark:text-slate-100'>
+          <div className='w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
+            <h3 className='text-base font-semibold text-zinc-900 dark:text-zinc-100'>
               确认删除链接
             </h3>
-            <p className='mt-2 text-xs text-slate-500 dark:text-neutral-400'>
+            <p className='mt-2 text-xs text-zinc-500 dark:text-zinc-400'>
               是否确定删除 “{deletingLink.title}”？此操作不可撤销。
             </p>
             <div className='mt-5 flex justify-end gap-2'>
@@ -1618,7 +1563,7 @@ export function HomePage() {
                 type='button'
                 onClick={() => setDeletingLink(null)}
                 disabled={isDeletingLink}
-                className='rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800'
+                className='rounded-xl border border-zinc-200 px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800'
               >
                 取消
               </button>

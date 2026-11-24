@@ -34,7 +34,7 @@ function NotFound() {
     <div className='flex min-h-screen flex-col items-center justify-center p-4 text-center bg-[#f3f5f8] dark:bg-[#0f1115]'>
       <p className='text-3xl font-bold text-slate-800 dark:text-slate-100'>404</p>
       <p className='mt-2 text-sm text-slate-500 dark:text-neutral-400'>这个页面不存在。</p>
-      <Link to='/' className='mt-4 inline-block rounded-xl bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700'>
+      <Link to='/' className='mt-4 inline-block rounded-xl bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'>
         回到首页
       </Link>
     </div>
