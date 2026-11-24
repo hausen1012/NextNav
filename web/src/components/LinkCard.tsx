@@ -1,16 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { LinkDTO } from '@/lib/api'
 import { SiteIcon } from '@/components/SiteIcon'
-import { Badge } from '@/components/ui/badge'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu'
-import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check, Lock } from 'lucide-react'
 
 function StatusDot({ status }: { status: LinkDTO['status'] }) {
   if (status === 'dead') {
@@ -40,12 +31,17 @@ export function LinkCard({
   onDelete,
 }: LinkCardProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopiedKey(key)
-      setTimeout(() => setCopiedKey(null), 1500)
+      setTimeout(() => {
+        setCopiedKey(null)
+        setMenuPos(null)
+      }, 1000)
     } catch {
       // ignore
     }
@@ -53,90 +49,168 @@ export function LinkCard({
 
   const openURL = (url: string) => {
     window.open(url, newTab ? '_blank' : '_self', newTab ? 'noopener,noreferrer' : undefined)
+    setMenuPos(null)
   }
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // 计算浮层位置，防止超出屏幕
+    const x = Math.min(e.clientX, window.innerWidth - 180)
+    const y = Math.min(e.clientY, window.innerHeight - 220)
+    setMenuPos({ x, y })
+  }
+
+  useEffect(() => {
+    if (!menuPos) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuPos(null)
+      }
+    }
+    const handleScroll = () => setMenuPos(null)
+    window.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [menuPos])
+
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <a
-          href={link.url}
-          target={newTab ? '_blank' : undefined}
-          rel={newTab ? 'noopener noreferrer' : undefined}
-          className={cn(
-            'group relative flex h-[62px] items-center gap-3 rounded-lg border bg-card p-3',
-            'transition hover:-translate-y-0.5 hover:shadow-md select-none',
-          )}
-        >
-          <StatusDot status={link.status} />
-          <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} />
-          <span className='min-w-0 flex-1'>
-            <span className='block truncate text-sm font-medium'>
+    <>
+      <a
+        href={link.url}
+        target={newTab ? '_blank' : undefined}
+        rel={newTab ? 'noopener noreferrer' : undefined}
+        onContextMenu={handleContextMenu}
+        className='group relative flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800/80 dark:bg-[#1a1d24] select-none'
+      >
+        <StatusDot status={link.status} />
+
+        {/* 网站图标 */}
+        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 dark:bg-neutral-800'>
+          <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={36} />
+        </div>
+
+        {/* 文本区域：两行展示（标题 + 描述） */}
+        <div className='min-w-0 flex-1 pr-1'>
+          <div className='flex items-center gap-1.5'>
+            <span className='truncate text-sm font-semibold text-slate-800 dark:text-slate-100'>
               {link.title}
-              {link.isPrivate ? (
-                <Badge variant='secondary' className='ml-1.5 align-middle text-[10px]'>
-                  私有
-                </Badge>
-              ) : null}
             </span>
-            {link.description ? (
-              <span className='block truncate text-xs text-muted-foreground'>{link.description}</span>
+            {link.isPrivate ? (
+              <span title='私有链接'>
+                <Lock className='size-3 shrink-0 text-slate-400' />
+              </span>
             ) : null}
-          </span>
-        </a>
-      </ContextMenuTrigger>
-      <ContextMenuContent className='w-48'>
-        <ContextMenuItem onClick={() => openURL(link.url)} className='gap-2'>
-          <ExternalLink className='size-3.5' />
-          打开主链接
-        </ContextMenuItem>
-        {link.backupUrl ? (
-          <ContextMenuItem onClick={() => openURL(link.backupUrl!)} className='gap-2'>
-            <ExternalLink className='size-3.5' />
-            打开备用链接
-          </ContextMenuItem>
-        ) : null}
-        <ContextMenuItem
-          onClick={() => copyToClipboard(link.url, 'main')}
-          className='gap-2'
+          </div>
+          <p className='truncate text-xs text-slate-400 dark:text-neutral-500 mt-0.5 font-normal'>
+            {link.description || '没有描述'}
+          </p>
+        </div>
+      </a>
+
+      {/* 原生轻量右键浮动菜单 */}
+      {menuPos && (
+        <div
+          ref={menuRef}
+          className='fixed z-50 min-w-40 rounded-xl border border-slate-100 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-900/95 text-xs text-slate-700 dark:text-neutral-200 animate-in fade-in zoom-in-95 duration-100'
+          style={{ left: menuPos.x, top: menuPos.y }}
         >
-          {copiedKey === 'main' ? <Check className='size-3.5 text-green-500' /> : <Copy className='size-3.5' />}
-          {copiedKey === 'main' ? '主链接已复制' : '复制主链接'}
-        </ContextMenuItem>
-        {link.backupUrl ? (
-          <ContextMenuItem
-            onClick={() => copyToClipboard(link.backupUrl!, 'backup')}
-            className='gap-2'
+          <button
+            type='button'
+            onClick={() => openURL(link.url)}
+            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
           >
-            {copiedKey === 'backup' ? <Check className='size-3.5 text-green-500' /> : <Copy className='size-3.5' />}
-            {copiedKey === 'backup' ? '备用链接已复制' : '复制备用链接'}
-          </ContextMenuItem>
-        ) : null}
-        <ContextMenuItem onClick={() => onShowQR(link.url, link.title)} className='gap-2'>
-          <QrCode className='size-3.5' />
-          二维码
-        </ContextMenuItem>
-        {isAdmin ? (
-          <>
-            <ContextMenuSeparator />
-            {onEdit ? (
-              <ContextMenuItem onClick={() => onEdit(link)} className='gap-2'>
-                <Edit2 className='size-3.5' />
-                编辑链接
-              </ContextMenuItem>
-            ) : null}
-            {onDelete ? (
-              <ContextMenuItem
-                onClick={() => onDelete(link)}
-                variant='destructive'
-                className='gap-2'
-              >
-                <Trash2 className='size-3.5' />
-                删除链接
-              </ContextMenuItem>
-            ) : null}
-          </>
-        ) : null}
-      </ContextMenuContent>
-    </ContextMenu>
+            <ExternalLink className='size-3.5 text-slate-400' />
+            <span>打开主链接</span>
+          </button>
+
+          {link.backupUrl ? (
+            <button
+              type='button'
+              onClick={() => openURL(link.backupUrl!)}
+              className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+            >
+              <ExternalLink className='size-3.5 text-slate-400' />
+              <span>打开备用链接</span>
+            </button>
+          ) : null}
+
+          <button
+            type='button'
+            onClick={() => copyToClipboard(link.url, 'main')}
+            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+          >
+            {copiedKey === 'main' ? (
+              <Check className='size-3.5 text-green-500' />
+            ) : (
+              <Copy className='size-3.5 text-slate-400' />
+            )}
+            <span>{copiedKey === 'main' ? '已复制主链接' : '复制主链接'}</span>
+          </button>
+
+          {link.backupUrl ? (
+            <button
+              type='button'
+              onClick={() => copyToClipboard(link.backupUrl!, 'backup')}
+              className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+            >
+              {copiedKey === 'backup' ? (
+                <Check className='size-3.5 text-green-500' />
+              ) : (
+                <Copy className='size-3.5 text-slate-400' />
+              )}
+              <span>{copiedKey === 'backup' ? '已复制备用链接' : '复制备用链接'}</span>
+            </button>
+          ) : null}
+
+          <button
+            type='button'
+            onClick={() => {
+              setMenuPos(null)
+              onShowQR(link.url, link.title)
+            }}
+            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+          >
+            <QrCode className='size-3.5 text-slate-400' />
+            <span>二维码</span>
+          </button>
+
+          {isAdmin ? (
+            <>
+              <div className='my-1 border-t border-slate-100 dark:border-neutral-800' />
+              {onEdit ? (
+                <button
+                  type='button'
+                  onClick={() => {
+                    setMenuPos(null)
+                    onEdit(link)
+                  }}
+                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+                >
+                  <Edit2 className='size-3.5 text-slate-400' />
+                  <span>编辑链接</span>
+                </button>
+              ) : null}
+              {onDelete ? (
+                <button
+                  type='button'
+                  onClick={() => {
+                    setMenuPos(null)
+                    onDelete(link)
+                  }}
+                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30'
+                >
+                  <Trash2 className='size-3.5' />
+                  <span>删除链接</span>
+                </button>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      )}
+    </>
   )
 }
