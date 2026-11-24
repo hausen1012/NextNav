@@ -1,33 +1,19 @@
-import { useState, useEffect } from 'react'
 import { Outlet, Link } from 'react-router-dom'
 import { useHome, useMe } from '@/lib/query'
-import { AdminSidebar } from './AdminSidebar'
-import { AdminHeader } from './AdminHeader'
+import { getCookie } from '@/lib/cookies'
+import { cn } from '@/lib/utils'
+import { LayoutProvider } from '@/context/layout-provider'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/layout/app-sidebar'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function AdminLayout() {
   const { data: me, isLoading: meLoading } = useMe()
   const { data: home } = useHome()
-
-  // Remember sidebar collapse state in localStorage
-  const [collapsed, setCollapsed] = useState(() => {
-    return localStorage.getItem('nextnav_admin_sidebar_collapsed') === '1'
-  })
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const toggleCollapse = () => {
-    setCollapsed((prev) => {
-      const next = !prev
-      localStorage.setItem('nextnav_admin_sidebar_collapsed', next ? '1' : '0')
-      return next
-    })
-  }
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [location.pathname])
+  const defaultOpen = getCookie('sidebar_state') !== 'false'
 
   if (meLoading) {
     return (
@@ -70,47 +56,21 @@ export function AdminLayout() {
   }
 
   return (
-    <div className='flex min-h-screen bg-background'>
-      {/* Desktop sidebar */}
-      <div className='hidden md:flex'>
-        <AdminSidebar
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapse}
-          siteName={home?.site.name ?? 'NextNav'}
-        />
-      </div>
-
-      {/* Mobile drawer backdrop and sidebar */}
-      {mobileMenuOpen && (
-        <div className='fixed inset-0 z-50 md:hidden flex'>
-          <div
-            className='fixed inset-0 bg-background/80 backdrop-blur-xs'
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div className='relative z-50 flex h-full w-64 max-w-[80vw] flex-col bg-sidebar shadow-xl'>
-            <AdminSidebar
-              collapsed={false}
-              onToggleCollapse={() => setMobileMenuOpen(false)}
-              siteName={home?.site.name ?? 'NextNav'}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <div className='flex flex-1 flex-col overflow-hidden'>
-        <AdminHeader
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapse}
-          onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
-          me={me}
-        />
-        <main className='flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-muted/15'>
-          <div className='mx-auto max-w-6xl space-y-6'>
+    <LayoutProvider>
+      <SidebarProvider defaultOpen={defaultOpen}>
+        <AppSidebar siteName={home?.site.name ?? 'NextNav'} me={me} />
+        <SidebarInset
+          className={cn(
+            '@container/content',
+            'peer-data-[variant=inset]:min-h-[calc(100svh-1rem)]'
+          )}
+        >
+          <Header />
+          <Main>
             <Outlet />
-          </div>
-        </main>
-      </div>
-    </div>
+          </Main>
+        </SidebarInset>
+      </SidebarProvider>
+    </LayoutProvider>
   )
 }

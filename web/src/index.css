@@ -13,8 +13,42 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply min-h-svh w-full bg-background text-foreground antialiased has-[div[data-variant='inset']]:bg-sidebar;
     font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
       'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Collapsible navigation transitions */
+.CollapsibleContent {
+  overflow: hidden;
+}
+.CollapsibleContent[data-state='open'] {
+  animation: slideDown 200ms ease-out;
+}
+.CollapsibleContent[data-state='closed'] {
+  animation: slideUp 200ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
   }
 }
