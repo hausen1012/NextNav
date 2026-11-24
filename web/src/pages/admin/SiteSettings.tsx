@@ -50,21 +50,21 @@ export function AdminSiteSettingsPage() {
       <div>
         <h1 className='text-2xl font-bold tracking-tight'>站点设置</h1>
         <p className='text-sm text-muted-foreground'>
-          自定义 NextNav 导航站的名称、副标题、默认打开方式及全局视觉背景。
+          自定义站点名称、描述与全局偏好配置。
         </p>
       </div>
 
       <Card className='shadow-xs'>
         <CardHeader>
           <CardTitle>基础展示配置</CardTitle>
-          <CardDescription>配置站点对外公开展示的基本信息。</CardDescription>
+          <CardDescription>对外公开展示的基本信息与访问偏好。</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={save} className='space-y-4'>
             {notice && <Notice kind='success'>{notice}</Notice>}
             {error && <Notice kind='error'>{error}</Notice>}
 
-            <Field label='站点标题' htmlFor='site-name' hint='显示在浏览器标题栏与顶部 Header'>
+            <Field label='站点标题' htmlFor='site-name'>
               <Input
                 id='site-name'
                 value={name}
@@ -74,7 +74,7 @@ export function AdminSiteSettingsPage() {
               />
             </Field>
 
-            <Field label='站点副标题 / 描述' htmlFor='site-desc' hint='简短的站点描述'>
+            <Field label='站点副标题 / 描述' htmlFor='site-desc'>
               <Input
                 id='site-desc'
                 value={description}
@@ -86,7 +86,7 @@ export function AdminSiteSettingsPage() {
             <Field
               label='全局背景色'
               htmlFor='site-bg'
-              hint='支持 HEX 或 CSS 颜色值，如 #0f1115、#f8fafc，留空则使用默认主题背景'
+              hint='支持 HEX 或 CSS 颜色值，留空使用默认背景'
             >
               <div className='flex items-center gap-3'>
                 <Input
@@ -114,7 +114,7 @@ export function AdminSiteSettingsPage() {
                 className='size-4 rounded border-input text-primary focus:ring-ring'
               />
               <label htmlFor='site-open-tab' className='text-sm text-foreground select-none cursor-pointer'>
-                点击链接默认在新标签页打开（推荐开启）
+                点击链接默认在新标签页打开
               </label>
             </div>
 

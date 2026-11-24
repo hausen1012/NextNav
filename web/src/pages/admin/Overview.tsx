@@ -124,7 +124,7 @@ export function AdminOverviewPage() {
         <div>
           <h1 className='text-2xl font-bold tracking-tight'>概览看板</h1>
           <p className='text-sm text-muted-foreground'>
-            欢迎回到 NextNav 管理后台，监控站点数据与快捷管理导航内容。
+            站点运行指标与常用操作入口。
           </p>
         </div>
         <div className='flex items-center gap-2'>
@@ -203,7 +203,7 @@ export function AdminOverviewPage() {
               <span>运行中</span>
             </div>
             <p className='text-xs text-muted-foreground mt-1'>
-              单二进制 + SQLite 极速响应
+              服务响应正常
             </p>
           </CardContent>
         </Card>
@@ -277,7 +277,7 @@ export function AdminOverviewPage() {
               <Sparkles className='size-4 text-primary' />
               <span>快捷入口</span>
             </CardTitle>
-            <CardDescription>快速前往各模块管理与运维</CardDescription>
+            <CardDescription>进入核心业务与系统维护</CardDescription>
           </CardHeader>
           <CardContent className='space-y-2.5'>
             <Link
@@ -336,7 +336,7 @@ export function AdminOverviewPage() {
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>新建链接</DialogTitle>
-            <DialogDescription>快速向指定分类中添加新链接。</DialogDescription>
+            <DialogDescription>录入新链接信息。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateLink} className='space-y-4 pt-2'>
             {error && <p className='text-xs text-destructive'>{error}</p>}
@@ -398,7 +398,7 @@ export function AdminOverviewPage() {
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>新建分类</DialogTitle>
-            <DialogDescription>创建新的一级分类。</DialogDescription>
+            <DialogDescription>录入一级分类信息。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateCategory} className='space-y-4 pt-2'>
             {catError && <p className='text-xs text-destructive'>{catError}</p>}

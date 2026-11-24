@@ -94,7 +94,7 @@ export function AdminSidebar({ collapsed, onToggleCollapse, siteName }: AdminSid
                         isActive
                           ? 'bg-accent text-accent-foreground font-semibold shadow-2xs'
                           : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-                        collapsed && 'justify-center px-0 size-10'
+                        collapsed && 'mx-auto size-10 justify-center px-0'
                       )
                     }
                   >
@@ -139,7 +139,7 @@ export function AdminSidebar({ collapsed, onToggleCollapse, siteName }: AdminSid
                         isActive
                           ? 'bg-accent text-accent-foreground font-semibold shadow-2xs'
                           : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-                        collapsed && 'justify-center px-0 size-10'
+                        collapsed && 'mx-auto size-10 justify-center px-0'
                       )
                     }
                   >
@@ -168,7 +168,7 @@ export function AdminSidebar({ collapsed, onToggleCollapse, siteName }: AdminSid
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant='ghost' size='icon' className='size-10 w-full' asChild>
+                <Button variant='ghost' size='icon' className='mx-auto flex size-10' asChild>
                   <Link to='/'>
                     <ExternalLink className='size-4' />
                   </Link>
@@ -190,8 +190,8 @@ export function AdminSidebar({ collapsed, onToggleCollapse, siteName }: AdminSid
             size='sm'
             onClick={onToggleCollapse}
             className={cn(
-              'w-full text-xs text-muted-foreground hover:text-foreground',
-              collapsed ? 'size-10 px-0' : 'justify-between px-3'
+              'text-xs text-muted-foreground hover:text-foreground',
+              collapsed ? 'mx-auto flex size-10 p-0 justify-center' : 'w-full justify-between px-3'
             )}
             aria-label={collapsed ? '展开侧边栏' : '折叠侧边栏'}
           >

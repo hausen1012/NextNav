@@ -4,7 +4,7 @@ import { useInvalidateHome } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Notice } from '@/components/Field'
-import { AlertTriangle, RefreshCw, Database } from 'lucide-react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 export function AdminSystemMaintenancePage() {
   const invalidate = useInvalidateHome()
@@ -14,14 +14,14 @@ export function AdminSystemMaintenancePage() {
   const [clearing, setClearing] = useState(false)
 
   async function clearSample() {
-    if (!window.confirm('将删除所有初始化时标记为示例的分类与链接，确定吗？')) return
+    if (!window.confirm('将删除所有标记为示例的分类与链接，确定吗？')) return
     setNotice(null)
     setError(null)
     setClearing(true)
     try {
       const r = await api.clearSample()
       invalidate()
-      setNotice(`已成功删除 ${r.deletedCategories} 个示例分类、${r.deletedLinks} 条示例链接`)
+      setNotice(`已清理 ${r.deletedCategories} 个示例分类、${r.deletedLinks} 条示例链接`)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '操作失败')
     } finally {
@@ -34,7 +34,7 @@ export function AdminSystemMaintenancePage() {
       <div>
         <h1 className='text-2xl font-bold tracking-tight'>运维维护</h1>
         <p className='text-sm text-muted-foreground'>
-          数据清理、示例初始化数据重置与系统运行状态监控。
+          缓存刷新与系统初始化演示数据维护。
         </p>
       </div>
 
@@ -49,48 +49,33 @@ export function AdminSystemMaintenancePage() {
             <span>示例数据清理</span>
           </CardTitle>
           <CardDescription>
-            安装后系统预置了一批示例分类与链接，当你录入完个人数据后可一键清理它们。
+            清理系统初始化时预置的演示数据。
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           <p className='text-sm text-muted-foreground'>
-            注意：仅删除带有 sample 标记的预置链接与分类，您自行手动添加或修改过的项不会受到影响。
+            仅删除预置的示例分类与链接，自行添加的内容不受影响。
           </p>
           <Button variant='destructive' onClick={clearSample} disabled={clearing}>
-            {clearing ? '正在清理...' : '一键清除所有示例数据'}
+            {clearing ? '正在清理...' : '清除示例数据'}
           </Button>
         </CardContent>
       </Card>
 
-      {/* System info */}
+      {/* Cache & Maintenance */}
       <Card className='shadow-xs'>
         <CardHeader>
           <CardTitle className='flex items-center gap-2'>
-            <Database className='size-5 text-primary' />
-            <span>存储与环境信息</span>
+            <RefreshCw className='size-5 text-primary' />
+            <span>数据缓存管理</span>
           </CardTitle>
-          <CardDescription>NextNav 运行时底层架构参数。</CardDescription>
+          <CardDescription>同步与刷新前后台导航数据缓存。</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className='grid grid-cols-2 gap-4 text-sm'>
-            <div className='rounded-lg border p-3'>
-              <span className='text-xs text-muted-foreground block'>后端架构</span>
-              <span className='font-medium mt-1 block'>Go 1.23+ / go:embed 单二进制</span>
-            </div>
-            <div className='rounded-lg border p-3'>
-              <span className='text-xs text-muted-foreground block'>数据库</span>
-              <span className='font-medium mt-1 block'>SQLite 3 (WAL 模式)</span>
-            </div>
-            <div className='rounded-lg border p-3'>
-              <span className='text-xs text-muted-foreground block'>前端体系</span>
-              <span className='font-medium mt-1 block'>Vite + React 18 + shadcn-admin</span>
-            </div>
-            <div className='rounded-lg border p-3'>
-              <span className='text-xs text-muted-foreground block'>内存占用控制</span>
-              <span className='font-medium mt-1 block'>&lt; 30MB 极低资源开销</span>
-            </div>
-          </div>
-          <div className='pt-4'>
+        <CardContent className='space-y-4'>
+          <p className='text-sm text-muted-foreground'>
+            在多设备维护或数据未及时更新时，可主动重载最新数据状态。
+          </p>
+          <div>
             <Button
               variant='outline'
               size='sm'
@@ -101,7 +86,7 @@ export function AdminSystemMaintenancePage() {
               }}
             >
               <RefreshCw className='size-3.5' />
-              <span>刷新系统状态缓存</span>
+              <span>刷新系统数据缓存</span>
             </Button>
           </div>
         </CardContent>

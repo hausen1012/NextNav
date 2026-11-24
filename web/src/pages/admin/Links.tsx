@@ -248,14 +248,9 @@ export function AdminLinksPage() {
       {/* Page Header */}
       <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
         <div>
-          <div className='flex items-center gap-2'>
-            <h1 className='text-xl font-bold tracking-tight'>链接管理</h1>
-            <Badge variant='secondary' className='rounded-full px-2 py-0.5 text-xs font-normal'>
-              {flatLinks.length} 个链接
-            </Badge>
-          </div>
+          <h1 className='text-xl font-bold tracking-tight'>链接管理</h1>
           <p className='text-xs text-muted-foreground mt-0.5'>
-            管理站点收录的全部网站链接、网址与健康状态
+            管理站点收录的网站链接与健康状态
           </p>
         </div>
         <Button size='sm' className='gap-1.5' onClick={openCreate}>
@@ -264,7 +259,7 @@ export function AdminLinksPage() {
         </Button>
       </div>
 
-      {/* Clean Toolbar tailored for Links */}
+      {/* Toolbar */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
         <div className='flex flex-1 flex-wrap items-center gap-2'>
           <div className='relative w-full sm:w-64'>
@@ -276,7 +271,7 @@ export function AdminLinksPage() {
                 setKeyword(e.target.value)
                 setPage(1)
               }}
-              className='h-8.5 pl-8 text-xs'
+              className='h-8 pl-8 text-xs'
             />
           </div>
 
@@ -286,7 +281,7 @@ export function AdminLinksPage() {
               setSelectedCatId(e.target.value === 'all' ? 'all' : Number(e.target.value))
               setPage(1)
             }}
-            className='h-8.5 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+            className='h-8 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
           >
             <option value='all'>全部分类</option>
             {flatCategories.map((c) => (
@@ -302,13 +297,13 @@ export function AdminLinksPage() {
               setSelectedStatus(e.target.value)
               setPage(1)
             }}
-            className='h-8.5 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+            className='h-8 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
           >
             <option value='all'>全部状态</option>
-            <option value='ok'>🟢 正常响应</option>
-            <option value='warn'>🟡 响应较慢</option>
-            <option value='dead'>🔴 链接失效</option>
-            <option value='private'>🔒 仅私有链接</option>
+            <option value='ok'>正常响应</option>
+            <option value='warn'>响应较慢</option>
+            <option value='dead'>链接失效</option>
+            <option value='private'>仅私有链接</option>
           </select>
 
           {hasFilter && (
@@ -316,7 +311,7 @@ export function AdminLinksPage() {
               variant='ghost'
               size='sm'
               onClick={resetFilters}
-              className='h-8.5 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground'
+              className='h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground'
             >
               <RotateCcw className='size-3' />
               <span>重置筛选</span>
@@ -360,7 +355,7 @@ export function AdminLinksPage() {
                   className='cursor-pointer select-none text-right'
                   onClick={() => handleSort('clicks')}
                 >
-                  <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground justify-end'>
+                  <span className='inline-flex w-full items-center justify-end gap-1 font-semibold text-xs text-foreground'>
                     点击量 {sortField === 'clicks' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
@@ -433,9 +428,9 @@ export function AdminLinksPage() {
                     </TableCell>
 
                     <TableCell>
-                      <Badge variant='outline' className='text-xs font-normal'>
+                      <span className='text-xs text-muted-foreground'>
                         {link.categoryName}
-                      </Badge>
+                      </span>
                     </TableCell>
 
                     <TableCell>
@@ -462,7 +457,7 @@ export function AdminLinksPage() {
                       )}
                     </TableCell>
 
-                    <TableCell className='text-right text-xs text-muted-foreground'>
+                    <TableCell className='text-right text-xs text-muted-foreground font-mono'>
                       {link.clickCount ?? 0}
                     </TableCell>
 
@@ -516,7 +511,7 @@ export function AdminLinksPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? '编辑链接' : '新建链接'}</DialogTitle>
             <DialogDescription>
-              {editingId ? '修改链接详细配置与归属分类。' : '录入新链接信息并保存。'}
+              {editingId ? '修改链接详细信息与归属分类。' : '录入新链接信息并保存。'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className='space-y-4 pt-2'>

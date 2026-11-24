@@ -11,7 +11,6 @@ import { useHome, useInvalidateHome } from '@/lib/query'
 import { api, type GroupDTO, type CategoryDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -277,14 +276,9 @@ export function AdminCategoriesPage() {
       {/* Page Header */}
       <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
         <div>
-          <div className='flex items-center gap-2'>
-            <h1 className='text-xl font-bold tracking-tight'>分类管理</h1>
-            <Badge variant='secondary' className='rounded-full px-2 py-0.5 text-xs font-normal'>
-              {flatCategories.length} 个分类
-            </Badge>
-          </div>
+          <h1 className='text-xl font-bold tracking-tight'>分类管理</h1>
           <p className='text-xs text-muted-foreground mt-0.5'>
-            管理分类图标、层级从属、权重排序、可见权限与分类描述
+            配置导航站分类层级、显示排序与可见权限
           </p>
         </div>
         <Button size='sm' className='gap-1.5' onClick={() => openCreate()}>
@@ -305,7 +299,7 @@ export function AdminCategoriesPage() {
                 setKeyword(e.target.value)
                 setPage(1)
               }}
-              className='h-8.5 pl-8 text-xs'
+              className='h-8 pl-8 text-xs'
             />
           </div>
 
@@ -315,7 +309,7 @@ export function AdminCategoriesPage() {
               setSelectedType(e.target.value as 'all' | 'root' | 'sub')
               setPage(1)
             }}
-            className='h-8.5 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+            className='h-8 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
           >
             <option value='all'>全部层级</option>
             <option value='root'>仅一级分类</option>
@@ -328,7 +322,7 @@ export function AdminCategoriesPage() {
               setSelectedPrivacy(e.target.value as 'all' | 'public' | 'private')
               setPage(1)
             }}
-            className='h-8.5 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+            className='h-8 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
           >
             <option value='all'>全部权限</option>
             <option value='public'>公开可见</option>
@@ -340,7 +334,7 @@ export function AdminCategoriesPage() {
               variant='ghost'
               size='sm'
               onClick={resetFilters}
-              className='h-8.5 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground'
+              className='h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground'
             >
               <RotateCcw className='size-3' />
               <span>重置筛选</span>
@@ -374,10 +368,10 @@ export function AdminCategoriesPage() {
                   </span>
                 </TableHead>
                 <TableHead
-                  className='cursor-pointer select-none w-24 text-center'
+                  className='cursor-pointer select-none w-20 text-center'
                   onClick={() => handleSort('sort')}
                 >
-                  <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
+                  <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
                     权重 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
@@ -389,7 +383,7 @@ export function AdminCategoriesPage() {
                     链接数 {sortField === 'links' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
-                <TableHead className='w-24'>可见权限</TableHead>
+                <TableHead className='w-20'>可见性</TableHead>
                 <TableHead className='text-right w-36'>操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -421,12 +415,10 @@ export function AdminCategoriesPage() {
 
                     <TableCell>
                       <div className='flex items-center gap-1.5'>
-                        <span className='font-medium text-sm'>{cat.name}</span>
-                        {cat.isRoot && (
-                          <Badge variant='outline' className='text-[10px] px-1 py-0 font-normal'>
-                            顶级
-                          </Badge>
-                        )}
+                        <span className={cat.isRoot ? 'font-medium text-sm text-foreground' : 'text-sm text-foreground/90 pl-2'}>
+                          {!cat.isRoot && <span className='text-muted-foreground mr-1'>└</span>}
+                          {cat.name}
+                        </span>
                       </div>
                     </TableCell>
 
@@ -437,50 +429,48 @@ export function AdminCategoriesPage() {
                     </TableCell>
 
                     <TableCell>
-                      {cat.parentName ? (
-                        <Badge variant='secondary' className='text-xs font-normal'>
-                          {cat.parentName}
-                        </Badge>
-                      ) : (
-                        <span className='text-xs text-muted-foreground'>一级分类</span>
-                      )}
+                      <span className='text-xs text-muted-foreground'>
+                        {cat.parentName || '一级分类'}
+                      </span>
                     </TableCell>
 
                     <TableCell className='text-center'>
-                      <Badge variant='outline' className='font-mono text-xs px-1.5 py-0'>
+                      <span className='font-mono text-xs text-muted-foreground'>
                         {cat.sort}
-                      </Badge>
+                      </span>
                     </TableCell>
 
                     <TableCell>
-                      <span className='text-xs text-muted-foreground'>{cat.linkCount} 个链接</span>
+                      <span className='text-xs text-muted-foreground font-mono'>{cat.linkCount}</span>
                     </TableCell>
 
                     <TableCell>
                       {cat.isPrivate ? (
-                        <Badge variant='secondary' className='gap-1 text-xs font-normal'>
+                        <span className='inline-flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400'>
                           <Shield className='size-3' />
                           私有
-                        </Badge>
+                        </span>
                       ) : (
                         <span className='text-xs text-muted-foreground'>公开</span>
                       )}
                     </TableCell>
 
                     <TableCell className='text-right'>
-                      <div className='flex items-center justify-end gap-1'>
-                        {cat.isRoot && (
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground'
-                            onClick={() => openCreate(cat.id)}
-                            title='在此分类下添加子分类'
-                          >
-                            <Plus className='size-3' />
-                            <span className='hidden sm:inline'>子分类</span>
-                          </Button>
-                        )}
+                      <div className='inline-flex items-center justify-end gap-1'>
+                        <div className='w-16 flex justify-end'>
+                          {cat.isRoot && (
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='h-7 px-1.5 text-xs gap-1 text-muted-foreground hover:text-foreground'
+                              onClick={() => openCreate(cat.id)}
+                              title='在此分类下添加子分类'
+                            >
+                              <Plus className='size-3' />
+                              <span>子分类</span>
+                            </Button>
+                          )}
+                        </div>
                         <Button
                           variant='ghost'
                           size='icon'
@@ -533,7 +523,7 @@ export function AdminCategoriesPage() {
           <DialogHeader>
             <DialogTitle>{parentId ? '新建子分类' : '新建分类'}</DialogTitle>
             <DialogDescription>
-              配置分类名称、图标、权重排序、归属关系及描述。不选择上级分类就是一级分类。
+              录入分类信息。未指定上级分类时自动作为一级分类。
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className='space-y-4 pt-1'>
@@ -556,7 +546,7 @@ export function AdminCategoriesPage() {
                   type='number'
                   value={sortWeight}
                   onChange={(e) => setSortWeight(e.target.value)}
-                  placeholder='缺省自动递增，数值越小越靠前'
+                  placeholder='数值越小越靠前'
                 />
               </Field>
             </div>
@@ -722,7 +712,7 @@ export function AdminCategoriesPage() {
               </select>
               {editingHasChildren && (
                 <p className='text-[11px] text-muted-foreground mt-1'>
-                  该分类下已有子分类，系统仅支持两级分类，无法转为二级分类。
+                  已有子分类，无法调整为二级分类。
                 </p>
               )}
             </Field>

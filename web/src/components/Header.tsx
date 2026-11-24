@@ -24,6 +24,7 @@ export function Header({ siteName }: { siteName: string }) {
         <Button
           variant='ghost'
           size='icon'
+          className='size-8'
           onClick={() => {
             toggleTheme()
             setThemeState(getTheme())
@@ -31,7 +32,7 @@ export function Header({ siteName }: { siteName: string }) {
           aria-label={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
           title={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
         >
-          {theme === 'dark' ? <Sun /> : <Moon />}
+          {theme === 'dark' ? <Sun className='size-4' /> : <Moon className='size-4' />}
         </Button>
         {me?.auth === 'admin' ? (
           <>

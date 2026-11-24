@@ -52,7 +52,7 @@ export function AdminAccountSettingsPage() {
       <div>
         <h1 className='text-2xl font-bold tracking-tight'>账户安全</h1>
         <p className='text-sm text-muted-foreground'>
-          修改 NextNav 管理员用户名与登录密码。
+          修改管理员登录账户名与安全密码。
         </p>
       </div>
 
@@ -71,7 +71,7 @@ export function AdminAccountSettingsPage() {
             {notice && <Notice kind='success'>{notice}</Notice>}
             {error && <Notice kind='error'>{error}</Notice>}
 
-            <Field label='新用户名（可选）' htmlFor='acc-username' hint='留空则保持当前用户名'>
+            <Field label='新用户名' htmlFor='acc-username' hint='留空保持当前用户名不变'>
               <Input
                 id='acc-username'
                 value={username}
@@ -80,7 +80,7 @@ export function AdminAccountSettingsPage() {
               />
             </Field>
 
-            <Field label='当前密码（必填）' htmlFor='acc-curr-pwd' hint='用于确认本人操作'>
+            <Field label='当前密码' htmlFor='acc-curr-pwd'>
               <Input
                 id='acc-curr-pwd'
                 type='password'
@@ -90,7 +90,7 @@ export function AdminAccountSettingsPage() {
               />
             </Field>
 
-            <Field label='新密码（可选）' htmlFor='acc-new-pwd' hint='至少 8 个字符，不修改请留空'>
+            <Field label='新密码' htmlFor='acc-new-pwd' hint='至少 8 位字符，不修改请留空'>
               <Input
                 id='acc-new-pwd'
                 type='password'

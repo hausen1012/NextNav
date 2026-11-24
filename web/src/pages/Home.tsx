@@ -26,13 +26,13 @@ function LinkCard({ link, newTab }: { link: LinkDTO; newTab: boolean }) {
       target={newTab ? '_blank' : undefined}
       rel={newTab ? 'noopener noreferrer' : undefined}
       className={cn(
-        'group relative flex items-center gap-3 rounded-lg border bg-card p-3',
+        'group relative flex h-[62px] items-center gap-3 rounded-lg border bg-card p-3',
         'transition hover:-translate-y-0.5 hover:shadow-md',
       )}
     >
       <StatusDot status={link.status} />
       <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} />
-      <span className='min-w-0'>
+      <span className='min-w-0 flex-1'>
         <span className='block truncate text-sm font-medium'>
           {link.title}
           {link.isPrivate ? (
@@ -145,9 +145,9 @@ export function HomePage() {
 
       {isEmpty ? (
         <div className='rounded-lg border border-dashed p-10 text-center'>
-          <p className='text-sm text-muted-foreground'>还没有任何链接。</p>
-          <Link to='/settings' className='mt-3 inline-block text-sm text-primary hover:underline'>
-            前往设置开始添加
+          <p className='text-sm text-muted-foreground'>暂无链接数据。</p>
+          <Link to='/admin/links' className='mt-3 inline-block text-sm text-primary hover:underline'>
+            前往后台添加链接
           </Link>
         </div>
       ) : (
