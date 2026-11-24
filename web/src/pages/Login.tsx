@@ -21,11 +21,9 @@ export function LoginPage() {
     setBusy(true)
     try {
       await api.login(username.trim(), password)
-      await qc.invalidateQueries({ queryKey: ['me'] })
-      await qc.invalidateQueries({ queryKey: ['home'] })
       await Promise.all([
-        qc.refetchQueries({ queryKey: ['me'] }),
-        qc.refetchQueries({ queryKey: ['home'] }),
+        qc.invalidateQueries({ queryKey: ['me'] }),
+        qc.invalidateQueries({ queryKey: ['home'] }),
       ])
       navigate('/', { replace: true })
     } catch (err) {
