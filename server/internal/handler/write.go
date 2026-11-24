@@ -63,6 +63,7 @@ type linkReq struct {
 	URL         string  `json:"url"`
 	BackupURL   *string `json:"backupUrl"`
 	Description *string `json:"description"`
+	Sort        *int64  `json:"sort"`
 	IsPrivate   *bool   `json:"isPrivate"`
 }
 
@@ -116,10 +117,16 @@ func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 	titleNorm := normalizeTitle(req.Title)
 	search := buildSearchText(titleNorm, host, desc, catName)
 
-	var maxSort int64
-	_ = a.Store.DB.QueryRow(
-		`SELECT COALESCE(MAX(sort), 0) FROM link WHERE category_id = ?`, req.CategoryID,
-	).Scan(&maxSort)
+	var sortVal int64
+	if req.Sort != nil {
+		sortVal = *req.Sort
+	} else {
+		var maxSort int64
+		_ = a.Store.DB.QueryRow(
+			`SELECT COALESCE(MAX(sort), 0) FROM link WHERE category_id = ?`, req.CategoryID,
+		).Scan(&maxSort)
+		sortVal = maxSort + 1000
+	}
 
 	now := time.Now().UnixMilli()
 	res, err := a.Store.DB.Exec(
@@ -128,7 +135,7 @@ func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 		                  created_at, updated_at)
 		 VALUES(?,?,?,?,?,?,?,'unknown',?,?,?,?,?)`,
 		req.CategoryID, req.Title, req.URL, nullable(req.BackupURL), nullable(req.Description),
-		maxSort+1000, priv, titleNorm, host, search, now, now,
+		sortVal, priv, titleNorm, host, search, now, now,
 	)
 	if err != nil {
 		httpx.Fail(w, 500, "internal", "保存失败")
@@ -156,6 +163,7 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		URL         *string `json:"url"`
 		BackupURL   *string `json:"backupUrl"`
 		Description *string `json:"description"`
+		Sort        *int64  `json:"sort"`
 		IsPrivate   *bool   `json:"isPrivate"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
@@ -208,13 +216,18 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 	titleNorm := normalizeTitle(title)
 	search := buildSearchText(titleNorm, host, desc, a.categoryName(catID))
 
+	sortVal := cur.sort
+	if req.Sort != nil {
+		sortVal = *req.Sort
+	}
+
 	_, err = a.Store.DB.Exec(
 		`UPDATE link SET category_id=?, title=?, url=?, backup_url=?, description=?,
-		                 is_private=?, is_sample=0, title_norm=?, host=?, search_text=?,
+		                 sort=?, is_private=?, is_sample=0, title_norm=?, host=?, search_text=?,
 		                 updated_at=?
 		 WHERE id=?`,
 		catID, title, linkURL, nullableOrKeep(req.BackupURL, cur.backupURL),
-		nullableOrString(req.Description, desc), priv,
+		nullableOrString(req.Description, desc), sortVal, priv,
 		titleNorm, host, search, time.Now().UnixMilli(), id,
 	)
 	if err != nil {
@@ -716,6 +729,7 @@ type linkRow struct {
 	description string
 	isPrivate   int
 	iconPath    string
+	sort        int64
 }
 
 func (a *API) getLinkRow(id int64) (linkRow, error) {
@@ -723,9 +737,9 @@ func (a *API) getLinkRow(id int64) (linkRow, error) {
 	var backup, desc, icon sql.NullString
 	var priv int64
 	err := a.Store.DB.QueryRow(
-		`SELECT id, category_id, title, url, backup_url, description, is_private, icon_path
+		`SELECT id, category_id, title, url, backup_url, description, is_private, icon_path, sort
 		 FROM link WHERE id = ?`, id,
-	).Scan(&lr.id, &lr.categoryID, &lr.title, &lr.url, &backup, &desc, &priv, &icon)
+	).Scan(&lr.id, &lr.categoryID, &lr.title, &lr.url, &backup, &desc, &priv, &icon, &lr.sort)
 	lr.backupURL = backup.String
 	lr.description = desc.String
 	lr.iconPath = icon.String
@@ -740,10 +754,10 @@ func (a *API) getLink(id int64) (linkDTO, error) {
 	var lastCheck sql.NullInt64
 	err := a.Store.DB.QueryRow(
 		`SELECT id, title, url, backup_url, description, icon_path, category_id,
-		        is_private, last_status, click_count, last_checked_at
+		        is_private, last_status, sort, last_checked_at
 		 FROM link WHERE id = ?`, id,
 	).Scan(&d.ID, &d.Title, &d.URL, &backup, &desc, &icon, &d.CategoryID,
-		&priv, &d.Status, &d.ClickCount, &lastCheck)
+		&priv, &d.Status, &d.Sort, &lastCheck)
 	if err != nil {
 		return d, err
 	}

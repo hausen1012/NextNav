@@ -562,3 +562,62 @@ func TestCategoryFieldsCRUD(t *testing.T) {
 		t.Fatalf("created category %d not found in /api/home", created.ID)
 	}
 }
+
+func TestLinkSortCRUD(t *testing.T) {
+	_, h := newTestAPI(t)
+	rec := do(t, h, "POST", "/api/setup", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	cookie := sessionCookie(t, rec)
+
+	// Create root group first
+	rec = do(t, h, "POST", "/api/categories", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{"name": "分类1"},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create category: %d %s", rec.Code, rec.Body)
+	}
+	cat := decode[struct {
+		ID int64 `json:"id"`
+	}](t, rec)
+
+	// Create link with custom sort 50
+	rec = do(t, h, "POST", "/api/links", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{
+			"categoryId": cat.ID,
+			"title":      "测试链接1",
+			"url":        "https://example1.com",
+			"sort":       50,
+		},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create link: %d %s", rec.Code, rec.Body)
+	}
+	link := decode[struct {
+		ID   int64 `json:"id"`
+		Sort int64 `json:"sort"`
+	}](t, rec)
+	if link.Sort != 50 {
+		t.Fatalf("link sort = %d, want 50", link.Sort)
+	}
+
+	// Update link sort to 200
+	rec = do(t, h, "PATCH", fmt.Sprintf("/api/links/%d", link.ID), reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{
+			"sort": 200,
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("patch link: %d %s", rec.Code, rec.Body)
+	}
+	updated := decode[struct {
+		ID   int64 `json:"id"`
+		Sort int64 `json:"sort"`
+	}](t, rec)
+	if updated.Sort != 200 {
+		t.Fatalf("updated link sort = %d, want 200", updated.Sort)
+	}
+}

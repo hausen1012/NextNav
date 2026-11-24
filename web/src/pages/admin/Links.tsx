@@ -57,7 +57,7 @@ export function AdminLinksPage() {
   const [pageSize, setPageSize] = useState(10)
 
   // Sort states
-  const [sortField, setSortField] = useState<'title' | 'category' | 'clicks' | 'status'>('title')
+  const [sortField, setSortField] = useState<'title' | 'category' | 'sort' | 'status'>('title')
   const [sortAsc, setSortAsc] = useState(true)
 
   // Copy feedback
@@ -71,6 +71,7 @@ export function AdminLinksPage() {
   const [categoryId, setCategoryId] = useState<number>(0)
   const [description, setDescription] = useState('')
   const [backupUrl, setBackupUrl] = useState('')
+  const [sortWeight, setSortWeight] = useState<string>('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,7 +125,7 @@ export function AdminLinksPage() {
       let cmp = 0
       if (sortField === 'title') cmp = a.title.localeCompare(b.title, 'zh')
       else if (sortField === 'category') cmp = a.categoryName.localeCompare(b.categoryName, 'zh')
-      else if (sortField === 'clicks') cmp = (a.clickCount || 0) - (b.clickCount || 0)
+      else if (sortField === 'sort') cmp = (a.sort ?? 0) - (b.sort ?? 0)
       else if (sortField === 'status') cmp = a.status.localeCompare(b.status)
       return sortAsc ? cmp : -cmp
     })
@@ -147,7 +148,7 @@ export function AdminLinksPage() {
     setPage(1)
   }
 
-  function handleSort(field: 'title' | 'category' | 'clicks' | 'status') {
+  function handleSort(field: 'title' | 'category' | 'sort' | 'status') {
     if (sortField === field) {
       setSortAsc(!sortAsc)
     } else {
@@ -169,6 +170,7 @@ export function AdminLinksPage() {
     setCategoryId(flatCategories[0]?.id ?? 0)
     setDescription('')
     setBackupUrl('')
+    setSortWeight('')
     setIsPrivate(false)
     setError(null)
     setModalOpen(true)
@@ -181,6 +183,7 @@ export function AdminLinksPage() {
     setCategoryId(link.categoryId)
     setDescription(link.description || '')
     setBackupUrl(link.backupUrl || '')
+    setSortWeight(link.sort !== undefined && link.sort !== null ? String(link.sort) : '')
     setIsPrivate(link.isPrivate)
     setError(null)
     setModalOpen(true)
@@ -198,6 +201,8 @@ export function AdminLinksPage() {
       return
     }
 
+    const sortVal = sortWeight ? parseInt(sortWeight, 10) : undefined
+
     try {
       if (editingId) {
         await api.updateLink(editingId, {
@@ -206,6 +211,7 @@ export function AdminLinksPage() {
           categoryId: targetCatId,
           description: description || null,
           backupUrl: backupUrl || null,
+          sort: sortVal,
           isPrivate,
         })
       } else {
@@ -215,6 +221,7 @@ export function AdminLinksPage() {
           url,
           description: description || null,
           backupUrl: backupUrl || null,
+          sort: sortVal,
           isPrivate,
         })
       }
@@ -352,11 +359,11 @@ export function AdminLinksPage() {
                   </span>
                 </TableHead>
                 <TableHead
-                  className='cursor-pointer select-none text-right'
-                  onClick={() => handleSort('clicks')}
+                  className='cursor-pointer select-none w-20 text-center'
+                  onClick={() => handleSort('sort')}
                 >
-                  <span className='inline-flex w-full items-center justify-end gap-1 font-semibold text-xs text-foreground'>
-                    点击量 {sortField === 'clicks' && (sortAsc ? '↑' : '↓')}
+                  <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
+                    权重 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
                 <TableHead className='text-right w-24'>操作</TableHead>
@@ -457,8 +464,8 @@ export function AdminLinksPage() {
                       )}
                     </TableCell>
 
-                    <TableCell className='text-right text-xs text-muted-foreground font-mono'>
-                      {link.clickCount ?? 0}
+                    <TableCell className='text-center text-xs text-muted-foreground font-mono'>
+                      {link.sort}
                     </TableCell>
 
                     <TableCell className='text-right'>
@@ -564,6 +571,15 @@ export function AdminLinksPage() {
                 value={backupUrl}
                 onChange={(e) => setBackupUrl(e.target.value)}
                 placeholder='备用镜像或备选站点'
+              />
+            </Field>
+            <Field label='权重 / 排序' htmlFor='modal-link-sort'>
+              <Input
+                id='modal-link-sort'
+                type='number'
+                value={sortWeight}
+                onChange={(e) => setSortWeight(e.target.value)}
+                placeholder='数值越小越靠前，留空自动分配'
               />
             </Field>
             <div className='flex items-center gap-2 pt-1'>

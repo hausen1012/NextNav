@@ -13,7 +13,7 @@ export interface LinkDTO {
   categoryName?: string
   isPrivate: boolean
   status: 'ok' | 'warn' | 'dead' | 'unknown'
-  clickCount: number
+  sort: number
   lastCheckedAt: number | null
 }
 
@@ -139,6 +139,7 @@ export const api = {
     url: string
     backupUrl?: string | null
     description?: string | null
+    sort?: number
     isPrivate?: boolean
   }) => request<LinkDTO>('/api/links', { method: 'POST', ...json(body) }),
 

@@ -22,7 +22,7 @@ type linkDTO struct {
 	CategoryName  string  `json:"categoryName,omitempty"`
 	IsPrivate     bool    `json:"isPrivate"`
 	Status        string  `json:"status"`
-	ClickCount    int64   `json:"clickCount"`
+	Sort          int64   `json:"sort"`
 	LastCheckedAt *int64  `json:"lastCheckedAt"`
 	MatchedField  string  `json:"matchedField,omitempty"`
 }
@@ -78,7 +78,7 @@ func scanLink(rows *sql.Rows) (linkDTO, error) {
 	)
 	err := rows.Scan(
 		&d.ID, &d.Title, &d.URL, &backup, &desc, &iconPath,
-		&d.CategoryID, &priv, &d.Status, &d.ClickCount, &lastCheck,
+		&d.CategoryID, &priv, &d.Status, &d.Sort, &lastCheck,
 	)
 	if err != nil {
 		return d, err
@@ -93,7 +93,7 @@ func scanLink(rows *sql.Rows) (linkDTO, error) {
 
 const linkSelect = `
 SELECT id, title, url, backup_url, description, icon_path,
-       category_id, is_private, last_status, click_count, last_checked_at
+       category_id, is_private, last_status, sort, last_checked_at
 FROM link`
 
 // --- /api/home ---

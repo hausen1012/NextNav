@@ -38,6 +38,7 @@ export function AdminOverviewPage() {
   const [url, setUrl] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
   const [description, setDescription] = useState('')
+  const [sortWeight, setSortWeight] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,7 +68,8 @@ export function AdminOverviewPage() {
   }
 
   const deadOrWarnLinks = allLinks.filter((l) => l.status === 'dead' || l.status === 'warn')
-  const totalClicks = allLinks.reduce((acc, l) => acc + (l.clickCount || 0), 0)
+  const privateCount = allLinks.filter((l) => l.isPrivate).length
+  const publicCount = allLinks.length - privateCount
 
   async function handleCreateLink(e: React.FormEvent) {
     e.preventDefault()
@@ -88,12 +90,14 @@ export function AdminOverviewPage() {
         title,
         url,
         description: description || null,
+        sort: sortWeight ? parseInt(sortWeight, 10) : undefined,
       })
       invalidate()
       setAddLinkOpen(false)
       setTitle('')
       setUrl('')
       setDescription('')
+      setSortWeight('')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '创建链接失败')
     } finally {
@@ -161,7 +165,7 @@ export function AdminOverviewPage() {
           <CardContent>
             <div className='text-2xl font-bold'>{isLoading ? '...' : allLinks.length}</div>
             <p className='text-xs text-muted-foreground mt-1'>
-              累计点击量: {totalClicks} 次
+              公开 {publicCount} 条 · 私有 {privateCount} 条
             </p>
           </CardContent>
         </Card>
@@ -379,6 +383,15 @@ export function AdminOverviewPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder='简要功能介绍'
+              />
+            </Field>
+            <Field label='权重 / 排序' htmlFor='link-sort'>
+              <Input
+                id='link-sort'
+                type='number'
+                value={sortWeight}
+                onChange={(e) => setSortWeight(e.target.value)}
+                placeholder='数值越小越靠前，留空自动分配'
               />
             </Field>
             <DialogFooter className='pt-2'>
