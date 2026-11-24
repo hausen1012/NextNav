@@ -23,12 +23,14 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldfl
 
 # --- stage 3: runtime ---
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata \
- && addgroup -S app && adduser -S -G app app
+RUN apk add --no-cache ca-certificates tzdata su-exec \
+ && addgroup -g 1000 -S app && adduser -u 1000 -S -G app app
 WORKDIR /app
 COPY --from=server /out/nextnav /app/nextnav
-RUN mkdir -p /app/data && chown -R app:app /app
-USER app
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh \
+ && mkdir -p /app/data \
+ && chown -R app:app /app
 
 ENV PORT=3000 \
     DATA_DIR=/app/data \
@@ -39,4 +41,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
   CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" || exit 1
 
-ENTRYPOINT ["/app/nextnav"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
