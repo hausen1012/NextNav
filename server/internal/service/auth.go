@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -117,7 +118,8 @@ func (s *Service) VerifyToken(token string) bool {
 		return false
 	}
 	sum := sha256.Sum256([]byte(token))
-	if !constantTimeEqualHex(hex.EncodeToString(sum[:]), stored) {
+	gotHex := hex.EncodeToString(sum[:])
+	if subtle.ConstantTimeCompare([]byte(gotHex), []byte(stored)) != 1 {
 		return false
 	}
 	_ = s.store.TouchToken()
@@ -151,15 +153,4 @@ func (s *Service) UpdateAccount(currentPassword, newUsername, newPassword string
 		return "", err
 	}
 	return user, nil
-}
-
-func constantTimeEqualHex(got, want string) bool {
-	if len(got) != len(want) {
-		return false
-	}
-	var v byte
-	for i := 0; i < len(got); i++ {
-		v |= got[i] ^ want[i]
-	}
-	return v == 0
 }

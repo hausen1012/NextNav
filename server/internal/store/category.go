@@ -86,18 +86,6 @@ func (s *Store) GetCategoryChildrenCount(id int64) (int64, error) {
 	return count, err
 }
 
-// GetCategoryMaxSort returns the maximum sort value in the same level.
-func (s *Store) GetCategoryMaxSort(parentID *int64) (int64, error) {
-	var maxSort int64
-	var err error
-	if parentID != nil && *parentID > 0 {
-		err = s.DB.QueryRow(`SELECT COALESCE(MAX(sort), 0) FROM category WHERE parent_id = ?`, *parentID).Scan(&maxSort)
-	} else {
-		err = s.DB.QueryRow(`SELECT COALESCE(MAX(sort), 0) FROM category WHERE parent_id IS NULL`).Scan(&maxSort)
-	}
-	return maxSort, err
-}
-
 // CreateCategory inserts a new category and returns its ID.
 func (s *Store) CreateCategory(c *Category) (int64, error) {
 	now := time.Now().UnixMilli()

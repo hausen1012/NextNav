@@ -62,13 +62,6 @@ func (s *Store) CategoryHasDuplicateLink(categoryID int64, url string) (bool, er
 	return count > 0, err
 }
 
-// GetLinkMaxSort returns the maximum sort value in a category.
-func (s *Store) GetLinkMaxSort(categoryID int64) (int64, error) {
-	var maxSort int64
-	err := s.DB.QueryRow(`SELECT COALESCE(MAX(sort), 0) FROM link WHERE category_id = ?`, categoryID).Scan(&maxSort)
-	return maxSort, err
-}
-
 // CreateLink inserts a new link.
 func (s *Store) CreateLink(l *Link) (int64, error) {
 	now := time.Now().UnixMilli()
