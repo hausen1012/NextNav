@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import { useMe } from '@/lib/query'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, LayoutDashboard, LogOut } from 'lucide-react'
 
 export function Header({ siteName }: { siteName: string }) {
   const { data: me } = useMe()
@@ -35,8 +35,11 @@ export function Header({ siteName }: { siteName: string }) {
         </Button>
         {me?.auth === 'admin' ? (
           <>
-            <Button variant='outline' size='sm' asChild>
-              <Link to='/settings'>设置</Link>
+            <Button variant='default' size='sm' className='gap-1.5' asChild>
+              <Link to='/admin'>
+                <LayoutDashboard className='size-3.5' />
+                <span>管理后台</span>
+              </Link>
             </Button>
             <Button
               variant='ghost'
@@ -45,8 +48,10 @@ export function Header({ siteName }: { siteName: string }) {
                 await api.logout()
                 window.location.href = '/'
               }}
+              title='退出登录'
             >
-              退出
+              <LogOut className='size-3.5' />
+              <span className='hidden sm:inline'>退出</span>
             </Button>
           </>
         ) : (
