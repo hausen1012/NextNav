@@ -25,9 +25,11 @@ import {
   Copy,
   Check,
   AlertTriangle,
+  FolderPlus,
+  Trash2,
 } from 'lucide-react'
 
-// 常用搜索引擎配置
+// 搜索引擎配置
 const SEARCH_ENGINES = [
   { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
   { id: 'google', name: '谷歌', url: 'https://www.google.com/search?q=' },
@@ -36,10 +38,14 @@ const SEARCH_ENGINES = [
   { id: 'local', name: '站内', url: '' },
 ]
 
+// 推荐快捷图标
+const COMMON_ICONS = ['folder', 'globe', 'compass', 'code', 'terminal', 'cpu', 'sparkles', 'wrench', 'music', 'server', 'star', 'tag']
+
 export function HomePage() {
   const { data, isLoading, error } = useHome()
   const { data: me } = useMe()
   const invalidate = useInvalidateHome()
+  const isAdmin = me?.auth === 'admin'
 
   // 搜索相关状态
   const [keyword, setKeyword] = useState('')
@@ -58,7 +64,8 @@ export function HomePage() {
   const [refreshing, setRefreshing] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
 
-  // 二维码弹窗
+  // ==================== 模态弹窗状态 ====================
+  // 1. 二维码弹窗
   const [qrModal, setQrModal] = useState<{ open: boolean; url: string; title: string }>({
     open: false,
     url: '',
@@ -67,11 +74,69 @@ export function HomePage() {
   const [qrCopied, setQrCopied] = useState(false)
   const qrCanvasRef = useRef<HTMLCanvasElement>(null)
 
-  // 删除确认弹窗
+  // 2. 链接删除确认弹窗
   const [deletingLink, setDeletingLink] = useState<LinkDTO | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeletingLink, setIsDeletingLink] = useState(false)
 
-  // 默认展开所有带有子分类的分组
+  // 3. 链接表单弹窗 (新建 / 编辑)
+  const [linkModal, setLinkModal] = useState<{
+    open: boolean
+    mode: 'create' | 'edit'
+    id?: number
+    title: string
+    url: string
+    backupUrl: string
+    categoryId: number
+    description: string
+    iconUrl: string
+    isPrivate: boolean
+    sort: number
+  }>({
+    open: false,
+    mode: 'create',
+    title: '',
+    url: '',
+    backupUrl: '',
+    categoryId: 0,
+    description: '',
+    iconUrl: '',
+    isPrivate: false,
+    sort: 0,
+  })
+  const [linkSubmitting, setLinkSubmitting] = useState(false)
+  const [linkFormError, setLinkFormError] = useState<string | null>(null)
+
+  // 4. 分类表单弹窗 (新建 / 编辑)
+  const [categoryModal, setCategoryModal] = useState<{
+    open: boolean
+    mode: 'create' | 'edit'
+    id?: number
+    name: string
+    parentId: number | null
+    icon: string
+    description: string
+    sort: number
+    isPrivate: boolean
+  }>({
+    open: false,
+    mode: 'create',
+    name: '',
+    parentId: null,
+    icon: '',
+    description: '',
+    sort: 0,
+    isPrivate: false,
+  })
+  const [categorySubmitting, setCategorySubmitting] = useState(false)
+  const [categoryFormError, setCategoryFormError] = useState<string | null>(null)
+
+  // 5. 分类删除确认弹窗
+  const [deletingCategory, setDeletingCategory] = useState<{ id: number; name: string } | null>(null)
+  const [deleteCategoryMode, setDeleteCategoryMode] = useState<'delete' | 'move'>('delete')
+  const [moveTargetCatId, setMoveTargetCatId] = useState<number | undefined>(undefined)
+  const [isDeletingCat, setIsDeletingCat] = useState(false)
+
+  // 默认展开所有带子分类的分组
   useEffect(() => {
     if (data?.groups) {
       const initialMap: Record<number, boolean> = {}
@@ -84,10 +149,10 @@ export function HomePage() {
     }
   }, [data?.groups])
 
-  // 快捷键支持：按 '/' 或 'F1' 快速聚焦搜索框
+  // 快捷键支持：按 '/' 或 'F1' 聚焦搜索
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      const isInputActive = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)
+      const isInputActive = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)
       if ((e.key === 'F1' || e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) && !isInputActive) {
         e.preventDefault()
         searchInputRef.current?.focus()
@@ -101,14 +166,12 @@ export function HomePage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // 监听右侧滚动以显示“回到顶部”按钮与自动高亮当前分类
+  // 监听滚动以高亮左侧分类与显示回到顶部
   useEffect(() => {
     function handleScroll() {
       setShowScrollTop(window.scrollY > 300)
-
       if (keyword.trim()) return
 
-      // 计算当前视口中可见的分类区域
       const sections = document.querySelectorAll<HTMLElement>('[data-nav-section]')
       let currentActive = ''
       const scrollPos = window.scrollY + 140
@@ -158,7 +221,23 @@ export function HomePage() {
     )
   }, [qrModal.open, qrModal.url])
 
-  // 站内链接过滤搜索
+  // 展开所有分类选项用于表单下拉（扁平化）
+  const { flatCategoryOptions, rootCategoryOptions } = useMemo(() => {
+    const flat: { id: number; name: string }[] = []
+    const roots: { id: number; name: string }[] = []
+    if (data?.groups) {
+      for (const g of data.groups) {
+        roots.push({ id: g.id, name: g.name })
+        flat.push({ id: g.id, name: g.name })
+        for (const c of g.categories || []) {
+          flat.push({ id: c.id, name: `${g.name} / ${c.name}` })
+        }
+      }
+    }
+    return { flatCategoryOptions: flat, rootCategoryOptions: roots }
+  }, [data?.groups])
+
+  // 站内搜索过滤
   const { filteredGroups, totalMatched } = useMemo(() => {
     if (!data?.groups) return { filteredGroups: [], totalMatched: 0 }
     const q = keyword.trim().toLowerCase()
@@ -262,22 +341,191 @@ export function HomePage() {
     }))
   }
 
-  // 执行删除链接
+  // ==================== 链接操作逻辑 ====================
+  const openCreateLinkModal = (defaultCatId?: number) => {
+    const firstCatId = defaultCatId || flatCategoryOptions[0]?.id || 0
+    setLinkFormError(null)
+    setLinkModal({
+      open: true,
+      mode: 'create',
+      title: '',
+      url: '',
+      backupUrl: '',
+      categoryId: firstCatId,
+      description: '',
+      iconUrl: '',
+      isPrivate: false,
+      sort: 0,
+    })
+  }
+
+  const openEditLinkModal = (link: LinkDTO) => {
+    setLinkFormError(null)
+    setLinkModal({
+      open: true,
+      mode: 'edit',
+      id: link.id,
+      title: link.title,
+      url: link.url,
+      backupUrl: link.backupUrl || '',
+      categoryId: link.categoryId,
+      description: link.description || '',
+      iconUrl: link.iconUrl || '',
+      isPrivate: link.isPrivate,
+      sort: link.sort ?? 0,
+    })
+  }
+
+  const handleSaveLink = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!linkModal.title.trim()) {
+      setLinkFormError('请输入链接标题')
+      return
+    }
+    if (!linkModal.url.trim()) {
+      setLinkFormError('请输入链接地址')
+      return
+    }
+    if (!linkModal.categoryId) {
+      setLinkFormError('请选择所属分类')
+      return
+    }
+
+    setLinkSubmitting(true)
+    setLinkFormError(null)
+    try {
+      const payload = {
+        title: linkModal.title.trim(),
+        url: linkModal.url.trim(),
+        backupUrl: linkModal.backupUrl.trim() || null,
+        categoryId: Number(linkModal.categoryId),
+        description: linkModal.description.trim() || null,
+        iconUrl: linkModal.iconUrl.trim() || null,
+        isPrivate: linkModal.isPrivate,
+        sort: Number(linkModal.sort) || 0,
+      }
+
+      if (linkModal.mode === 'create') {
+        await api.createLink(payload)
+      } else if (linkModal.id) {
+        await api.updateLink(linkModal.id, payload)
+      }
+
+      await invalidate()
+      setLinkModal((prev) => ({ ...prev, open: false }))
+    } catch (err) {
+      setLinkFormError(err instanceof Error ? err.message : '保存链接失败')
+    } finally {
+      setLinkSubmitting(false)
+    }
+  }
+
   const handleDeleteLink = async () => {
     if (!deletingLink) return
-    setIsDeleting(true)
+    setIsDeletingLink(true)
     try {
       await api.deleteLink(deletingLink.id)
-      invalidate()
+      await invalidate()
       setDeletingLink(null)
     } catch (err) {
       console.error('Delete link failed', err)
     } finally {
-      setIsDeleting(false)
+      setIsDeletingLink(false)
     }
   }
 
-  // 二维码弹窗下载与复制
+  // ==================== 分类操作逻辑 ====================
+  const openCreateCategoryModal = (defaultParentId?: number | null) => {
+    setCategoryFormError(null)
+    setCategoryModal({
+      open: true,
+      mode: 'create',
+      name: '',
+      parentId: defaultParentId ?? null,
+      icon: '',
+      description: '',
+      sort: 0,
+      isPrivate: false,
+    })
+  }
+
+  const openEditCategoryModal = (cat: {
+    id: number
+    name: string
+    parentId?: number | null
+    icon?: string | null
+    description?: string | null
+    sort?: number
+    isPrivate?: boolean
+  }) => {
+    setCategoryFormError(null)
+    setCategoryModal({
+      open: true,
+      mode: 'edit',
+      id: cat.id,
+      name: cat.name,
+      parentId: cat.parentId ?? null,
+      icon: cat.icon || '',
+      description: cat.description || '',
+      sort: cat.sort ?? 0,
+      isPrivate: !!cat.isPrivate,
+    })
+  }
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!categoryModal.name.trim()) {
+      setCategoryFormError('请输入分类名称')
+      return
+    }
+
+    setCategorySubmitting(true)
+    setCategoryFormError(null)
+    try {
+      const payload = {
+        name: categoryModal.name.trim(),
+        parentId: categoryModal.parentId ? Number(categoryModal.parentId) : null,
+        icon: categoryModal.icon.trim() || null,
+        description: categoryModal.description.trim() || null,
+        sort: Number(categoryModal.sort) || 0,
+        isPrivate: categoryModal.isPrivate,
+      }
+
+      if (categoryModal.mode === 'create') {
+        await api.createCategory(payload)
+      } else if (categoryModal.id) {
+        await api.updateCategory(categoryModal.id, payload)
+      }
+
+      await invalidate()
+      setCategoryModal((prev) => ({ ...prev, open: false }))
+    } catch (err) {
+      setCategoryFormError(err instanceof Error ? err.message : '保存分类失败')
+    } finally {
+      setCategorySubmitting(false)
+    }
+  }
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return
+    setIsDeletingCat(true)
+    try {
+      await api.deleteCategory(
+        deletingCategory.id,
+        deleteCategoryMode,
+        deleteCategoryMode === 'move' ? moveTargetCatId : undefined,
+      )
+      await invalidate()
+      setDeletingCategory(null)
+      setCategoryModal((prev) => ({ ...prev, open: false }))
+    } catch (err) {
+      console.error('Delete category failed', err)
+    } finally {
+      setIsDeletingCat(false)
+    }
+  }
+
+  // 二维码下载与复制
   const handleDownloadQR = () => {
     if (!qrCanvasRef.current) return
     const a = document.createElement('a')
@@ -354,25 +602,39 @@ export function HomePage() {
         }`}
       >
         {/* 顶部 Logo 与站点名称 */}
-        <div className='flex h-16 items-center gap-3 px-5 border-b border-slate-200/60 dark:border-neutral-800/60'>
-          {data.site.logoUrl ? (
-            <img
-              src={data.site.logoUrl}
-              alt={data.site.name}
-              className='size-8 object-contain rounded-md'
-            />
-          ) : (
-            <div className='flex size-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm'>
-              {data.site.name ? data.site.name.charAt(0).toUpperCase() : 'N'}
-            </div>
+        <div className='flex h-16 items-center justify-between px-4 border-b border-slate-200/60 dark:border-neutral-800/60'>
+          <div className='flex items-center gap-2.5 truncate'>
+            {data.site.logoUrl ? (
+              <img
+                src={data.site.logoUrl}
+                alt={data.site.name}
+                className='size-8 object-contain rounded-md'
+              />
+            ) : (
+              <div className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-sm'>
+                {data.site.name ? data.site.name.charAt(0).toUpperCase() : 'N'}
+              </div>
+            )}
+            <button
+              type='button'
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className='truncate text-left text-base font-bold text-slate-800 transition hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400'
+            >
+              {data.site.name || 'NextNav'}
+            </button>
+          </div>
+
+          {/* 管理员直接添加分类小按钮 */}
+          {isAdmin && (
+            <button
+              type='button'
+              onClick={() => openCreateCategoryModal(null)}
+              className='flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200/60 hover:text-blue-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
+              title='新建顶级分类'
+            >
+              <FolderPlus className='size-4' />
+            </button>
           )}
-          <button
-            type='button'
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className='truncate text-left text-base font-bold text-slate-800 transition hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400'
-          >
-            {data.site.name || 'NextNav'}
-          </button>
         </div>
 
         {/* 分类导航树形列表 */}
@@ -402,23 +664,40 @@ export function HomePage() {
                     <span className='truncate'>{group.name}</span>
                   </div>
 
-                  {/* 折叠/展开箭头 */}
-                  {hasSub && (
-                    <button
-                      type='button'
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleGroup(group.id)
-                      }}
-                      className='rounded p-0.5 text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition'
-                    >
-                      {isGroupOpen ? (
-                        <ChevronDown className='size-3.5' />
-                      ) : (
-                        <ChevronRight className='size-3.5' />
-                      )}
-                    </button>
-                  )}
+                  <div className='flex items-center gap-1 shrink-0'>
+                    {/* 管理员直接编辑分类 */}
+                    {isAdmin && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditCategoryModal(group)
+                        }}
+                        className='opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition'
+                        title='编辑此分类'
+                      >
+                        <SquarePen className='size-3.5' />
+                      </button>
+                    )}
+
+                    {/* 折叠/展开箭头 */}
+                    {hasSub && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleGroup(group.id)
+                        }}
+                        className='rounded p-0.5 text-slate-400 hover:text-slate-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition'
+                      >
+                        {isGroupOpen ? (
+                          <ChevronDown className='size-3.5' />
+                        ) : (
+                          <ChevronRight className='size-3.5' />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* 二级子分类列表 */}
@@ -430,18 +709,34 @@ export function HomePage() {
                         <div
                           key={sub.id}
                           onClick={() => scrollToCategory(`cat-${sub.id}`)}
-                          className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition cursor-pointer ${
+                          className={`group/sub flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition cursor-pointer ${
                             isSubActive
                               ? 'bg-blue-50/80 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 font-medium'
                               : 'text-slate-500 hover:bg-slate-200/40 hover:text-slate-800 dark:text-neutral-400 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'
                           }`}
                         >
-                          <CategoryIcon
-                            icon={sub.icon || sub.iconUrl}
-                            isRoot={false}
-                            className='size-3 shrink-0 text-slate-400'
-                          />
-                          <span className='truncate'>{sub.name}</span>
+                          <div className='flex items-center gap-2 truncate'>
+                            <CategoryIcon
+                              icon={sub.icon || sub.iconUrl}
+                              isRoot={false}
+                              className='size-3 shrink-0 text-slate-400'
+                            />
+                            <span className='truncate'>{sub.name}</span>
+                          </div>
+
+                          {isAdmin && (
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openEditCategoryModal({ ...sub, parentId: group.id })
+                              }}
+                              className='opacity-0 group-hover/sub:opacity-100 p-0.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition'
+                              title='编辑子分类'
+                            >
+                              <SquarePen className='size-3' />
+                            </button>
+                          )}
                         </div>
                       )
                     })}
@@ -452,8 +747,8 @@ export function HomePage() {
           })}
         </nav>
 
-        {/* 侧边栏底部：快捷提示 */}
-        <div className='p-4 border-t border-slate-200/60 dark:border-neutral-800/60 flex items-center justify-between'>
+        {/* 侧边栏底部：快捷提示与操作 */}
+        <div className='p-3 border-t border-slate-200/60 dark:border-neutral-800/60 flex items-center justify-between'>
           <button
             type='button'
             onClick={() => {
@@ -466,15 +761,26 @@ export function HomePage() {
             <span className='font-mono'>F1</span>
             <span className='text-[10px] font-normal text-slate-400 dark:text-neutral-500'>搜索</span>
           </button>
-          <span className='text-[11px] text-slate-400 dark:text-neutral-500'>
-            {totalMatched} 个链接
-          </span>
+
+          {isAdmin ? (
+            <button
+              type='button'
+              onClick={() => openCreateCategoryModal(null)}
+              className='text-xs text-blue-600 hover:underline dark:text-blue-400 font-medium'
+            >
+              + 新增分类
+            </button>
+          ) : (
+            <span className='text-[11px] text-slate-400 dark:text-neutral-500'>
+              {totalMatched} 个链接
+            </span>
+          )}
         </div>
       </aside>
 
       {/* ===================== 右侧主内容区 (Main Content) ===================== */}
       <main className='min-h-screen flex flex-col md:ml-60 transition-all'>
-        {/* 移动端顶栏 (仅在屏幕小于 md 时显示) */}
+        {/* 移动端顶栏 */}
         <div className='sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-neutral-800/80 dark:bg-[#16181d]/90 md:hidden'>
           <button
             type='button'
@@ -585,16 +891,28 @@ export function HomePage() {
         </div>
 
         {/* 链接分类主展示区 */}
-        <div className='flex-1 px-4 sm:px-8 pb-20 space-y-10'>
+        <div className='flex-1 px-4 sm:px-8 pb-24 space-y-10'>
           {isInitialEmpty ? (
             <div className='rounded-2xl border border-dashed border-slate-300 p-12 text-center dark:border-neutral-800'>
               <p className='text-sm text-slate-500 dark:text-neutral-400'>暂无导航链接数据。</p>
-              <Link
-                to='/admin/links'
-                className='mt-3 inline-block rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700'
-              >
-                前往后台添加链接
-              </Link>
+              {isAdmin && (
+                <div className='mt-3 flex justify-center gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => openCreateCategoryModal(null)}
+                    className='rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200'
+                  >
+                    + 新建分类
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => openCreateLinkModal()}
+                    className='rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700'
+                  >
+                    + 添加链接
+                  </button>
+                </div>
+              )}
             </div>
           ) : keyword.trim() && totalMatched === 0 ? (
             <div className='rounded-2xl border border-dashed border-slate-300 p-12 text-center dark:border-neutral-800'>
@@ -618,14 +936,14 @@ export function HomePage() {
                 group.links.length > 0 ||
                 group.categories.some((c) => c.links.length > 0)
 
-              if (!hasGroupContent) return null
+              if (!hasGroupContent && !isAdmin) return null
 
               return (
                 <div
                   key={group.id}
                   id={`group-${group.id}`}
                   data-nav-section
-                  className='scroll-mt-6 space-y-6'
+                  className='scroll-mt-6 space-y-5'
                 >
                   {/* 一级分类标题行 */}
                   <div className='flex items-center justify-between pt-2'>
@@ -647,15 +965,27 @@ export function HomePage() {
                       )}
                     </div>
 
-                    {/* 管理员快捷操作图标 (类似截图右侧的浅色小图标) */}
-                    {me?.auth === 'admin' && (
-                      <Link
-                        to='/admin/categories'
-                        className='flex size-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 shadow-2xs hover:border-blue-300 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition'
-                        title='管理此分类'
-                      >
-                        <SquarePen className='size-3.5' />
-                      </Link>
+                    {/* 管理员快捷操作组 */}
+                    {isAdmin && (
+                      <div className='flex items-center gap-1.5'>
+                        <button
+                          type='button'
+                          onClick={() => openCreateLinkModal(group.id)}
+                          className='flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-500 shadow-2xs hover:border-blue-300 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition'
+                          title='为此分类添加链接'
+                        >
+                          <Plus className='size-3.5' />
+                          <span className='hidden sm:inline'>添加链接</span>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => openEditCategoryModal(group)}
+                          className='flex size-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 shadow-2xs hover:border-blue-300 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition'
+                          title='编辑此分类'
+                        >
+                          <SquarePen className='size-3.5' />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -667,8 +997,9 @@ export function HomePage() {
                           key={link.id}
                           link={link}
                           newTab={data.site.openInNewTab}
-                          isAdmin={me?.auth === 'admin'}
+                          isAdmin={isAdmin}
                           onShowQR={(url, title) => setQrModal({ open: true, url, title })}
+                          onEdit={(l) => openEditLinkModal(l)}
                           onDelete={(l) => setDeletingLink(l)}
                         />
                       ))}
@@ -677,7 +1008,7 @@ export function HomePage() {
 
                   {/* 二级子分类区块 */}
                   {group.categories.map((sub) => {
-                    if (sub.links.length === 0) return null
+                    if (sub.links.length === 0 && !isAdmin) return null
                     return (
                       <div
                         key={sub.id}
@@ -703,30 +1034,49 @@ export function HomePage() {
                             )}
                           </div>
 
-                          {me?.auth === 'admin' && (
-                            <Link
-                              to='/admin/categories'
-                              className='flex size-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 transition'
-                              title='管理分类'
-                            >
-                              <SquarePen className='size-3' />
-                            </Link>
+                          {isAdmin && (
+                            <div className='flex items-center gap-1.5'>
+                              <button
+                                type='button'
+                                onClick={() => openCreateLinkModal(sub.id)}
+                                className='flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-400 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 transition'
+                                title='为此子分类添加链接'
+                              >
+                                <Plus className='size-3' />
+                                <span className='hidden sm:inline'>添加</span>
+                              </button>
+                              <button
+                                type='button'
+                                onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
+                                className='flex size-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 hover:text-blue-600 dark:border-neutral-800 dark:bg-neutral-800 transition'
+                                title='编辑子分类'
+                              >
+                                <SquarePen className='size-3' />
+                              </button>
+                            </div>
                           )}
                         </div>
 
                         {/* 二级子分类链接卡片网格 */}
-                        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5'>
-                          {sub.links.map((link) => (
-                            <LinkCard
-                              key={link.id}
-                              link={link}
-                              newTab={data.site.openInNewTab}
-                              isAdmin={me?.auth === 'admin'}
-                              onShowQR={(url, title) => setQrModal({ open: true, url, title })}
-                              onDelete={(l) => setDeletingLink(l)}
-                            />
-                          ))}
-                        </div>
+                        {sub.links.length > 0 ? (
+                          <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5'>
+                            {sub.links.map((link) => (
+                              <LinkCard
+                                key={link.id}
+                                link={link}
+                                newTab={data.site.openInNewTab}
+                                isAdmin={isAdmin}
+                                onShowQR={(url, title) => setQrModal({ open: true, url, title })}
+                                onEdit={(l) => openEditLinkModal(l)}
+                                onDelete={(l) => setDeletingLink(l)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className='rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400 dark:border-neutral-800'>
+                            暂无链接，点击右上角添加
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -740,15 +1090,16 @@ export function HomePage() {
       {/* ===================== 右下角悬浮工具条 (Floating Action Buttons) ===================== */}
       <div className='fixed right-6 bottom-6 z-40 flex flex-col items-center gap-2 select-none'>
         <div className='flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-neutral-800 dark:bg-[#1a1d24]/95'>
-          {/* 添加链接快捷入口 */}
-          {me?.auth === 'admin' && (
-            <Link
-              to='/admin/links'
-              className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
-              title='前往添加链接'
+          {/* 添加链接快捷入口 (直接呼出前台新建链接弹窗) */}
+          {isAdmin && (
+            <button
+              type='button'
+              onClick={() => openCreateLinkModal()}
+              className='flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs hover:bg-blue-700 transition'
+              title='直接新增链接'
             >
-              <Plus className='size-4' />
-            </Link>
+              <Plus className='size-5' />
+            </button>
           )}
 
           {/* 深浅主题切换 */}
@@ -778,7 +1129,7 @@ export function HomePage() {
           </button>
 
           {/* 后台管理入口 */}
-          {me?.auth === 'admin' ? (
+          {isAdmin ? (
             <Link
               to='/admin'
               className='flex size-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-blue-400 transition'
@@ -797,7 +1148,7 @@ export function HomePage() {
           )}
 
           {/* 退出登录 (仅管理员) */}
-          {me?.auth === 'admin' && (
+          {isAdmin && (
             <button
               type='button'
               onClick={async () => {
@@ -826,7 +1177,404 @@ export function HomePage() {
         )}
       </div>
 
-      {/* ===================== 原生轻量二维码 Modal (不依赖 shadcn) ===================== */}
+      {/* ===================== 前台原生链接编辑/新建 Modal ===================== */}
+      {linkModal.open && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs overflow-y-auto'>
+          <div className='w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
+            <div className='flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800'>
+              <h3 className='text-base font-bold text-slate-800 dark:text-slate-100'>
+                {linkModal.mode === 'create' ? '添加链接' : '编辑链接'}
+              </h3>
+              <button
+                type='button'
+                onClick={() => setLinkModal((prev) => ({ ...prev, open: false }))}
+                className='rounded-md p-1 text-slate-400 hover:text-slate-600 dark:hover:text-neutral-200'
+              >
+                <X className='size-4' />
+              </button>
+            </div>
+
+            {linkFormError && (
+              <div className='mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400'>
+                {linkFormError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveLink} className='mt-4 space-y-4 text-xs'>
+              {/* 标题 */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  链接标题 <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type='text'
+                  value={linkModal.title}
+                  onChange={(e) => setLinkModal({ ...linkModal, title: e.target.value })}
+                  placeholder='例如：GitHub'
+                  required
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                />
+              </div>
+
+              {/* 网址 URL */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  网址 URL <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type='url'
+                  value={linkModal.url}
+                  onChange={(e) => setLinkModal({ ...linkModal, url: e.target.value })}
+                  placeholder='https://...'
+                  required
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                />
+              </div>
+
+              {/* 所属分类与备用网址 (两列) */}
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                <div>
+                  <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                    所属分类 <span className='text-red-500'>*</span>
+                  </label>
+                  <select
+                    value={linkModal.categoryId}
+                    onChange={(e) => setLinkModal({ ...linkModal, categoryId: Number(e.target.value) })}
+                    className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  >
+                    {flatCategoryOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                    备用网址
+                  </label>
+                  <input
+                    type='url'
+                    value={linkModal.backupUrl}
+                    onChange={(e) => setLinkModal({ ...linkModal, backupUrl: e.target.value })}
+                    placeholder='可选镜像或内网地址'
+                    className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  />
+                </div>
+              </div>
+
+              {/* 自定义图标 URL */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  自定义图标 URL
+                </label>
+                <input
+                  type='text'
+                  value={linkModal.iconUrl}
+                  onChange={(e) => setLinkModal({ ...linkModal, iconUrl: e.target.value })}
+                  placeholder='留空则自动提取 Favicon 或首字母'
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                />
+              </div>
+
+              {/* 描述 */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  网站描述
+                </label>
+                <textarea
+                  value={linkModal.description}
+                  onChange={(e) => setLinkModal({ ...linkModal, description: e.target.value })}
+                  placeholder='简短的功能介绍或备注信息'
+                  rows={2}
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100 resize-none'
+                />
+              </div>
+
+              {/* 排序与私有状态 */}
+              <div className='flex items-center justify-between pt-1'>
+                <div className='flex items-center gap-2'>
+                  <label className='font-medium text-slate-700 dark:text-neutral-300'>排序:</label>
+                  <input
+                    type='number'
+                    value={linkModal.sort}
+                    onChange={(e) => setLinkModal({ ...linkModal, sort: Number(e.target.value) })}
+                    className='w-20 rounded-lg border border-slate-200 bg-slate-50/50 px-2 py-1 text-xs text-slate-800 dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  />
+                </div>
+
+                <label className='flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-neutral-300'>
+                  <input
+                    type='checkbox'
+                    checked={linkModal.isPrivate}
+                    onChange={(e) => setLinkModal({ ...linkModal, isPrivate: e.target.checked })}
+                    className='size-4 rounded accent-blue-600'
+                  />
+                  <span>设为私有 (仅自己可见)</span>
+                </label>
+              </div>
+
+              {/* 底部操作按钮 */}
+              <div className='mt-6 flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-neutral-800'>
+                <button
+                  type='button'
+                  onClick={() => setLinkModal((prev) => ({ ...prev, open: false }))}
+                  className='rounded-xl border border-slate-200 px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 transition'
+                >
+                  取消
+                </button>
+                <button
+                  type='submit'
+                  disabled={linkSubmitting}
+                  className='rounded-xl bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition'
+                >
+                  {linkSubmitting ? '正在保存...' : '保存'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== 前台原生分类编辑/新建 Modal ===================== */}
+      {categoryModal.open && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs overflow-y-auto'>
+          <div className='w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
+            <div className='flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800'>
+              <h3 className='text-base font-bold text-slate-800 dark:text-slate-100'>
+                {categoryModal.mode === 'create' ? '新建分类' : '编辑分类'}
+              </h3>
+              <button
+                type='button'
+                onClick={() => setCategoryModal((prev) => ({ ...prev, open: false }))}
+                className='rounded-md p-1 text-slate-400 hover:text-slate-600 dark:hover:text-neutral-200'
+              >
+                <X className='size-4' />
+              </button>
+            </div>
+
+            {categoryFormError && (
+              <div className='mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400'>
+                {categoryFormError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCategory} className='mt-4 space-y-4 text-xs'>
+              {/* 分类名称 */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  分类名称 <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type='text'
+                  value={categoryModal.name}
+                  onChange={(e) => setCategoryModal({ ...categoryModal, name: e.target.value })}
+                  placeholder='例如：在线工具'
+                  required
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                />
+              </div>
+
+              {/* 父级分类 */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  父级分类
+                </label>
+                <select
+                  value={categoryModal.parentId ?? ''}
+                  onChange={(e) =>
+                    setCategoryModal({
+                      ...categoryModal,
+                      parentId: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                >
+                  <option value=''>作为顶级分类 (一级)</option>
+                  {rootCategoryOptions
+                    .filter((r) => r.id !== categoryModal.id)
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        作为【{r.name}】的子分类
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 分类图标 */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  分类图标 (Emoji / 图标名 / 图片地址)
+                </label>
+                <input
+                  type='text'
+                  value={categoryModal.icon}
+                  onChange={(e) => setCategoryModal({ ...categoryModal, icon: e.target.value })}
+                  placeholder='例如：folder, globe, 🚀 或 https://...'
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                />
+                <div className='flex flex-wrap items-center gap-1.5 mt-2'>
+                  <span className='text-[11px] text-slate-400'>快捷点选:</span>
+                  {COMMON_ICONS.map((ic) => (
+                    <button
+                      key={ic}
+                      type='button'
+                      onClick={() => setCategoryModal({ ...categoryModal, icon: ic })}
+                      className='inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
+                    >
+                      <CategoryIcon icon={ic} size={12} />
+                      <span>{ic}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 描述 */}
+              <div>
+                <label className='block font-medium text-slate-700 dark:text-neutral-300 mb-1'>
+                  分类描述
+                </label>
+                <input
+                  type='text'
+                  value={categoryModal.description}
+                  onChange={(e) => setCategoryModal({ ...categoryModal, description: e.target.value })}
+                  placeholder='分类的简要用途说明'
+                  className='w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm text-slate-800 outline-hidden focus:border-blue-500 focus:bg-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                />
+              </div>
+
+              {/* 排序与私有状态 */}
+              <div className='flex items-center justify-between pt-1'>
+                <div className='flex items-center gap-2'>
+                  <label className='font-medium text-slate-700 dark:text-neutral-300'>排序:</label>
+                  <input
+                    type='number'
+                    value={categoryModal.sort}
+                    onChange={(e) => setCategoryModal({ ...categoryModal, sort: Number(e.target.value) })}
+                    className='w-20 rounded-lg border border-slate-200 bg-slate-50/50 px-2 py-1 text-xs text-slate-800 dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-100'
+                  />
+                </div>
+
+                <label className='flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-neutral-300'>
+                  <input
+                    type='checkbox'
+                    checked={categoryModal.isPrivate}
+                    onChange={(e) => setCategoryModal({ ...categoryModal, isPrivate: e.target.checked })}
+                    className='size-4 rounded accent-blue-600'
+                  />
+                  <span>设为私有分类</span>
+                </label>
+              </div>
+
+              {/* 底部操作按钮 */}
+              <div className='mt-6 flex items-center justify-between pt-3 border-t border-slate-100 dark:border-neutral-800'>
+                {categoryModal.mode === 'edit' && categoryModal.id ? (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setDeletingCategory({ id: categoryModal.id!, name: categoryModal.name })
+                    }}
+                    className='flex items-center gap-1 text-xs text-red-600 hover:underline dark:text-red-400'
+                  >
+                    <Trash2 className='size-3.5' />
+                    <span>删除此分类</span>
+                  </button>
+                ) : (
+                  <div />
+                )}
+
+                <div className='flex gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => setCategoryModal((prev) => ({ ...prev, open: false }))}
+                    className='rounded-xl border border-slate-200 px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800 transition'
+                  >
+                    取消
+                  </button>
+                  <button
+                    type='submit'
+                    disabled={categorySubmitting}
+                    className='rounded-xl bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition'
+                  >
+                    {categorySubmitting ? '正在保存...' : '保存'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== 原生轻量删除分类确认 Modal ===================== */}
+      {deletingCategory && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs'>
+          <div className='w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
+            <h3 className='text-base font-semibold text-slate-800 dark:text-slate-100'>
+              确认删除分类 “{deletingCategory.name}”？
+            </h3>
+            <div className='mt-3 space-y-2 text-xs text-slate-600 dark:text-neutral-300'>
+              <label className='flex items-center gap-2 cursor-pointer'>
+                <input
+                  type='radio'
+                  name='deleteCategoryMode'
+                  checked={deleteCategoryMode === 'delete'}
+                  onChange={() => setDeleteCategoryMode('delete')}
+                />
+                <span>直接删除分类及其所有链接</span>
+              </label>
+
+              <label className='flex items-center gap-2 cursor-pointer'>
+                <input
+                  type='radio'
+                  name='deleteCategoryMode'
+                  checked={deleteCategoryMode === 'move'}
+                  onChange={() => setDeleteCategoryMode('move')}
+                />
+                <span>保留链接，转移至其他分类:</span>
+              </label>
+
+              {deleteCategoryMode === 'move' && (
+                <select
+                  value={moveTargetCatId ?? ''}
+                  onChange={(e) => setMoveTargetCatId(e.target.value ? Number(e.target.value) : undefined)}
+                  className='mt-1 w-full rounded-lg border border-slate-200 p-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800'
+                >
+                  <option value=''>请选择目标分类</option>
+                  {flatCategoryOptions
+                    .filter((c) => c.id !== deletingCategory.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </div>
+
+            <div className='mt-5 flex justify-end gap-2'>
+              <button
+                type='button'
+                onClick={() => setDeletingCategory(null)}
+                disabled={isDeletingCat}
+                className='rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800'
+              >
+                取消
+              </button>
+              <button
+                type='button'
+                onClick={handleDeleteCategory}
+                disabled={isDeletingCat || (deleteCategoryMode === 'move' && !moveTargetCatId)}
+                className='rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50'
+              >
+                {isDeletingCat ? '正在删除...' : '确认删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== 原生轻量二维码 Modal ===================== */}
       {qrModal.open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs'>
           <div className='w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] text-center animate-in fade-in zoom-in-95 duration-150'>
@@ -874,7 +1622,7 @@ export function HomePage() {
         </div>
       )}
 
-      {/* ===================== 原生轻量删除确认 Modal (不依赖 shadcn) ===================== */}
+      {/* ===================== 原生轻量删除链接确认 Modal ===================== */}
       {deletingLink && (
         <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs'>
           <div className='w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-neutral-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
@@ -888,7 +1636,7 @@ export function HomePage() {
               <button
                 type='button'
                 onClick={() => setDeletingLink(null)}
-                disabled={isDeleting}
+                disabled={isDeletingLink}
                 className='rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800'
               >
                 取消
@@ -896,10 +1644,10 @@ export function HomePage() {
               <button
                 type='button'
                 onClick={handleDeleteLink}
-                disabled={isDeleting}
+                disabled={isDeletingLink}
                 className='rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50'
               >
-                {isDeleting ? '正在删除...' : '删除'}
+                {isDeletingLink ? '正在删除...' : '删除'}
               </button>
             </div>
           </div>

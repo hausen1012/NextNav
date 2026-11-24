@@ -55,7 +55,6 @@ export function LinkCard({
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // 计算浮层位置，防止超出屏幕
     const x = Math.min(e.clientX, window.innerWidth - 180)
     const y = Math.min(e.clientY, window.innerHeight - 220)
     setMenuPos({ x, y })
@@ -87,6 +86,40 @@ export function LinkCard({
         className='group relative flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800/80 dark:bg-[#1a1d24] select-none'
       >
         <StatusDot status={link.status} />
+
+        {/* 管理员悬浮快捷操作按钮 */}
+        {isAdmin && (
+          <div className='absolute right-2 top-2 hidden group-hover:flex items-center gap-1 z-10 animate-in fade-in duration-150'>
+            {onEdit && (
+              <button
+                type='button'
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onEdit(link)
+                }}
+                className='flex size-6 items-center justify-center rounded-md bg-white/95 text-slate-500 shadow-xs border border-slate-200 hover:text-blue-600 hover:border-blue-300 dark:bg-neutral-800/95 dark:text-neutral-400 dark:border-neutral-700 dark:hover:text-blue-400 transition'
+                title='编辑链接'
+              >
+                <Edit2 className='size-3' />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type='button'
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onDelete(link)
+                }}
+                className='flex size-6 items-center justify-center rounded-md bg-white/95 text-slate-500 shadow-xs border border-slate-200 hover:text-red-600 hover:border-red-300 dark:bg-neutral-800/95 dark:text-neutral-400 dark:border-neutral-700 dark:hover:text-red-400 transition'
+                title='删除链接'
+              >
+                <Trash2 className='size-3' />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* 网站图标 */}
         <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 dark:bg-neutral-800'>
