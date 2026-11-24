@@ -85,9 +85,16 @@
 | PATCH | `/api/links/{id}` | 管理员 | 编辑链接 |
 | DELETE | `/api/links/{id}` | 管理员 | 删除链接 |
 | POST | `/api/links/reorder` | 管理员 | 同分类内链接重排序 |
+| POST | `/api/links/batch-delete` | 管理员 | 批量删除链接 |
+| POST | `/api/links/batch-move` | 管理员 | 批量移动链接到目标分类 |
 | GET | `/api/settings` | 公开 | 站点公开设置 |
 | PATCH | `/api/settings` | 管理员 | 修改站点设置 |
 | POST | `/api/settings/account` | 管理员 | 修改管理员用户名与密码 |
+| GET | `/api/tokens` | 管理员 | 获取当前 API Token 状态与前缀 |
+| POST | `/api/tokens` | 管理员 | 生成新 API Token（仅返回一次完整明文） |
+| DELETE | `/api/tokens` | 管理员 | 撤回 API Token |
+| GET | `/api/backup/export` | 管理员 | 导出全站数据 JSON 备份 |
+| POST | `/api/backup/import` | 管理员 | 导入全站数据（支持 merge / overwrite） |
 | POST | `/api/sample/clear` | 管理员 | 清空预置示例数据 |
 | GET | `/icons/*` | 公开 | 图标静态资源托管 |
 
@@ -97,21 +104,13 @@
 |---|---|---|---|
 | GET | `/api/links` | 任意 | 独立链接列表 / 服务端高级搜索 |
 | GET | `/api/links/{id}` | 任意 | 链接详情 |
-| POST | `/api/links/move` | 管理员 | 批量移动分类 |
-| POST | `/api/links/batch-delete` | 管理员 | 批量删除链接 |
 | POST | `/api/links/{id}/click` | 任意 | 点击计数上报 |
 | POST | `/api/links/{id}/check` | 管理员 | 单条健康检测 |
 | POST | `/api/links/check-all` | 管理员 | 全站健康检测 |
 | GET | `/api/check/status` | 管理员 | 检测进度查询 |
 | POST | `/api/meta` | 管理员 | 抓取 URL 元信息预览 |
-| POST | `/api/categories/reorder` | 管理员 | 同层级分类排序 |
 | GET | `/api/checks` | 管理员 | 检测记录查询（失效清单） |
-| GET | `/api/settings/token` | 管理员 | API Token 状态 |
-| POST | `/api/settings/token` | 管理员 | 生成 / 轮换 API Token |
-| DELETE | `/api/settings/token` | 管理员 | 吊销 API Token |
 | POST | `/api/links/{id}/icon` | 管理员 | 上传自定义图标 |
-| GET | `/api/backup/export` | 管理员 | 备份导出 JSON |
-| POST | `/api/backup/import` | 管理员 | 备份导入 JSON |
 
 非 `/api` 的静态路径：`/icons/*`（图标，长缓存）、`/manifest.webmanifest`、`/sw.js`；其余路径一律返回 SPA 的 `index.html`。
 

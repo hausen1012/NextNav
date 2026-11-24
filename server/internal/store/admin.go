@@ -46,6 +46,56 @@ func (s *Store) UpdateAdmin(username, passwordHash string) error {
 	return err
 }
 
+// TokenInfo stores public metadata about the configured API token.
+type TokenInfo struct {
+	Prefix     string `json:"prefix"`
+	CreatedAt  int64  `json:"createdAt"`
+	LastUsedAt *int64 `json:"lastUsedAt"`
+}
+
+// GetTokenInfo returns the current API token metadata.
+func (s *Store) GetTokenInfo() (*TokenInfo, error) {
+	var (
+		prefix    string
+		createdAt int64
+		lastUsed  sql.NullInt64
+	)
+	err := s.DB.QueryRow(`SELECT prefix, created_at, last_used_at FROM api_token WHERE id = 1`).
+		Scan(&prefix, &createdAt, &lastUsed)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	info := &TokenInfo{
+		Prefix:    prefix,
+		CreatedAt: createdAt,
+	}
+	if lastUsed.Valid {
+		info.LastUsedAt = &lastUsed.Int64
+	}
+	return info, nil
+}
+
+// SetToken stores a new API token hash and prefix.
+func (s *Store) SetToken(tokenHash, prefix string) error {
+	now := time.Now().UnixMilli()
+	_, err := s.DB.Exec(
+		`INSERT INTO api_token(id, token_hash, prefix, created_at, last_used_at)
+		 VALUES(1, ?, ?, ?, NULL)
+		 ON CONFLICT(id) DO UPDATE SET token_hash = excluded.token_hash, prefix = excluded.prefix, created_at = excluded.created_at, last_used_at = NULL`,
+		tokenHash, prefix, now,
+	)
+	return err
+}
+
+// DeleteToken removes the API token.
+func (s *Store) DeleteToken() error {
+	_, err := s.DB.Exec(`DELETE FROM api_token WHERE id = 1`)
+	return err
+}
+
 // GetTokenHash returns the stored API token hash.
 func (s *Store) GetTokenHash() (string, error) {
 	var stored string

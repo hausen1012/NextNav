@@ -9,6 +9,7 @@ import (
 
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
+	"nextnav/internal/store"
 )
 
 func validURL(raw string) bool {
@@ -400,6 +401,132 @@ func (a *API) ClearSample(w http.ResponseWriter, r *http.Request) {
 	res, err := a.Service.ClearSample()
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "清理失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, res)
+}
+
+// --- batch operations ---
+
+func (a *API) BatchDeleteLinks(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IDs []int64 `json:"ids"`
+	}
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
+		return
+	}
+	n, err := a.Service.BatchDeleteLinks(req.IDs)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "批量删除失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]int64{"deletedCount": n})
+}
+
+func (a *API) BatchMoveLinks(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IDs        []int64 `json:"ids"`
+		CategoryID int64   `json:"categoryId"`
+	}
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
+		return
+	}
+	if req.CategoryID <= 0 {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "目标分类不存在", "categoryId")
+		return
+	}
+	n, err := a.Service.BatchMoveLinks(req.IDs, req.CategoryID)
+	if errors.Is(err, service.ErrNotFound) {
+		httpx.FailField(w, http.StatusBadRequest, "bad_request", "目标分类不存在", "categoryId")
+		return
+	}
+	if errors.Is(err, service.ErrDuplicateLink) {
+		httpx.Fail(w, http.StatusConflict, "duplicate_link", "目标分类下已存在相同链接")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "批量移动失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]int64{"movedCount": n})
+}
+
+func (a *API) ReorderCategories(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		OrderedIDs []int64 `json:"orderedIds"`
+	}
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
+		return
+	}
+	if err := a.Service.ReorderCategories(req.OrderedIDs); err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "分类排序保存失败")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- tokens ---
+
+func (a *API) GetToken(w http.ResponseWriter, r *http.Request) {
+	info, err := a.Service.GetTokenInfo()
+	if errors.Is(err, service.ErrNotFound) || errors.Is(err, store.ErrNotFound) {
+		httpx.JSON(w, http.StatusOK, map[string]any{"token": nil})
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "查询 Token 失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"token": info})
+}
+
+func (a *API) CreateToken(w http.ResponseWriter, r *http.Request) {
+	raw, info, err := a.Service.GenerateToken()
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "生成 Token 失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"token": raw,
+		"info":  info,
+	})
+}
+
+func (a *API) DeleteToken(w http.ResponseWriter, r *http.Request) {
+	if err := a.Service.RevokeToken(); err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "撤回 Token 失败")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- backup ---
+
+func (a *API) ExportBackup(w http.ResponseWriter, r *http.Request) {
+	data, err := a.Service.ExportData()
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "备份导出失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, data)
+}
+
+func (a *API) ImportBackup(w http.ResponseWriter, r *http.Request) {
+	mode := r.URL.Query().Get("mode")
+	if mode != "overwrite" {
+		mode = "merge"
+	}
+	var data store.BackupData
+	if err := httpx.DecodeJSON(r, &data); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "导入文件格式不正确")
+		return
+	}
+	res, err := a.Service.ImportData(&data, mode)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "备份导入失败")
 		return
 	}
 	httpx.JSON(w, http.StatusOK, res)

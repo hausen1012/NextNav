@@ -59,6 +59,12 @@ export interface MeResponse {
   username?: string
 }
 
+export interface TokenInfo {
+  prefix: string
+  createdAt: number
+  lastUsedAt?: number | null
+}
+
 export class ApiError extends Error {
   code: string
   field?: string
@@ -185,4 +191,42 @@ export const api = {
     username?: string
     newPassword?: string
   }) => request<{ username: string }>('/api/settings/account', { method: 'POST', ...json(body) }),
+
+  batchDeleteLinks: (ids: number[]) =>
+    request<{ deletedCount: number }>('/api/links/batch-delete', {
+      method: 'POST',
+      ...json({ ids }),
+    }),
+
+  batchMoveLinks: (ids: number[], categoryId: number) =>
+    request<{ movedCount: number }>('/api/links/batch-move', {
+      method: 'POST',
+      ...json({ ids, categoryId }),
+    }),
+
+  reorderCategories: (orderedIds: number[]) =>
+    request<void>('/api/categories/reorder', {
+      method: 'POST',
+      ...json({ orderedIds }),
+    }),
+
+  reorderLinks: (categoryId: number, orderedIds: number[]) =>
+    request<void>('/api/links/reorder', {
+      method: 'POST',
+      ...json({ categoryId, orderedIds }),
+    }),
+
+  getToken: () => request<{ token: TokenInfo | null }>('/api/tokens'),
+
+  createToken: () => request<{ token: string; info: TokenInfo }>('/api/tokens', { method: 'POST' }),
+
+  deleteToken: () => request<void>('/api/tokens', { method: 'DELETE' }),
+
+  exportBackup: () => request<unknown>('/api/backup/export'),
+
+  importBackup: (data: unknown, mode: 'merge' | 'overwrite' = 'merge') =>
+    request<{ importedCategories: number; importedLinks: number }>(`/api/backup/import?mode=${mode}`, {
+      method: 'POST',
+      ...json(data),
+    }),
 }

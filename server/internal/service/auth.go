@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"nextnav/internal/auth"
+	"nextnav/internal/store"
 )
 
 func (s *Service) CookieKey() []byte {
@@ -124,6 +125,30 @@ func (s *Service) VerifyToken(token string) bool {
 	}
 	_ = s.store.TouchToken()
 	return true
+}
+
+func (s *Service) GetTokenInfo() (*store.TokenInfo, error) {
+	return s.store.GetTokenInfo()
+}
+
+func (s *Service) GenerateToken() (string, *store.TokenInfo, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", nil, err
+	}
+	raw := "nn_" + hex.EncodeToString(buf)
+	prefix := raw[:11]
+	sum := sha256.Sum256([]byte(raw))
+	tokenHash := hex.EncodeToString(sum[:])
+	if err := s.store.SetToken(tokenHash, prefix); err != nil {
+		return "", nil, err
+	}
+	info, err := s.store.GetTokenInfo()
+	return raw, info, err
+}
+
+func (s *Service) RevokeToken() error {
+	return s.store.DeleteToken()
 }
 
 func (s *Service) UpdateAccount(currentPassword, newUsername, newPassword string) (string, error) {

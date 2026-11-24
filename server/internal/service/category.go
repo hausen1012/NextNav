@@ -174,3 +174,7 @@ func (s *Service) DeleteCategory(id int64, mode string, targetID int64) error {
 
 	return s.store.DeleteCategory(ids, mode, targetID)
 }
+
+func (s *Service) ReorderCategories(orderedIDs []int64) error {
+	return s.store.ReorderCategories(orderedIDs)
+}

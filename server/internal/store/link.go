@@ -149,6 +149,56 @@ func (s *Store) ListLinkIDsByCategory(categoryID int64) ([]int64, error) {
 	return ids, rows.Err()
 }
 
+// BatchDeleteLinks deletes multiple links by ID.
+func (s *Store) BatchDeleteLinks(ids []int64) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	var deleted int64
+	for _, id := range ids {
+		res, err := tx.Exec(`DELETE FROM link WHERE id = ?`, id)
+		if err != nil {
+			return 0, err
+		}
+		n, _ := res.RowsAffected()
+		deleted += n
+	}
+	return deleted, tx.Commit()
+}
+
+// BatchMoveLinks moves multiple links to a target category.
+func (s *Store) BatchMoveLinks(ids []int64, targetCategoryID int64) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	now := time.Now().UnixMilli()
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	var moved int64
+	for _, id := range ids {
+		res, err := tx.Exec(`UPDATE link SET category_id = ?, updated_at = ? WHERE id = ?`, targetCategoryID, now, id)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				return 0, ErrDuplicate
+			}
+			return 0, err
+		}
+		n, _ := res.RowsAffected()
+		moved += n
+	}
+	return moved, tx.Commit()
+}
+
 // ReorderLinks atomically updates the sort indices of links under a category.
 func (s *Store) ReorderLinks(categoryID int64, orderedIDs []int64) error {
 	tx, err := s.DB.Begin()

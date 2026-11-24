@@ -8,7 +8,25 @@ import {
   RotateCcw,
   ChevronRight,
   ChevronsUpDown,
+  GripVertical,
 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useHome, useInvalidateHome } from '@/lib/query'
 import { api, type GroupDTO, type CategoryDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -47,6 +65,56 @@ export interface FlatCategory {
   description?: string | null
   linkCount: number
   isRoot: boolean
+}
+
+function SortableRootRow({
+  id,
+  canDrag,
+  children,
+}: {
+  id: number
+  canDrag: boolean
+  children: React.ReactNode
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !canDrag })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  }
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className='group/row font-medium bg-background hover:bg-muted/40 transition-colors'
+    >
+      <TableCell className='w-8 text-center px-1'>
+        {canDrag ? (
+          <button
+            type='button'
+            {...attributes}
+            {...listeners}
+            className='cursor-grab active:cursor-grabbing p-1 text-muted-foreground/60 hover:text-foreground inline-flex items-center justify-center'
+            title='拖动排序'
+          >
+            <GripVertical className='size-3.5' />
+          </button>
+        ) : (
+          <div className='size-3.5' />
+        )}
+      </TableCell>
+      {children}
+    </TableRow>
+  )
 }
 
 export function AdminCategoriesPage() {
@@ -224,6 +292,34 @@ export function AdminCategoriesPage() {
   }, [groups, keyword, selectedPrivacy, sortField, sortAsc])
 
   const hasFilter = keyword.trim() !== '' || selectedPrivacy !== 'all'
+  const canDrag = !hasFilter && sortField === 'sort' && sortAsc
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = displayGroups.findIndex((g) => g.id === active.id)
+    const newIndex = displayGroups.findIndex((g) => g.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(displayGroups, oldIndex, newIndex)
+    const orderedIds = reordered.map((g) => g.id)
+    try {
+      await api.reorderCategories(orderedIds)
+      invalidate()
+    } catch (err) {
+      console.error('Reorder categories failed', err)
+    }
+  }
 
   function resetFilters() {
     setKeyword('')
@@ -337,293 +433,306 @@ export function AdminCategoriesPage() {
       {/* Tree Table Card */}
       <Card className='shadow-xs'>
         <CardContent className='p-0'>
-          <Table>
-            <TableHeader>
-              <TableRow className='hover:bg-transparent'>
-                <TableHead
-                  className='cursor-pointer select-none min-w-[240px]'
-                  onClick={() => handleSort('name')}
-                >
-                  <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                    分类名称 {sortField === 'name' && (sortAsc ? '↑' : '↓')}
-                  </span>
-                </TableHead>
-                <TableHead className='min-w-[160px]'>描述说明</TableHead>
-                <TableHead
-                  className='cursor-pointer select-none w-20 text-center'
-                  onClick={() => handleSort('sort')}
-                >
-                  <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                    排序 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
-                  </span>
-                </TableHead>
-                <TableHead
-                  className='cursor-pointer select-none w-24 text-center'
-                  onClick={() => handleSort('links')}
-                >
-                  <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                    直属链接 {sortField === 'links' && (sortAsc ? '↑' : '↓')}
-                  </span>
-                </TableHead>
-                <TableHead className='w-20 text-center'>可见性</TableHead>
-                <TableHead className='text-right w-40'>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className='h-28 text-center text-xs text-muted-foreground'>
-                    正在加载分类...
-                  </TableCell>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow className='hover:bg-transparent'>
+                  <TableHead className='w-8' />
+                  <TableHead
+                    className='cursor-pointer select-none min-w-[240px]'
+                    onClick={() => handleSort('name')}
+                  >
+                    <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
+                      分类名称 {sortField === 'name' && (sortAsc ? '↑' : '↓')}
+                    </span>
+                  </TableHead>
+                  <TableHead className='min-w-[160px]'>描述说明</TableHead>
+                  <TableHead
+                    className='cursor-pointer select-none w-20 text-center'
+                    onClick={() => handleSort('sort')}
+                  >
+                    <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
+                      排序 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
+                    </span>
+                  </TableHead>
+                  <TableHead
+                    className='cursor-pointer select-none w-24 text-center'
+                    onClick={() => handleSort('links')}
+                  >
+                    <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
+                      直属链接 {sortField === 'links' && (sortAsc ? '↑' : '↓')}
+                    </span>
+                  </TableHead>
+                  <TableHead className='w-20 text-center'>可见性</TableHead>
+                  <TableHead className='text-right w-40'>操作</TableHead>
                 </TableRow>
-              ) : displayGroups.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className='h-28 text-center text-xs text-muted-foreground'>
-                    {hasFilter ? '未找到符合条件的分类' : '暂无分类，请点击右上角新建'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                displayGroups.map((g) => {
-                  const hasChildren = g.categories && g.categories.length > 0
-                  const isExpanded = expandedIds.has(g.id)
-                  const rootCat: FlatCategory = {
-                    id: g.id,
-                    name: g.name,
-                    icon: g.icon,
-                    iconUrl: g.iconUrl,
-                    sort: g.sort,
-                    description: g.description,
-                    isPrivate: false,
-                    linkCount: g.links?.length ?? 0,
-                    isRoot: true,
-                  }
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className='h-28 text-center text-xs text-muted-foreground'>
+                      正在加载分类...
+                    </TableCell>
+                  </TableRow>
+                ) : displayGroups.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className='h-28 text-center text-xs text-muted-foreground'>
+                      {hasFilter ? '未找到符合条件的分类' : '暂无分类，请点击右上角新建'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <SortableContext
+                    items={displayGroups.map((g) => g.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {displayGroups.map((g) => {
+                      const hasChildren = g.categories && g.categories.length > 0
+                      const isExpanded = expandedIds.has(g.id)
+                      const rootCat: FlatCategory = {
+                        id: g.id,
+                        name: g.name,
+                        icon: g.icon,
+                        iconUrl: g.iconUrl,
+                        sort: g.sort,
+                        description: g.description,
+                        isPrivate: false,
+                        linkCount: g.links?.length ?? 0,
+                        isRoot: true,
+                      }
 
-                  return (
-                    <Fragment key={g.id}>
-                      {/* Root Category Row */}
-                      <TableRow className='group/row font-medium bg-background hover:bg-muted/40 transition-colors'>
-                        <TableCell>
-                          <div className='flex items-center gap-2'>
-                            {/* Expand/Collapse Chevron Button */}
-                            {hasChildren ? (
-                              <button
-                                type='button'
-                                onClick={() => toggleExpand(g.id)}
-                                className='size-6 shrink-0 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-transform'
-                                title={isExpanded ? '收起子分类' : '展开子分类'}
-                              >
-                                <ChevronRight
-                                  className={cn(
-                                    'size-4 transition-transform duration-200',
-                                    isExpanded && 'rotate-90'
-                                  )}
-                                />
-                              </button>
-                            ) : (
-                              <div className='size-6 shrink-0' />
-                            )}
-
-                            {/* Icon */}
-                            <div className='flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-primary'>
-                              <CategoryIcon
-                                icon={g.icon || g.iconUrl}
-                                isRoot={true}
-                                className='size-4 text-primary'
-                              />
-                            </div>
-
-                            {/* Name & Count */}
-                            <span className='font-semibold text-sm text-foreground truncate'>
-                              {g.name}
-                            </span>
-                            {hasChildren && (
-                              <span className='text-xs text-muted-foreground font-normal'>
-                                ({g.categories.length})
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <span
-                            className='text-xs text-muted-foreground line-clamp-1'
-                            title={g.description || undefined}
-                          >
-                            {g.description || '-'}
-                          </span>
-                        </TableCell>
-
-                        <TableCell className='text-center'>
-                          <span className='font-mono text-xs text-muted-foreground'>
-                            {g.sort}
-                          </span>
-                        </TableCell>
-
-                        <TableCell className='text-center'>
-                          <span className='font-mono text-xs text-muted-foreground'>
-                            {g.links?.length ?? 0}
-                          </span>
-                        </TableCell>
-
-                        <TableCell className='text-center'>
-                          <span className='text-xs text-muted-foreground'>公开</span>
-                        </TableCell>
-
-                        {/* Root Row Actions */}
-                        <TableCell className='text-right'>
-                          <div className='inline-flex items-center justify-end gap-1'>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              className='h-7 px-1.5 text-xs gap-1 text-muted-foreground hover:text-foreground'
-                              onClick={() => openCreate(g.id)}
-                              title='在此分类下添加子分类'
-                            >
-                              <Plus className='size-3' />
-                              <span>子分类</span>
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-7'
-                              onClick={() => openEdit(rootCat)}
-                              title='编辑分类'
-                            >
-                              <Edit2 className='size-3.5' />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-7 text-destructive hover:text-destructive'
-                              onClick={() => {
-                                setDeleteItem(rootCat)
-                                setDeleteMode('delete')
-                                setTargetCatId(undefined)
-                              }}
-                              title='删除分类'
-                            >
-                              <Trash2 className='size-3.5' />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Child Categories (Visible when expanded) */}
-                      {hasChildren &&
-                        isExpanded &&
-                        g.categories.map((c) => {
-                          const subCat: FlatCategory = {
-                            id: c.id,
-                            name: c.name,
-                            icon: c.icon,
-                            iconUrl: c.iconUrl,
-                            parentId: g.id,
-                            parentName: g.name,
-                            sort: c.sort,
-                            description: c.description,
-                            isPrivate: c.isPrivate,
-                            linkCount: c.links?.length ?? 0,
-                            isRoot: false,
-                          }
-
-                          return (
-                            <TableRow
-                              key={c.id}
-                              className='bg-muted/15 hover:bg-muted/30 border-t border-border/50 transition-colors'
-                            >
-                              <TableCell>
-                                <div className='flex items-center gap-2 pl-7'>
-                                  {/* Tree branch line */}
-                                  <span className='text-muted-foreground/60 select-none font-mono text-sm leading-none mr-0.5'>
-                                    └
-                                  </span>
-
-                                  {/* Sub Icon */}
-                                  <div className='flex size-6 shrink-0 items-center justify-center rounded bg-background border text-muted-foreground'>
-                                    <CategoryIcon
-                                      icon={c.icon || c.iconUrl}
-                                      isRoot={false}
-                                      className='size-3.5 text-muted-foreground'
+                      return (
+                        <Fragment key={g.id}>
+                          {/* Root Category Row */}
+                          <SortableRootRow id={g.id} canDrag={canDrag}>
+                            <TableCell>
+                              <div className='flex items-center gap-2'>
+                                {/* Expand/Collapse Chevron Button */}
+                                {hasChildren ? (
+                                  <button
+                                    type='button'
+                                    onClick={() => toggleExpand(g.id)}
+                                    className='size-6 shrink-0 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-transform'
+                                    title={isExpanded ? '收起子分类' : '展开子分类'}
+                                  >
+                                    <ChevronRight
+                                      className={cn(
+                                        'size-4 transition-transform duration-200',
+                                        isExpanded && 'rotate-90'
+                                      )}
                                     />
-                                  </div>
-
-                                  {/* Sub Name */}
-                                  <span className='text-sm text-foreground/90 truncate'>
-                                    {c.name}
-                                  </span>
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <span
-                                  className='text-xs text-muted-foreground line-clamp-1'
-                                  title={c.description || undefined}
-                                >
-                                  {c.description || '-'}
-                                </span>
-                              </TableCell>
-
-                              <TableCell className='text-center'>
-                                <span className='font-mono text-xs text-muted-foreground'>
-                                  {c.sort}
-                                </span>
-                              </TableCell>
-
-                              <TableCell className='text-center'>
-                                <span className='font-mono text-xs text-muted-foreground'>
-                                  {c.links?.length ?? 0}
-                                </span>
-                              </TableCell>
-
-                              <TableCell className='text-center'>
-                                {c.isPrivate ? (
-                                  <span className='inline-flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400'>
-                                    <Shield className='size-3' />
-                                    私有
-                                  </span>
+                                  </button>
                                 ) : (
-                                  <span className='text-xs text-muted-foreground'>公开</span>
+                                  <div className='size-6 shrink-0' />
                                 )}
-                              </TableCell>
 
-                              {/* Child Row Actions */}
-                              <TableCell className='text-right'>
-                                <div className='inline-flex items-center justify-end gap-1'>
-                                  {/* Placeholder for +子分类 to maintain vertical alignment */}
-                                  <div className='w-[60px]' />
-                                  <Button
-                                    variant='ghost'
-                                    size='icon'
-                                    className='size-7'
-                                    onClick={() => openEdit(subCat)}
-                                    title='编辑分类'
-                                  >
-                                    <Edit2 className='size-3.5' />
-                                  </Button>
-                                  <Button
-                                    variant='ghost'
-                                    size='icon'
-                                    className='size-7 text-destructive hover:text-destructive'
-                                    onClick={() => {
-                                      setDeleteItem(subCat)
-                                      setDeleteMode('delete')
-                                      setTargetCatId(undefined)
-                                    }}
-                                    title='删除分类'
-                                  >
-                                    <Trash2 className='size-3.5' />
-                                  </Button>
+                                {/* Icon */}
+                                <div className='flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-primary'>
+                                  <CategoryIcon
+                                    icon={g.icon || g.iconUrl}
+                                    isRoot={true}
+                                    className='size-4 text-primary'
+                                  />
                                 </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                    </Fragment>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
+
+                                {/* Name & Count */}
+                                <span className='font-semibold text-sm text-foreground truncate'>
+                                  {g.name}
+                                </span>
+                                {hasChildren && (
+                                  <span className='text-xs text-muted-foreground font-normal'>
+                                    ({g.categories.length})
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <span
+                                className='text-xs text-muted-foreground line-clamp-1'
+                                title={g.description || undefined}
+                              >
+                                {g.description || '-'}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className='text-center'>
+                              <span className='font-mono text-xs text-muted-foreground'>
+                                {g.sort}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className='text-center'>
+                              <span className='font-mono text-xs text-muted-foreground'>
+                                {g.links?.length ?? 0}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className='text-center'>
+                              <span className='text-xs text-muted-foreground'>公开</span>
+                            </TableCell>
+
+                            {/* Root Row Actions */}
+                            <TableCell className='text-right'>
+                              <div className='inline-flex items-center justify-end gap-1'>
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  className='h-7 px-1.5 text-xs gap-1 text-muted-foreground hover:text-foreground'
+                                  onClick={() => openCreate(g.id)}
+                                  title='在此分类下添加子分类'
+                                >
+                                  <Plus className='size-3' />
+                                  <span>子分类</span>
+                                </Button>
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  className='size-7'
+                                  onClick={() => openEdit(rootCat)}
+                                  title='编辑分类'
+                                >
+                                  <Edit2 className='size-3.5' />
+                                </Button>
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  className='size-7 text-destructive hover:text-destructive'
+                                  onClick={() => {
+                                    setDeleteItem(rootCat)
+                                    setDeleteMode('delete')
+                                    setTargetCatId(undefined)
+                                  }}
+                                  title='删除分类'
+                                >
+                                  <Trash2 className='size-3.5' />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </SortableRootRow>
+
+                          {/* Child Categories (Visible when expanded) */}
+                          {hasChildren &&
+                            isExpanded &&
+                            g.categories.map((c) => {
+                              const subCat: FlatCategory = {
+                                id: c.id,
+                                name: c.name,
+                                icon: c.icon,
+                                iconUrl: c.iconUrl,
+                                parentId: g.id,
+                                parentName: g.name,
+                                sort: c.sort,
+                                description: c.description,
+                                isPrivate: c.isPrivate,
+                                linkCount: c.links?.length ?? 0,
+                                isRoot: false,
+                              }
+
+                              return (
+                                <TableRow
+                                  key={c.id}
+                                  className='bg-muted/15 hover:bg-muted/30 border-t border-border/50 transition-colors'
+                                >
+                                  <TableCell className='w-8' />
+                                  <TableCell>
+                                    <div className='flex items-center gap-2 pl-7'>
+                                      {/* Tree branch line */}
+                                      <span className='text-muted-foreground/60 select-none font-mono text-sm leading-none mr-0.5'>
+                                        └
+                                      </span>
+
+                                      {/* Sub Icon */}
+                                      <div className='flex size-6 shrink-0 items-center justify-center rounded bg-background border text-muted-foreground'>
+                                        <CategoryIcon
+                                          icon={c.icon || c.iconUrl}
+                                          isRoot={false}
+                                          className='size-3.5 text-muted-foreground'
+                                        />
+                                      </div>
+
+                                      {/* Sub Name */}
+                                      <span className='text-sm text-foreground/90 truncate'>
+                                        {c.name}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell>
+                                    <span
+                                      className='text-xs text-muted-foreground line-clamp-1'
+                                      title={c.description || undefined}
+                                    >
+                                      {c.description || '-'}
+                                    </span>
+                                  </TableCell>
+
+                                  <TableCell className='text-center'>
+                                    <span className='font-mono text-xs text-muted-foreground'>
+                                      {c.sort}
+                                    </span>
+                                  </TableCell>
+
+                                  <TableCell className='text-center'>
+                                    <span className='font-mono text-xs text-muted-foreground'>
+                                      {c.links?.length ?? 0}
+                                    </span>
+                                  </TableCell>
+
+                                  <TableCell className='text-center'>
+                                    {c.isPrivate ? (
+                                      <span className='inline-flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400'>
+                                        <Shield className='size-3' />
+                                        私有
+                                      </span>
+                                    ) : (
+                                      <span className='text-xs text-muted-foreground'>公开</span>
+                                    )}
+                                  </TableCell>
+
+                                  {/* Child Row Actions */}
+                                  <TableCell className='text-right'>
+                                    <div className='inline-flex items-center justify-end gap-1'>
+                                      {/* Placeholder for +子分类 to maintain vertical alignment */}
+                                      <div className='w-[60px]' />
+                                      <Button
+                                        variant='ghost'
+                                        size='icon'
+                                        className='size-7'
+                                        onClick={() => openEdit(subCat)}
+                                        title='编辑分类'
+                                      >
+                                        <Edit2 className='size-3.5' />
+                                      </Button>
+                                      <Button
+                                        variant='ghost'
+                                        size='icon'
+                                        className='size-7 text-destructive hover:text-destructive'
+                                        onClick={() => {
+                                          setDeleteItem(subCat)
+                                          setDeleteMode('delete')
+                                          setTargetCatId(undefined)
+                                        }}
+                                        title='删除分类'
+                                      >
+                                        <Trash2 className='size-3.5' />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                        </Fragment>
+                      )
+                    })}
+                  </SortableContext>
+                )}
+              </TableBody>
+            </Table>
+          </DndContext>
         </CardContent>
       </Card>
 

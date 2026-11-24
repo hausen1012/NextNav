@@ -237,6 +237,27 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 	}, nil
 }
 
+func (s *Service) BatchDeleteLinks(ids []int64) (int64, error) {
+	return s.store.BatchDeleteLinks(ids)
+}
+
+func (s *Service) BatchMoveLinks(ids []int64, targetCategoryID int64) (int64, error) {
+	if _, err := s.store.GetCategory(targetCategoryID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return 0, ErrNotFound
+		}
+		return 0, err
+	}
+	n, err := s.store.BatchMoveLinks(ids, targetCategoryID)
+	if err != nil {
+		if errors.Is(err, store.ErrDuplicate) {
+			return 0, ErrDuplicateLink
+		}
+		return 0, err
+	}
+	return n, nil
+}
+
 func normalizeTitle(s string) string {
 	return strings.ToLower(strings.Join(strings.Fields(s), " "))
 }

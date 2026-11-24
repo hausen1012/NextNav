@@ -12,6 +12,7 @@ import {
   XCircle,
   Shield,
   RotateCcw,
+  FolderInput,
 } from 'lucide-react'
 import { useHome, useInvalidateHome } from '@/lib/query'
 import { api, type LinkDTO } from '@/lib/api'
@@ -71,6 +72,14 @@ export function AdminLinksPage() {
   const [deleteItem, setDeleteItem] = useState<LinkWithMeta | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // Batch states
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [batchMoveOpen, setBatchMoveOpen] = useState(false)
+  const [batchMoveCatId, setBatchMoveCatId] = useState<number>(0)
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
+  const [isBatchOperating, setIsBatchOperating] = useState(false)
+  const [batchError, setBatchError] = useState<string | null>(null)
 
   // Flatten links and category options
   const { flatCategories, flatLinks } = useMemo(() => {
@@ -187,6 +196,40 @@ export function AdminLinksPage() {
     }
   }
 
+  async function handleBatchDelete(e: React.FormEvent) {
+    e.preventDefault()
+    if (selectedIds.size === 0) return
+    setIsBatchOperating(true)
+    setBatchError(null)
+    try {
+      await api.batchDeleteLinks(Array.from(selectedIds))
+      invalidate()
+      setSelectedIds(new Set())
+      setBatchDeleteOpen(false)
+    } catch (err: unknown) {
+      setBatchError(err instanceof Error ? err.message : '批量删除失败')
+    } finally {
+      setIsBatchOperating(false)
+    }
+  }
+
+  async function handleBatchMove(e: React.FormEvent) {
+    e.preventDefault()
+    if (selectedIds.size === 0 || !batchMoveCatId) return
+    setIsBatchOperating(true)
+    setBatchError(null)
+    try {
+      await api.batchMoveLinks(Array.from(selectedIds), batchMoveCatId)
+      invalidate()
+      setSelectedIds(new Set())
+      setBatchMoveOpen(false)
+    } catch (err: unknown) {
+      setBatchError(err instanceof Error ? err.message : '批量移动失败')
+    } finally {
+      setIsBatchOperating(false)
+    }
+  }
+
   return (
     <div className='space-y-4'>
       {/* Page Header */}
@@ -264,12 +307,76 @@ export function AdminLinksPage() {
         </div>
       </div>
 
+      {/* Batch Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className='flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3.5 py-2 text-xs animate-in fade-in'>
+          <span className='font-medium text-foreground'>
+            已选择 <strong className='text-primary'>{selectedIds.size}</strong> 项链接
+          </span>
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-7 gap-1 text-xs'
+              onClick={() => {
+                setBatchMoveCatId(flatCategories[0]?.id || 0)
+                setBatchError(null)
+                setBatchMoveOpen(true)
+              }}
+            >
+              <FolderInput className='size-3.5' />
+              <span>移动到分类</span>
+            </Button>
+            <Button
+              variant='destructive'
+              size='sm'
+              className='h-7 gap-1 text-xs'
+              onClick={() => {
+                setBatchError(null)
+                setBatchDeleteOpen(true)
+              }}
+            >
+              <Trash2 className='size-3.5' />
+              <span>批量删除</span>
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-7 text-xs text-muted-foreground'
+              onClick={() => setSelectedIds(new Set())}
+            >
+              取消选择
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Main Table Card */}
       <Card className='shadow-xs'>
         <CardContent className='p-0'>
           <Table>
             <TableHeader>
               <TableRow className='hover:bg-transparent'>
+                <TableHead className='w-10 text-center'>
+                  <input
+                    type='checkbox'
+                    aria-label='全选当页'
+                    checked={
+                      paginatedLinks.length > 0 &&
+                      paginatedLinks.every((l) => selectedIds.has(l.id))
+                    }
+                    onChange={(e) => {
+                      const next = new Set(selectedIds)
+                      if (e.target.checked) {
+                        paginatedLinks.forEach((l) => next.add(l.id))
+                      } else {
+                        paginatedLinks.forEach((l) => next.delete(l.id))
+                      }
+                      setSelectedIds(next)
+                    }}
+                    className='size-4 rounded border-input align-middle cursor-pointer accent-primary'
+                  />
+                </TableHead>
                 <TableHead
                   className='cursor-pointer select-none'
                   onClick={() => handleSort('title')}
@@ -309,19 +416,33 @@ export function AdminLinksPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className='h-28 text-center text-xs text-muted-foreground'>
+                  <TableCell colSpan={7} className='h-28 text-center text-xs text-muted-foreground'>
                     正在加载链接...
                   </TableCell>
                 </TableRow>
               ) : paginatedLinks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className='h-28 text-center text-xs text-muted-foreground'>
+                  <TableCell colSpan={7} className='h-28 text-center text-xs text-muted-foreground'>
                     {hasFilter ? '未找到符合条件的链接' : '暂无链接，点击右上角添加'}
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedLinks.map((link) => (
                   <TableRow key={link.id} className='transition-colors'>
+                    <TableCell className='text-center'>
+                      <input
+                        type='checkbox'
+                        aria-label={`选择 ${link.title}`}
+                        checked={selectedIds.has(link.id)}
+                        onChange={(e) => {
+                          const next = new Set(selectedIds)
+                          if (e.target.checked) next.add(link.id)
+                          else next.delete(link.id)
+                          setSelectedIds(next)
+                        }}
+                        className='size-4 rounded border-input align-middle cursor-pointer accent-primary'
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className='flex items-center gap-2.5 min-w-[200px]'>
                         <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} />
@@ -476,6 +597,63 @@ export function AdminLinksPage() {
               </Button>
               <Button type='submit' variant='destructive' disabled={isDeleting}>
                 {isDeleting ? '删除中...' : '确认删除'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Move Dialog */}
+      <Dialog open={batchMoveOpen} onOpenChange={setBatchMoveOpen}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>批量移动分类</DialogTitle>
+            <DialogDescription>
+              将选中的 {selectedIds.size} 个链接移动至以下分类：
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleBatchMove} className='space-y-4 pt-2'>
+            <select
+              value={batchMoveCatId}
+              onChange={(e) => setBatchMoveCatId(Number(e.target.value))}
+              className='w-full h-9 rounded-md border border-input bg-background px-3 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+            >
+              {flatCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {batchError && <p className='text-xs text-destructive'>{batchError}</p>}
+            <DialogFooter>
+              <Button type='button' variant='outline' onClick={() => setBatchMoveOpen(false)}>
+                取消
+              </Button>
+              <Button type='submit' disabled={isBatchOperating || !batchMoveCatId}>
+                {isBatchOperating ? '移动中...' : '确认移动'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Delete Dialog */}
+      <Dialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle className='text-destructive'>批量删除链接</DialogTitle>
+            <DialogDescription>
+              确定要删除选中的 <strong className='text-foreground'>{selectedIds.size}</strong> 个链接吗？此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleBatchDelete} className='pt-2'>
+            {batchError && <p className='text-xs text-destructive mb-3'>{batchError}</p>}
+            <DialogFooter>
+              <Button type='button' variant='outline' onClick={() => setBatchDeleteOpen(false)}>
+                取消
+              </Button>
+              <Button type='submit' variant='destructive' disabled={isBatchOperating}>
+                {isBatchOperating ? '删除中...' : '确认删除'}
               </Button>
             </DialogFooter>
           </form>

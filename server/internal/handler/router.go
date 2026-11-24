@@ -27,11 +27,23 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("PATCH /api/links/{id}", a.RequireAdmin(a.UpdateLink))
 	mux.HandleFunc("DELETE /api/links/{id}", a.RequireAdmin(a.DeleteLink))
 	mux.HandleFunc("POST /api/links/reorder", a.RequireAdmin(a.ReorderLinks))
+	mux.HandleFunc("POST /api/links/batch-delete", a.RequireAdmin(a.BatchDeleteLinks))
+	mux.HandleFunc("POST /api/links/batch-move", a.RequireAdmin(a.BatchMoveLinks))
 
 	// --- write: categories ---
 	mux.HandleFunc("POST /api/categories", a.RequireAdmin(a.CreateCategory))
 	mux.HandleFunc("PATCH /api/categories/{id}", a.RequireAdmin(a.UpdateCategory))
 	mux.HandleFunc("DELETE /api/categories/{id}", a.RequireAdmin(a.DeleteCategory))
+	mux.HandleFunc("POST /api/categories/reorder", a.RequireAdmin(a.ReorderCategories))
+
+	// --- tokens ---
+	mux.HandleFunc("GET /api/tokens", a.RequireAdmin(a.GetToken))
+	mux.HandleFunc("POST /api/tokens", a.RequireAdmin(a.CreateToken))
+	mux.HandleFunc("DELETE /api/tokens", a.RequireAdmin(a.DeleteToken))
+
+	// --- backup & migration ---
+	mux.HandleFunc("GET /api/backup/export", a.RequireAdmin(a.ExportBackup))
+	mux.HandleFunc("POST /api/backup/import", a.RequireAdmin(a.ImportBackup))
 
 	// --- settings ---
 	mux.HandleFunc("PATCH /api/settings", a.RequireAdmin(a.UpdateSettings))

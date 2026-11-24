@@ -680,3 +680,142 @@ func TestClientIPSecurity(t *testing.T) {
 		t.Fatalf("proxied client IP should resolve first XFF, got %q", ip)
 	}
 }
+
+func TestBatchOperations(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, false)
+
+	// Create Category A & B
+	rec := do(t, h, "POST", "/api/categories", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{"name": "分类A"},
+	})
+	catA := decode[struct{ ID int64 }](t, rec)
+
+	rec = do(t, h, "POST", "/api/categories", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{"name": "分类B"},
+	})
+	catB := decode[struct{ ID int64 }](t, rec)
+
+	// Create 3 links in CatA
+	var linkIDs []int64
+	for i := 1; i <= 3; i++ {
+		rec = do(t, h, "POST", "/api/links", reqOpts{
+			cookie: cookie, origin: "http://example.com",
+			body: map[string]any{
+				"categoryId": catA.ID,
+				"title":      fmt.Sprintf("Link %d", i),
+				"url":        fmt.Sprintf("https://test%d.com", i),
+			},
+		})
+		l := decode[struct{ ID int64 }](t, rec)
+		linkIDs = append(linkIDs, l.ID)
+	}
+
+	// Batch move 2 links to CatB
+	rec = do(t, h, "POST", "/api/links/batch-move", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{
+			"ids":        linkIDs[:2],
+			"categoryId": catB.ID,
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("batch move failed: %d %s", rec.Code, rec.Body)
+	}
+	moveRes := decode[struct{ MovedCount int64 }](t, rec)
+	if moveRes.MovedCount != 2 {
+		t.Fatalf("moved count = %d, want 2", moveRes.MovedCount)
+	}
+
+	// Batch delete
+	rec = do(t, h, "POST", "/api/links/batch-delete", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: map[string]any{
+			"ids": []int64{linkIDs[2]},
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("batch delete failed: %d %s", rec.Code, rec.Body)
+	}
+	delRes := decode[struct{ DeletedCount int64 }](t, rec)
+	if delRes.DeletedCount != 1 {
+		t.Fatalf("deleted count = %d, want 1", delRes.DeletedCount)
+	}
+}
+
+func TestTokensAndBearerAuth(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, false)
+
+	// Initially no token
+	rec := do(t, h, "GET", "/api/tokens", reqOpts{cookie: cookie})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get tokens: %d %s", rec.Code, rec.Body)
+	}
+
+	// Generate token
+	rec = do(t, h, "POST", "/api/tokens", reqOpts{cookie: cookie, origin: "http://example.com"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create token: %d %s", rec.Code, rec.Body)
+	}
+	tokRes := decode[struct {
+		Token string `json:"token"`
+	}](t, rec)
+	if tokRes.Token == "" {
+		t.Fatalf("expected non-empty token")
+	}
+
+	// Access with Bearer token (no cookie, no origin needed)
+	rec = do(t, h, "POST", "/api/categories", reqOpts{
+		token: tokRes.Token,
+		body:  map[string]any{"name": "Token分类"},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create category with token failed: %d %s", rec.Code, rec.Body)
+	}
+
+	// Revoke token
+	rec = do(t, h, "DELETE", "/api/tokens", reqOpts{cookie: cookie, origin: "http://example.com"})
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("delete token: %d %s", rec.Code, rec.Body)
+	}
+
+	// Old token rejected
+	rec = do(t, h, "POST", "/api/categories", reqOpts{
+		token: tokRes.Token,
+		body:  map[string]any{"name": "Reject"},
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 after token revocation, got %d", rec.Code)
+	}
+}
+
+func TestBackupExportImport(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	// Export
+	rec := do(t, h, "GET", "/api/backup/export", reqOpts{cookie: cookie})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("backup export: %d %s", rec.Code, rec.Body)
+	}
+	var backupData store.BackupData
+	if err := json.Unmarshal(rec.Body.Bytes(), &backupData); err != nil {
+		t.Fatalf("unmarshal backup: %v", err)
+	}
+	if len(backupData.Categories) == 0 || len(backupData.Links) == 0 {
+		t.Fatalf("expected non-empty backup from seeded sample, got %d cats, %d links",
+			len(backupData.Categories), len(backupData.Links))
+	}
+
+	// Import overwrite
+	rec = do(t, h, "POST", "/api/backup/import?mode=overwrite", reqOpts{
+		cookie: cookie, origin: "http://example.com",
+		body: backupData,
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("import overwrite failed: %d %s", rec.Code, rec.Body)
+	}
+}
