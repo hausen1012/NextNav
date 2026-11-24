@@ -127,7 +127,7 @@ func (s *Store) SeedSample() error {
 		res, err := tx.Exec(
 			`INSERT INTO category(name, parent_id, sort, is_private, is_sample, created_at, updated_at)
 			 VALUES(?, NULL, ?, 0, 1, ?, ?)`,
-			g.Name, int64(gi+1)*1000, now, now,
+			g.Name, int64(gi+1)*10, now, now,
 		)
 		if err != nil {
 			return err
@@ -138,7 +138,7 @@ func (s *Store) SeedSample() error {
 			cres, err := tx.Exec(
 				`INSERT INTO category(name, parent_id, sort, is_private, is_sample, created_at, updated_at)
 				 VALUES(?, ?, ?, 0, 1, ?, ?)`,
-				c.Name, groupID, int64(ci+1)*1000, now, now,
+				c.Name, groupID, int64(ci+1)*10, now, now,
 			)
 			if err != nil {
 				return err
@@ -157,7 +157,7 @@ func (s *Store) SeedSample() error {
 					                  is_private, is_sample, last_status,
 					                  title_norm, host, search_text, created_at, updated_at)
 					 VALUES(?,?,?,?,?,0,1,'unknown',?,?,?,?,?)`,
-					catID, title, linkURL, desc, int64(li+1)*1000,
+					catID, title, linkURL, desc, int64(li+1)*10,
 					sampleNormalize(title), host, search, now, now,
 				); err != nil {
 					return err
@@ -253,7 +253,7 @@ func ensureFallbackCategory(tx *sql.Tx) (int64, error) {
 	res, err := tx.Exec(
 		`INSERT INTO category(name, parent_id, sort, is_private, is_sample, created_at, updated_at)
 		 VALUES('未分类', NULL, ?, 0, 0, ?, ?)`,
-		maxSort+1000, now, now,
+		maxSort+10, now, now,
 	)
 	if err != nil {
 		return 0, err

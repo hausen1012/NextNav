@@ -130,11 +130,11 @@
 
 ### POST /api/setup
 
-仅当未安装时可用。成功后自动登录（下发 cookie），并**同步写入示例数据**（见 DATA_MODEL 第 6 节）。
+仅当未安装时可用。成功后自动登录（下发 cookie）。可选字段 `seedSample` 为 `true` 时同步写入示例数据（默认 `false`，见 DATA_MODEL 第 6 节）。
 
 ```json
 // 请求
-{ "username": "admin", "password": "至少 8 位" }
+{ "username": "admin", "password": "至少 8 位", "seedSample": false }
 // 201
 { "user": { "username": "admin" } }
 ```

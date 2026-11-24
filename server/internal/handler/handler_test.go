@@ -112,6 +112,33 @@ func TestSetupIsOneShot(t *testing.T) {
 	}
 }
 
+func TestSetupDefaultWithoutSeedSample(t *testing.T) {
+	_, h := newTestAPI(t)
+
+	rec := do(t, h, "POST", "/api/setup", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("setup: got %d, body %s", rec.Code, rec.Body)
+	}
+
+	rec = do(t, h, "GET", "/api/home", reqOpts{})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("home: %d", rec.Code)
+	}
+
+	type homeResp struct {
+		Groups []any `json:"groups"`
+	}
+	var res homeResp
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("parse home response: %v", err)
+	}
+	if len(res.Groups) != 0 {
+		t.Fatalf("expected empty groups without seedSample, got %d", len(res.Groups))
+	}
+}
+
 func TestSetupRejectsShortPassword(t *testing.T) {
 	_, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
@@ -125,7 +152,7 @@ func TestSetupRejectsShortPassword(t *testing.T) {
 func TestSeedDataIsPublicAndComplete(t *testing.T) {
 	_, h := newTestAPI(t)
 	do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 
 	rec := do(t, h, "GET", "/api/home", reqOpts{})
@@ -171,7 +198,7 @@ func TestSeedDataIsPublicAndComplete(t *testing.T) {
 func TestGuestCannotWrite(t *testing.T) {
 	_, h := newTestAPI(t)
 	do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 
 	rec := do(t, h, "POST", "/api/links", reqOpts{
@@ -185,7 +212,7 @@ func TestGuestCannotWrite(t *testing.T) {
 func TestPrivateContentHiddenFromGuests(t *testing.T) {
 	api, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 	cookie := sessionCookie(t, rec)
 
@@ -239,7 +266,7 @@ func TestPrivateContentHiddenFromGuests(t *testing.T) {
 func TestPrivateLinkHidesOnlyItself(t *testing.T) {
 	_, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 	cookie := sessionCookie(t, rec)
 
@@ -311,7 +338,7 @@ func TestCSRFOnlyAppliesToCookieWrites(t *testing.T) {
 func TestDuplicateLinkScopedToCategory(t *testing.T) {
 	_, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 	cookie := sessionCookie(t, rec)
 
@@ -336,7 +363,7 @@ func TestDuplicateLinkScopedToCategory(t *testing.T) {
 func TestEditClearsSampleFlag(t *testing.T) {
 	api, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 	cookie := sessionCookie(t, rec)
 
@@ -385,7 +412,7 @@ func TestEditClearsSampleFlag(t *testing.T) {
 func TestDeleteCategoryRequiresDisposition(t *testing.T) {
 	_, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 	cookie := sessionCookie(t, rec)
 
@@ -404,7 +431,7 @@ func TestDeleteCategoryRequiresDisposition(t *testing.T) {
 func TestReorderRejectsPartialList(t *testing.T) {
 	_, h := newTestAPI(t)
 	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
+		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
 	})
 	cookie := sessionCookie(t, rec)
 

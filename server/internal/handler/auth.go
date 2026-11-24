@@ -112,8 +112,9 @@ func (a *API) SetupStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 type setupReq struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	SeedSample bool   `json:"seedSample"`
 }
 
 func (a *API) Setup(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +133,7 @@ func (a *API) Setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.Service.Setup(req.Username, req.Password)
+	err := a.Service.Setup(req.Username, req.Password, req.SeedSample)
 	if errors.Is(err, service.ErrAlreadyInstalled) {
 		httpx.Fail(w, http.StatusConflict, "already_installed", "站点已完成安装")
 		return

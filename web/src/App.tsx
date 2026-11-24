@@ -1,6 +1,6 @@
 import { Link, Outlet, createBrowserRouter, RouterProvider, useRouteError, Navigate } from 'react-router-dom'
 import { Header } from './components/Header'
-import { useHome } from './lib/query'
+import { useHome, useSetupStatus } from './lib/query'
 import { HomePage } from './pages/Home'
 import { LoginPage } from './pages/Login'
 import { SetupPage } from './pages/Setup'
@@ -15,7 +15,13 @@ import { AdminAccountSettingsPage } from './pages/admin/AccountSettings'
 import { AdminSystemMaintenancePage } from './pages/admin/SystemMaintenance'
 
 function Layout() {
+  const { data: setup } = useSetupStatus()
   const { data } = useHome()
+
+  if (setup && !setup.installed) {
+    return <Navigate to='/setup' replace />
+  }
+
   return (
     <div className='min-h-dvh' style={{ background: data?.site.background || undefined }}>
       <Header siteName={data?.site.name ?? 'NextNav'} />

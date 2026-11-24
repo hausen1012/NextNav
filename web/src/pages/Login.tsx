@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { useSetupStatus } from '@/lib/query'
 import { api, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,20 +9,15 @@ import { Field, Notice } from '@/components/Field'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const [needsSetup, setNeedsSetup] = useState(false)
+  const { data: setup } = useSetupStatus()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api
-      .setupStatus()
-      .then((r) => {
-        if (!r.installed) setNeedsSetup(true)
-      })
-      .catch(() => undefined)
-  }, [])
+  if (setup && !setup.installed) {
+    return <Navigate to='/setup' replace />
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -35,19 +31,6 @@ export function LoginPage() {
     } finally {
       setBusy(false)
     }
-  }
-
-  if (needsSetup) {
-    return (
-      <Card>
-        <CardContent className='pt-6 text-center text-sm'>
-          <p>站点还没有管理员账号。</p>
-          <Link to='/setup' className='mt-3 inline-block text-primary hover:underline'>
-            前往安装
-          </Link>
-        </CardContent>
-      </Card>
-    )
   }
 
   return (

@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { useSetupStatus } from '@/lib/query'
 import { api, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,31 +10,17 @@ import { Field, Notice } from '@/components/Field'
 
 export function SetupPage() {
   const navigate = useNavigate()
-  const [installed, setInstalled] = useState<boolean | null>(null)
+  const qc = useQueryClient()
+  const { data: setup, isLoading: checkingSetup } = useSetupStatus()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [seedSample, setSeedSample] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api
-      .setupStatus()
-      .then((r) => setInstalled(r.installed))
-      .catch(() => setInstalled(null))
-  }, [])
-
-  if (installed === true) {
-    return (
-      <Card>
-        <CardContent className='pt-6 text-center text-sm'>
-          <p>站点已完成安装。</p>
-          <Link to='/login' className='mt-3 inline-block text-primary hover:underline'>
-            去登录
-          </Link>
-        </CardContent>
-      </Card>
-    )
+  if (!checkingSetup && setup?.installed) {
+    return <Navigate to='/' replace />
   }
 
   async function submit(e: React.FormEvent) {
@@ -48,7 +36,10 @@ export function SetupPage() {
     }
     setBusy(true)
     try {
-      await api.setup(username.trim(), password)
+      await api.setup(username.trim(), password, seedSample)
+      await qc.invalidateQueries({ queryKey: ['home'] })
+      await qc.invalidateQueries({ queryKey: ['me'] })
+      await qc.refetchQueries({ queryKey: ['home'] })
       navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '安装失败')
@@ -97,9 +88,21 @@ export function SetupPage() {
               required
             />
           </Field>
+          <div className='flex items-center gap-2 pt-1'>
+            <input
+              id='seed-sample'
+              type='checkbox'
+              checked={seedSample}
+              onChange={(e) => setSeedSample(e.target.checked)}
+              className='size-4 rounded border-border text-primary focus:ring-primary'
+            />
+            <label htmlFor='seed-sample' className='text-sm text-foreground cursor-pointer select-none'>
+              导入演示示例数据（常用工具、设计与技术资源）
+            </label>
+          </div>
           {error ? <Notice kind='error'>{error}</Notice> : null}
           <Button type='submit' disabled={busy} className='w-full'>
-            {busy ? '创建中…' : '创建账号'}
+            {busy ? (seedSample ? '正在初始化并导入示例数据…' : '正在创建账号…') : '完成安装并进入'}
           </Button>
         </form>
       </CardContent>

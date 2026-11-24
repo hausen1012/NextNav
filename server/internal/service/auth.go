@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -27,7 +28,7 @@ func (s *Service) GetSetupStatus() (bool, error) {
 	return count > 0, nil
 }
 
-func (s *Service) Setup(username, password string) error {
+func (s *Service) Setup(username, password string, seedSample bool) error {
 	installed, err := s.GetSetupStatus()
 	if err != nil {
 		return err
@@ -45,8 +46,11 @@ func (s *Service) Setup(username, password string) error {
 		return err
 	}
 
-	if err := s.store.SeedSample(); err != nil {
-		slog.Error("seed sample data", "err", err)
+	if seedSample {
+		if err := s.store.SeedSample(); err != nil {
+			slog.Error("seed sample data", "err", err)
+			return fmt.Errorf("seed sample data: %w", err)
+		}
 	}
 	return nil
 }

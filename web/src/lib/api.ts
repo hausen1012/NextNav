@@ -108,10 +108,10 @@ export const api = {
 
   setupStatus: () => request<{ installed: boolean }>('/api/setup/status'),
 
-  setup: (username: string, password: string) =>
+  setup: (username: string, password: string, seedSample = false) =>
     request<{ user: { username: string } }>('/api/setup', {
       method: 'POST',
-      ...json({ username, password }),
+      ...json({ username, password, seedSample }),
     }),
 
   login: (username: string, password: string) =>

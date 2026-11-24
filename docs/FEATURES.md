@@ -184,7 +184,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 5. 私有语义：分类私有 → 整块不显示；链接私有 → 只隐藏该条。
 6. 健康检测频率由环境变量 `CHECK_INTERVAL` 决定，默认每天一次。
 7. 站点名为 NextNav，本期不做图形 logo，页头直接排文字字标；管理员可在设置页修改站点名/描述/背景，并可选上传自己的 logo。
-8. 安装完成后预置演示一级分类、二级分类与大厂站点（见第 8 节）；提供「清空示例数据」按钮。
+8. 安装向导支持勾选是否导入预置演示数据（默认不勾选，见第 8 节）；设置页提供「清空示例数据」按钮。
 9. 技术栈：Go（`go:embed` 内嵌前端）+ SQLite，前端 React + shadcn/ui；以**低内存占用**为首要约束。纯 SPA，不做 SSR。
 10. API 统一为 `/api`：中间件按 Bearer token 或 cookie 判定身份（游客只读公开内容），写操作仅对 cookie 身份做 CSRF 同源校验。
 

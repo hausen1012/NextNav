@@ -183,3 +183,31 @@ func TestDefaultSortAndOrder(t *testing.T) {
 		t.Errorf("expected link order [link1, link2], got %#v", links)
 	}
 }
+
+func TestSampleSortValuesUnder100(t *testing.T) {
+	_, st := newTestService(t)
+
+	if err := st.SeedSample(); err != nil {
+		t.Fatalf("seed sample: %v", err)
+	}
+
+	cats, err := st.ListCategories()
+	if err != nil {
+		t.Fatalf("list categories: %v", err)
+	}
+	for _, c := range cats {
+		if c.Sort >= 100 {
+			t.Errorf("category %q has sort %d, expected < 100", c.Name, c.Sort)
+		}
+	}
+
+	links, err := st.ListLinks(true)
+	if err != nil {
+		t.Fatalf("list links: %v", err)
+	}
+	for _, l := range links {
+		if l.Sort >= 100 {
+			t.Errorf("link %q has sort %d, expected < 100", l.Title, l.Sort)
+		}
+	}
+}
