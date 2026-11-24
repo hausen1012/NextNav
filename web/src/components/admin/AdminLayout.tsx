@@ -1,5 +1,5 @@
-import { Outlet, Link, Navigate } from 'react-router-dom'
-import { useHome, useMe, useSetupStatus } from '@/lib/query'
+import { Outlet, Link } from 'react-router-dom'
+import { useHome, useMe } from '@/lib/query'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
 import { LayoutProvider } from '@/context/layout-provider'
@@ -11,14 +11,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function AdminLayout() {
-  const { data: setup } = useSetupStatus()
   const { data: me, isLoading: meLoading } = useMe()
   const { data: home } = useHome()
   const defaultOpen = getCookie('sidebar_state') !== 'false'
-
-  if (setup && !setup.installed) {
-    return <Navigate to='/setup' replace />
-  }
 
   if (meLoading) {
     return (

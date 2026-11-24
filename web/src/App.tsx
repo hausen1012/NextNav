@@ -1,9 +1,8 @@
 import { Link, Outlet, createBrowserRouter, RouterProvider, useRouteError, Navigate } from 'react-router-dom'
 import { Header } from './components/Header'
-import { useHome, useSetupStatus } from './lib/query'
+import { useHome } from './lib/query'
 import { HomePage } from './pages/Home'
 import { LoginPage } from './pages/Login'
-import { SetupPage } from './pages/Setup'
 
 // Admin Layout & Pages (shadcn-admin architecture)
 import { AdminLayout } from './components/admin/AdminLayout'
@@ -15,12 +14,7 @@ import { AdminAccountSettingsPage } from './pages/admin/AccountSettings'
 import { AdminSystemMaintenancePage } from './pages/admin/SystemMaintenance'
 
 function Layout() {
-  const { data: setup } = useSetupStatus()
   const { data } = useHome()
-
-  if (setup && !setup.installed) {
-    return <Navigate to='/setup' replace />
-  }
 
   return (
     <div className='min-h-dvh' style={{ background: data?.site.background || undefined }}>
@@ -87,13 +81,12 @@ const router = createBrowserRouter([
       { path: '*', element: <NotFound /> },
     ],
   },
-  // Auth layout (Login & Setup)
+  // Auth layout (Login)
   {
     element: <AuthLayout />,
     errorElement: <ErrorBoundary />,
     children: [
       { path: 'login', element: <LoginPage /> },
-      { path: 'setup', element: <SetupPage /> },
     ],
   },
   // shadcn-admin Management Portal

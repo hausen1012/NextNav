@@ -20,30 +20,30 @@ func (s *Service) CookieKey() []byte {
 	return raw
 }
 
-func (s *Service) GetSetupStatus() (bool, error) {
+func (s *Service) InitAdmin(username, password string, seedSample bool) error {
 	count, err := s.store.AdminCount()
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func (s *Service) Setup(username, password string, seedSample bool) error {
-	installed, err := s.GetSetupStatus()
 	if err != nil {
 		return err
 	}
-	if installed {
-		return ErrAlreadyInstalled
+	if count > 0 {
+		return nil
+	}
+
+	username = strings.TrimSpace(username)
+	if username == "" || len([]rune(username)) > 32 {
+		return fmt.Errorf("admin username must be 1-32 characters, got %q", username)
+	}
+	if len(password) < 8 {
+		return fmt.Errorf("admin password must be at least 8 characters")
 	}
 
 	hash, err := auth.HashPassword(password)
 	if err != nil {
-		return err
+		return fmt.Errorf("hash password: %w", err)
 	}
 
 	if err := s.store.CreateAdmin(username, hash); err != nil {
-		return err
+		return fmt.Errorf("create admin: %w", err)
 	}
 
 	if seedSample {

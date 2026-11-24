@@ -28,14 +28,11 @@ func main() {
 	}
 	defer st.Close()
 
-	// A missing or empty data directory silently produces a fresh install,
-	// which reopens /setup. Warn loudly so a broken volume mount is visible.
-	if n, err := st.AdminCount(); err == nil && n == 0 {
-		slogx.Warn("no administrator yet — /setup is open until an account is created",
-			"dataDir", cfg.DataDir)
-	}
-
 	svc := service.New(st)
+	if err := svc.InitAdmin(cfg.AdminUsername, cfg.AdminPassword, cfg.SeedSample); err != nil {
+		slogx.Error("init admin", "err", err)
+		os.Exit(1)
+	}
 	api := handler.NewAPI(svc, cfg.SecureCookie, webembed.FS())
 
 	srv := &http.Server{

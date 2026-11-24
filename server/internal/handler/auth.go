@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net"
 	"net/http"
 	"strings"
@@ -9,7 +8,6 @@ import (
 
 	"nextnav/internal/auth"
 	"nextnav/internal/httpx"
-	"nextnav/internal/service"
 )
 
 const sessionCookieName = "nn_session"
@@ -97,57 +95,6 @@ func sameOrigin(r *http.Request) bool {
 }
 
 // --- handlers ---
-
-type setupStatusResp struct {
-	Installed bool `json:"installed"`
-}
-
-func (a *API) SetupStatus(w http.ResponseWriter, r *http.Request) {
-	installed, err := a.Service.GetSetupStatus()
-	if err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", "读取安装状态失败")
-		return
-	}
-	httpx.JSON(w, http.StatusOK, setupStatusResp{Installed: installed})
-}
-
-type setupReq struct {
-	Username   string `json:"username"`
-	Password   string `json:"password"`
-	SeedSample bool   `json:"seedSample"`
-}
-
-func (a *API) Setup(w http.ResponseWriter, r *http.Request) {
-	var req setupReq
-	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
-		return
-	}
-	req.Username = strings.TrimSpace(req.Username)
-	if req.Username == "" || len([]rune(req.Username)) > 32 {
-		httpx.FailField(w, http.StatusBadRequest, "invalid_name", "用户名需为 1–32 个字符", "username")
-		return
-	}
-	if len(req.Password) < 8 {
-		httpx.FailField(w, http.StatusBadRequest, "invalid_password", "密码至少 8 位", "password")
-		return
-	}
-
-	err := a.Service.Setup(req.Username, req.Password, req.SeedSample)
-	if errors.Is(err, service.ErrAlreadyInstalled) {
-		httpx.Fail(w, http.StatusConflict, "already_installed", "站点已完成安装")
-		return
-	}
-	if err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", "创建账号失败")
-		return
-	}
-
-	a.issueSession(w, r)
-	httpx.JSON(w, http.StatusCreated, map[string]any{
-		"user": map[string]string{"username": req.Username},
-	})
-}
 
 type loginReq struct {
 	Username string `json:"username"`

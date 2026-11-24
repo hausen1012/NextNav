@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import { useSetupStatus } from '@/lib/query'
+import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,15 +9,11 @@ import { Field, Notice } from '@/components/Field'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { data: setup } = useSetupStatus()
+  const qc = useQueryClient()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-
-  if (setup && !setup.installed) {
-    return <Navigate to='/setup' replace />
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,6 +21,12 @@ export function LoginPage() {
     setBusy(true)
     try {
       await api.login(username.trim(), password)
+      await qc.invalidateQueries({ queryKey: ['me'] })
+      await qc.invalidateQueries({ queryKey: ['home'] })
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ['me'] }),
+        qc.refetchQueries({ queryKey: ['home'] }),
+      ])
       navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '登录失败')

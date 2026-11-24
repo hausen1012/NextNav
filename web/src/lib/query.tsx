@@ -22,14 +22,6 @@ export function useMe() {
   return useQuery({ queryKey: ['me'], queryFn: api.me, staleTime: 60_000 })
 }
 
-export function useSetupStatus() {
-  return useQuery({
-    queryKey: ['setupStatus'],
-    queryFn: api.setupStatus,
-    staleTime: 5_000,
-  })
-}
-
 export function useHome() {
   return useQuery({ queryKey: ['home'], queryFn: api.home })
 }
@@ -39,6 +31,5 @@ export function useInvalidateHome() {
   return () => {
     void qc.invalidateQueries({ queryKey: ['home'] })
     void qc.invalidateQueries({ queryKey: ['me'] })
-    void qc.invalidateQueries({ queryKey: ['setupStatus'] })
   }
 }

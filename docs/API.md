@@ -50,7 +50,6 @@
 | 401 | `bad_credentials` | 用户名或密码错误 |
 | 403 | `csrf_failed` | cookie 写操作来源校验失败 |
 | 404 | `not_found` | 资源不存在，或对游客不可见 |
-| 409 | `already_installed` | 已安装后再次调用 `/setup` |
 | 409 | `duplicate_link` | 同分类下已存在相同 URL |
 | 429 | `rate_limited` | 登录失败过多 / 点击上报过频 |
 | 500 | `internal` | 其他，`message` 不含堆栈 |
@@ -74,8 +73,6 @@
 | 方法 | 路径 | 身份 | 说明 |
 |---|---|---|---|
 | GET | `/api/health` | 公开 | 存活检查，供容器 healthcheck |
-| GET | `/api/setup/status` | 公开 | 是否已安装 |
-| POST | `/api/setup` | 公开（仅未安装时） | 创建管理员并初始化示例数据 |
 | POST | `/api/login` | 公开 | 登录 |
 | POST | `/api/logout` | 公开 | 注销 |
 | GET | `/api/me` | 任意 | 当前身份 |
@@ -120,26 +117,7 @@
 
 ---
 
-## 2. 安装与认证
-
-### GET /api/setup/status
-
-```json
-{ "installed": false }
-```
-
-### POST /api/setup
-
-仅当未安装时可用。成功后自动登录（下发 cookie）。可选字段 `seedSample` 为 `true` 时同步写入示例数据（默认 `false`，见 DATA_MODEL 第 6 节）。
-
-```json
-// 请求
-{ "username": "admin", "password": "至少 8 位", "seedSample": false }
-// 201
-{ "user": { "username": "admin" } }
-```
-
-校验：用户名 1–32 字符；密码 ≥ 8 字符。已安装时返回 `409 already_installed`。
+## 2. 认证
 
 ### POST /api/login
 

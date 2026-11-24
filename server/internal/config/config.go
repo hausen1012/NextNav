@@ -11,6 +11,9 @@ type Config struct {
 	DataDir       string
 	CheckInterval string
 	SecureCookie  bool
+	AdminUsername string
+	AdminPassword string
+	SeedSample    bool
 }
 
 func Load() Config {
@@ -19,6 +22,9 @@ func Load() Config {
 		DataDir:       env("DATA_DIR", "./data"),
 		CheckInterval: env("CHECK_INTERVAL", "1d"),
 		SecureCookie:  envBool("COOKIE_SECURE", false),
+		AdminUsername: env("ADMIN_USERNAME", "admin"),
+		AdminPassword: env("ADMIN_PASSWORD", "admin123"),
+		SeedSample:    envBool("SEED_SAMPLE", false),
 	}
 }
 

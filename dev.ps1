@@ -7,7 +7,8 @@
     .\dev.ps1 build    production-ish: build web, embed, single binary, run
     .\dev.ps1 test     run all tests
 
-    Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), GOTOOLCHAIN.
+    Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), GOTOOLCHAIN,
+    ADMIN_USERNAME, ADMIN_PASSWORD, SEED_SAMPLE.
 
 .EXAMPLE
     .\dev.ps1
@@ -26,10 +27,13 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
-if (-not $env:PORT)     { $env:PORT = '8787' }
-if (-not $env:WEB_PORT) { $env:WEB_PORT = '5173' }
-if (-not $env:DATA_DIR) { $env:DATA_DIR = Join-Path $Root 'data' }
-if (-not $env:GOTOOLCHAIN) { $env:GOTOOLCHAIN = 'local' }
+if (-not $env:PORT)           { $env:PORT = '8787' }
+if (-not $env:WEB_PORT)       { $env:WEB_PORT = '5173' }
+if (-not $env:DATA_DIR)       { $env:DATA_DIR = Join-Path $Root 'data' }
+if (-not $env:GOTOOLCHAIN)    { $env:GOTOOLCHAIN = 'local' }
+if (-not $env:ADMIN_USERNAME) { $env:ADMIN_USERNAME = 'admin' }
+if (-not $env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD = 'admin123' }
+if (-not $env:SEED_SAMPLE)    { $env:SEED_SAMPLE = '1' }
 
 # PowerShell 5.1 writes native stderr as errors; keep going anyway.
 $PSNativeCommandUseErrorActionPreference = $false

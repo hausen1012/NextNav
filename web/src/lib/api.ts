@@ -106,14 +106,6 @@ const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) })
 export const api = {
   me: () => request<MeResponse>('/api/me'),
 
-  setupStatus: () => request<{ installed: boolean }>('/api/setup/status'),
-
-  setup: (username: string, password: string, seedSample = false) =>
-    request<{ user: { username: string } }>('/api/setup', {
-      method: 'POST',
-      ...json({ username, password, seedSample }),
-    }),
-
   login: (username: string, password: string) =>
     request<{ user: { username: string } }>('/api/login', {
       method: 'POST',

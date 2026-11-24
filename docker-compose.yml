@@ -13,6 +13,10 @@ services:
       CHECK_INTERVAL: ${CHECK_INTERVAL:-1d}
       # Set to 1 when served over HTTPS so the session cookie gets the Secure flag.
       COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      # Initial admin credentials and demo data import on first startup
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      SEED_SAMPLE: ${SEED_SAMPLE:-0}
     logging:
       driver: json-file
       options:

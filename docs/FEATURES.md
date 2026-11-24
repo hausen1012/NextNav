@@ -100,7 +100,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 
 | ID | 功能 | 优先级 | 说明与验收 |
 |---|---|---|---|
-| C1 | 首次安装向导 | P0 | 首次访问（无管理员记录时）跳转 `/setup`：页面填写用户名 + 密码（两次输入），提交后建号并自动登录；安装完成后该路由永久关闭（再访问重定向首页）。密码服务端 hash（argon2/bcrypt），会话 cookie 30 天（HttpOnly/Secure/SameSite） |
+| C1 | 环境变量初始化 | P0 | 启动时通过环境变量（`ADMIN_USERNAME`、`ADMIN_PASSWORD`、`SEED_SAMPLE`）自动初始化管理员账号与可选示例数据。密码服务端 hash（argon2/bcrypt），会话 cookie 30 天（HttpOnly/Secure/SameSite） |
 | C2 | 登录 | P0 | 用户名 + 密码登录；连续失败限流（10 次/10 分钟） |
 | C3 | 管理控制台 | P0 | 提供独立管理控制台（`/admin`）：包含概览看板、两级分类管理、链接管理（列表、筛选与编辑）、站点配置、账户安全与运维维护 |
 | C4 | 快速添加 | P0 | 粘贴 URL 录入链接，支持标题、描述、分类归属与自定义排序。键盘 Esc 取消 |

@@ -83,6 +83,21 @@ func sessionCookie(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
 	return nil
 }
 
+func setupAdmin(t *testing.T, api *API, seedSample bool) *http.Cookie {
+	t.Helper()
+	if err := api.Service.InitAdmin("admin", "nextnav123", seedSample); err != nil {
+		t.Fatalf("init admin: %v", err)
+	}
+	h := NewRouter(api)
+	rec := do(t, h, "POST", "/api/login", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login: got %d, body %s", rec.Code, rec.Body)
+	}
+	return sessionCookie(t, rec)
+}
+
 func decode[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 	t.Helper()
 	var v T
@@ -94,35 +109,37 @@ func decode[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 
 // --- tests ---
 
-func TestSetupIsOneShot(t *testing.T) {
-	_, h := newTestAPI(t)
+func TestInitAdminIsOneShot(t *testing.T) {
+	api, _ := newTestAPI(t)
 
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
-	})
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("setup: got %d, body %s", rec.Code, rec.Body)
+	err := api.Service.InitAdmin("admin", "nextnav123", false)
+	if err != nil {
+		t.Fatalf("init admin: %v", err)
 	}
 
-	rec = do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "other", "password": "another123"},
-	})
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("second setup: got %d, want 409", rec.Code)
+	err = api.Service.InitAdmin("other", "another123", false)
+	if err != nil {
+		t.Fatalf("second init admin: %v", err)
+	}
+
+	user, ok := api.Service.Authenticate("admin", "nextnav123")
+	if !ok || user != "admin" {
+		t.Fatalf("original admin credentials should remain valid")
+	}
+	_, ok = api.Service.Authenticate("other", "another123")
+	if ok {
+		t.Fatalf("second credentials should not have taken effect")
 	}
 }
 
-func TestSetupDefaultWithoutSeedSample(t *testing.T) {
-	_, h := newTestAPI(t)
+func TestInitAdminDefaultWithoutSeedSample(t *testing.T) {
+	api, h := newTestAPI(t)
 
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
-	})
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("setup: got %d, body %s", rec.Code, rec.Body)
+	if err := api.Service.InitAdmin("admin", "nextnav123", false); err != nil {
+		t.Fatalf("init admin: %v", err)
 	}
 
-	rec = do(t, h, "GET", "/api/home", reqOpts{})
+	rec := do(t, h, "GET", "/api/home", reqOpts{})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("home: %d", rec.Code)
 	}
@@ -139,21 +156,19 @@ func TestSetupDefaultWithoutSeedSample(t *testing.T) {
 	}
 }
 
-func TestSetupRejectsShortPassword(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "short"},
-	})
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("got %d, want 400", rec.Code)
+func TestInitAdminRejectsShortPassword(t *testing.T) {
+	api, _ := newTestAPI(t)
+	err := api.Service.InitAdmin("admin", "short", false)
+	if err == nil {
+		t.Fatalf("expected error for short password, got nil")
 	}
 }
 
 func TestSeedDataIsPublicAndComplete(t *testing.T) {
-	_, h := newTestAPI(t)
-	do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
+	api, h := newTestAPI(t)
+	if err := api.Service.InitAdmin("admin", "nextnav123", true); err != nil {
+		t.Fatalf("init admin: %v", err)
+	}
 
 	rec := do(t, h, "GET", "/api/home", reqOpts{})
 	if rec.Code != http.StatusOK {
@@ -196,10 +211,10 @@ func TestSeedDataIsPublicAndComplete(t *testing.T) {
 }
 
 func TestGuestCannotWrite(t *testing.T) {
-	_, h := newTestAPI(t)
-	do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
+	api, h := newTestAPI(t)
+	if err := api.Service.InitAdmin("admin", "nextnav123", true); err != nil {
+		t.Fatalf("init admin: %v", err)
+	}
 
 	rec := do(t, h, "POST", "/api/links", reqOpts{
 		body: map[string]any{"categoryId": 2, "title": "X", "url": "https://example.com"},
@@ -211,13 +226,10 @@ func TestGuestCannotWrite(t *testing.T) {
 
 func TestPrivateContentHiddenFromGuests(t *testing.T) {
 	api, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
-	cookie := sessionCookie(t, rec)
+	cookie := setupAdmin(t, api, true)
 
 	// Mark the whole "开发" group private (id 3 from seeding order).
-	rec = do(t, h, "PATCH", "/api/categories/3", reqOpts{
+	rec := do(t, h, "PATCH", "/api/categories/3", reqOpts{
 		cookie: cookie, origin: "http://example.com",
 		body: map[string]any{"isPrivate": true},
 	})
@@ -264,14 +276,11 @@ func TestPrivateContentHiddenFromGuests(t *testing.T) {
 }
 
 func TestPrivateLinkHidesOnlyItself(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
 
 	// Link 1 is Google inside 搜索引擎 (category 2).
-	rec = do(t, h, "PATCH", "/api/links/1", reqOpts{
+	rec := do(t, h, "PATCH", "/api/links/1", reqOpts{
 		cookie: cookie, origin: "http://example.com",
 		body: map[string]any{"isPrivate": true},
 	})
@@ -301,11 +310,8 @@ func TestPrivateLinkHidesOnlyItself(t *testing.T) {
 }
 
 func TestCSRFOnlyAppliesToCookieWrites(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, false)
 
 	t.Run("cross-site cookie write rejected", func(t *testing.T) {
 		rec := do(t, h, "POST", "/api/categories", reqOpts{
@@ -336,14 +342,11 @@ func TestCSRFOnlyAppliesToCookieWrites(t *testing.T) {
 }
 
 func TestDuplicateLinkScopedToCategory(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
 
 	body := map[string]any{"categoryId": 2, "title": "重复站", "url": "https://dup.example.com"}
-	rec = do(t, h, "POST", "/api/links", reqOpts{cookie: cookie, fetchSite: "same-origin", body: body})
+	rec := do(t, h, "POST", "/api/links", reqOpts{cookie: cookie, fetchSite: "same-origin", body: body})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("first create: %d %s", rec.Code, rec.Body)
 	}
@@ -362,12 +365,9 @@ func TestDuplicateLinkScopedToCategory(t *testing.T) {
 
 func TestEditClearsSampleFlag(t *testing.T) {
 	api, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
-	cookie := sessionCookie(t, rec)
+	cookie := setupAdmin(t, api, true)
 
-	rec = do(t, h, "PATCH", "/api/links/1", reqOpts{
+	rec := do(t, h, "PATCH", "/api/links/1", reqOpts{
 		cookie: cookie, fetchSite: "same-origin",
 		body: map[string]any{"title": "我的 Google"},
 	})
@@ -410,13 +410,10 @@ func TestEditClearsSampleFlag(t *testing.T) {
 }
 
 func TestDeleteCategoryRequiresDisposition(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
 
-	rec = do(t, h, "DELETE", "/api/categories/2", reqOpts{cookie: cookie, fetchSite: "same-origin"})
+	rec := do(t, h, "DELETE", "/api/categories/2", reqOpts{cookie: cookie, fetchSite: "same-origin"})
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("no disposition: %d, want 409", rec.Code)
 	}
@@ -429,13 +426,10 @@ func TestDeleteCategoryRequiresDisposition(t *testing.T) {
 }
 
 func TestReorderRejectsPartialList(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]any{"username": "admin", "password": "nextnav123", "seedSample": true},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
 
-	rec = do(t, h, "POST", "/api/links/reorder", reqOpts{
+	rec := do(t, h, "POST", "/api/links/reorder", reqOpts{
 		cookie: cookie, fetchSite: "same-origin",
 		body: map[string]any{"categoryId": 2, "orderedIds": []int{1}},
 	})
@@ -517,14 +511,11 @@ func TestIdentityInContext(t *testing.T) {
 }
 
 func TestCategoryFieldsCRUD(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, false)
 
 	// Create root group with icon, sort, description
-	rec = do(t, h, "POST", "/api/categories", reqOpts{
+	rec := do(t, h, "POST", "/api/categories", reqOpts{
 		cookie: cookie, origin: "http://example.com",
 		body: map[string]any{
 			"name":        "AI 工具",
@@ -593,14 +584,11 @@ func TestCategoryFieldsCRUD(t *testing.T) {
 }
 
 func TestLinkSortCRUD(t *testing.T) {
-	_, h := newTestAPI(t)
-	rec := do(t, h, "POST", "/api/setup", reqOpts{
-		body: map[string]string{"username": "admin", "password": "nextnav123"},
-	})
-	cookie := sessionCookie(t, rec)
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, false)
 
 	// Create root group first
-	rec = do(t, h, "POST", "/api/categories", reqOpts{
+	rec := do(t, h, "POST", "/api/categories", reqOpts{
 		cookie: cookie, origin: "http://example.com",
 		body: map[string]any{"name": "分类1"},
 	})

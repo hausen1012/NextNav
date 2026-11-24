@@ -5,7 +5,8 @@
 #   ./dev.sh build      # production-ish: build web, embed, single binary, run
 #   ./dev.sh test       # run all tests
 #
-# Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), GOTOOLCHAIN.
+# Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), GOTOOLCHAIN,
+#   ADMIN_USERNAME, ADMIN_PASSWORD, SEED_SAMPLE.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,7 +16,10 @@ PORT="${PORT:-8787}"
 WEB_PORT="${WEB_PORT:-5173}"
 DATA_DIR="${DATA_DIR:-$root/data}"
 GOTOOLCHAIN="${GOTOOLCHAIN:-local}"
-export PORT DATA_DIR GOTOOLCHAIN WEB_PORT
+ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
+SEED_SAMPLE="${SEED_SAMPLE:-1}"
+export PORT DATA_DIR GOTOOLCHAIN WEB_PORT ADMIN_USERNAME ADMIN_PASSWORD SEED_SAMPLE
 
 mode="${1:-dev}"
 

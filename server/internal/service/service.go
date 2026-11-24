@@ -10,7 +10,6 @@ var (
 	ErrDuplicateLink        = errors.New("duplicate link in category")
 	ErrInvalidParent        = errors.New("invalid parent category")
 	ErrBadCredentials       = errors.New("bad credentials")
-	ErrAlreadyInstalled     = errors.New("already installed")
 	ErrLinkExistsInCategory = errors.New("links exist in category")
 	ErrInvalidReorder       = errors.New("invalid reorder list")
 	ErrSubcategoriesExist   = errors.New("subcategories exist")

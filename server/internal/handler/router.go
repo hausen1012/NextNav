@@ -13,8 +13,6 @@ func NewRouter(a *API) http.Handler {
 
 	// --- public / auth ---
 	mux.HandleFunc("GET /api/health", a.Health)
-	mux.HandleFunc("GET /api/setup/status", a.SetupStatus)
-	mux.HandleFunc("POST /api/setup", a.Setup)
 	mux.HandleFunc("POST /api/login", a.Login)
 	mux.HandleFunc("POST /api/logout", a.Logout)
 	mux.HandleFunc("GET /api/me", a.Me)
