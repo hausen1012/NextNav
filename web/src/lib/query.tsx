@@ -23,12 +23,23 @@ export function useMe() {
 }
 
 export function useHome() {
-  return useQuery({ queryKey: ['home'], queryFn: api.home })
+  return useQuery({ queryKey: ['home'], queryFn: api.home, staleTime: 60 * 60 * 1000 })
+}
+
+export async function clearHomeCache() {
+  if (typeof caches !== 'undefined') {
+    try {
+      await caches.delete('api-home-cache')
+    } catch {
+      // 忽略不支持的环境
+    }
+  }
 }
 
 export function useInvalidateHome() {
   const qc = useQueryClient()
   return () => {
+    void clearHomeCache()
     void qc.invalidateQueries({ queryKey: ['home'] })
     void qc.invalidateQueries({ queryKey: ['me'] })
   }

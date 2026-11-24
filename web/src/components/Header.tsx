@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@/lib/api'
-import { useMe } from '@/lib/query'
+import { useMe, clearHomeCache } from '@/lib/query'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, LayoutDashboard, LogOut } from 'lucide-react'
@@ -47,6 +47,7 @@ export function Header({ siteName }: { siteName: string }) {
               size='sm'
               onClick={async () => {
                 await api.logout()
+                await clearHomeCache()
                 window.location.href = '/'
               }}
               title='退出登录'

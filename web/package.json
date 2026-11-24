@@ -29,7 +29,8 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.28.0",
-    "tailwind-merge": "2.6.0"
+    "tailwind-merge": "2.6.0",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.11",
@@ -39,6 +40,7 @@
     "tailwindcss": "4.1.11",
     "typescript": "5.7.2",
     "vite": "5.4.11",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "2.1.8"
   }
 }

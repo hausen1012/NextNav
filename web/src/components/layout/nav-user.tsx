@@ -20,6 +20,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { api, type MeResponse } from '@/lib/api'
+import { clearHomeCache } from '@/lib/query'
 
 interface NavUserProps {
   me?: MeResponse
@@ -85,6 +86,7 @@ export function NavUser({ me }: NavUserProps) {
               className='cursor-pointer text-destructive focus:text-destructive'
               onClick={async () => {
                 await api.logout()
+                await clearHomeCache()
                 window.location.href = '/'
               }}
             >

@@ -31,6 +31,9 @@ func newSPAHandler(spaFS fs.FS) http.Handler {
 		}
 		if f, err := spaFS.Open(clean); err == nil {
 			_ = f.Close()
+			if clean == "sw.js" || clean == "registerSW.js" || clean == "manifest.webmanifest" {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			fileServer.ServeHTTP(w, r)
 			return
 		}

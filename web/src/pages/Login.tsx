@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
+import { clearHomeCache } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,6 +22,7 @@ export function LoginPage() {
     setBusy(true)
     try {
       await api.login(username.trim(), password)
+      await clearHomeCache()
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['me'] }),
         qc.invalidateQueries({ queryKey: ['home'] }),
