@@ -49,12 +49,12 @@ export function AdminSystemMaintenancePage() {
             <span>示例数据清理</span>
           </CardTitle>
           <CardDescription>
-            安装后系统预置了一批示例分类与书签，当你录入完个人数据后可一键清理它们。
+            安装后系统预置了一批示例分类与链接，当你录入完个人数据后可一键清理它们。
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           <p className='text-sm text-muted-foreground'>
-            注意：仅删除带有 sample 标记的预置书签与分类，您自行手动添加或修改过的项不会受到影响。
+            注意：仅删除带有 sample 标记的预置链接与分类，您自行手动添加或修改过的项不会受到影响。
           </p>
           <Button variant='destructive' onClick={clearSample} disabled={clearing}>
             {clearing ? '正在清理...' : '一键清除所有示例数据'}

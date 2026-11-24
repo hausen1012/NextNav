@@ -79,7 +79,7 @@ export function AdminSiteSettingsPage() {
                 id='site-desc'
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder='例如：我的个人常用书签站'
+                placeholder='例如：我的个人常用导航站'
               />
             </Field>
 
@@ -114,7 +114,7 @@ export function AdminSiteSettingsPage() {
                 className='size-4 rounded border-input text-primary focus:ring-ring'
               />
               <label htmlFor='site-open-tab' className='text-sm text-foreground select-none cursor-pointer'>
-                点击书签默认在新标签页打开（推荐开启）
+                点击链接默认在新标签页打开（推荐开启）
               </label>
             </div>
 

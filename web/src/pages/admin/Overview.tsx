@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Bookmark,
+  Link2,
   FolderTree,
   AlertTriangle,
   Activity,
@@ -9,6 +9,7 @@ import {
   ExternalLink,
   ArrowUpRight,
   Sparkles,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { useHome, useInvalidateHome } from '@/lib/query'
 import { api, type LinkDTO } from '@/lib/api'
@@ -94,7 +95,7 @@ export function AdminOverviewPage() {
       setUrl('')
       setDescription('')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '创建书签失败')
+      setError(err instanceof Error ? err.message : '创建链接失败')
     } finally {
       setIsSubmitting(false)
     }
@@ -137,7 +138,7 @@ export function AdminOverviewPage() {
             }}
           >
             <Plus className='size-4' />
-            <span>新建书签</span>
+            <span>新建链接</span>
           </Button>
           <Button
             size='sm'
@@ -154,8 +155,8 @@ export function AdminOverviewPage() {
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
         <Card className='shadow-xs'>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
-            <CardTitle className='text-sm font-medium text-muted-foreground'>书签总数</CardTitle>
-            <Bookmark className='size-4 text-muted-foreground' />
+            <CardTitle className='text-sm font-medium text-muted-foreground'>链接总数</CardTitle>
+            <Link2 className='size-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{isLoading ? '...' : allLinks.length}</div>
@@ -167,13 +168,13 @@ export function AdminOverviewPage() {
 
         <Card className='shadow-xs'>
           <CardHeader className='flex flex-row items-center justify-between pb-2'>
-            <CardTitle className='text-sm font-medium text-muted-foreground'>分类分组</CardTitle>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>分类总数</CardTitle>
             <FolderTree className='size-4 text-muted-foreground' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{isLoading ? '...' : allCategories.length}</div>
             <p className='text-xs text-muted-foreground mt-1'>
-              主分组 {home?.groups?.length ?? 0} 个
+              一级分类 {home?.groups?.length ?? 0} 个
             </p>
           </CardContent>
         </Card>
@@ -214,7 +215,7 @@ export function AdminOverviewPage() {
         <Card className='md:col-span-4 shadow-xs'>
           <CardHeader className='flex flex-row items-center justify-between pb-3'>
             <div>
-              <CardTitle className='text-base'>最近书签</CardTitle>
+              <CardTitle className='text-base'>最近链接</CardTitle>
               <CardDescription>当前站点收录的最新链接列表</CardDescription>
             </div>
             <Button variant='ghost' size='sm' className='gap-1 text-xs' asChild>
@@ -228,7 +229,7 @@ export function AdminOverviewPage() {
             <div className='space-y-3'>
               {allLinks.length === 0 ? (
                 <div className='py-8 text-center text-sm text-muted-foreground'>
-                  暂无书签，点击右上角快速添加
+                  暂无链接，点击右上角快速添加
                 </div>
               ) : (
                 allLinks.slice(0, 6).map((link) => (
@@ -289,7 +290,7 @@ export function AdminOverviewPage() {
                 </div>
                 <div>
                   <div className='text-sm font-medium'>分类架构管理</div>
-                  <div className='text-xs text-muted-foreground'>调整分组树、层级与排序</div>
+                  <div className='text-xs text-muted-foreground'>调整分类层级与排序</div>
                 </div>
               </div>
               <ArrowUpRight className='size-4 text-muted-foreground' />
@@ -301,7 +302,7 @@ export function AdminOverviewPage() {
             >
               <div className='flex items-center gap-3'>
                 <div className='p-2 rounded-md bg-primary/10 text-primary'>
-                  <Bookmark className='size-4' />
+                  <SlidersHorizontal className='size-4' />
                 </div>
                 <div>
                   <div className='text-sm font-medium'>站点基础设置</div>
@@ -334,12 +335,12 @@ export function AdminOverviewPage() {
       <Dialog open={addLinkOpen} onOpenChange={setAddLinkOpen}>
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
-            <DialogTitle>新建书签</DialogTitle>
-            <DialogDescription>快速向指定分类中添加新书签导航。</DialogDescription>
+            <DialogTitle>新建链接</DialogTitle>
+            <DialogDescription>快速向指定分类中添加新链接。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateLink} className='space-y-4 pt-2'>
             {error && <p className='text-xs text-destructive'>{error}</p>}
-            <Field label='书签名称' htmlFor='link-title'>
+            <Field label='链接名称' htmlFor='link-title'>
               <Input
                 id='link-title'
                 value={title}
@@ -397,7 +398,7 @@ export function AdminOverviewPage() {
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>新建分类</DialogTitle>
-            <DialogDescription>创建新的主分类分组。</DialogDescription>
+            <DialogDescription>创建新的一级分类。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateCategory} className='space-y-4 pt-2'>
             {catError && <p className='text-xs text-destructive'>{catError}</p>}

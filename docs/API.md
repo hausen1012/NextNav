@@ -33,7 +33,7 @@
 
 - `is_private = 1` 的链接：不出现
 - `is_private = 1` 的分类：**整个分类及其所有子分类、其下所有链接都不出现**（无论链接自身标记）
-- 计数、`total`、分组标题同样按过滤后的结果计算
+- 计数、`total`、分类标题同样按过滤后的结果计算
 
 ### 0.4 错误格式
 
@@ -77,7 +77,7 @@
 | POST | `/api/login` | 公开 | 登录 |
 | POST | `/api/logout` | 公开 | 注销 |
 | GET | `/api/me` | 任意 | 当前身份 |
-| GET | `/api/home` | 任意 | 首页数据（站点信息 + 分组树 + 链接） |
+| GET | `/api/home` | 任意 | 首页数据（站点信息 + 分类树 + 链接） |
 | GET | `/api/links` | 任意 | 列表 / 搜索 |
 | GET | `/api/links/{id}` | 任意 | 详情 |
 | POST | `/api/links` | 管理员 | 新增 |
@@ -161,7 +161,7 @@
 
 ### GET /api/home
 
-一次请求拿全首页数据，**不要在客户端为每个分组各发一次请求**。
+一次请求拿全首页数据，**不要在客户端为每个分类各发一次请求**。
 
 ```json
 {
@@ -195,7 +195,7 @@
 }
 ```
 
-- `groups[].links` 是一级分组直接挂的链接；`categories[].links` 是子分类下的链接。
+- `groups[].links` 是一级分类直接挂的链接；`categories[].links` 是子分类下的链接。
 - `status` 取值 `ok | warn | dead | unknown`，`unknown` = 从未检测。
 - 游客请求中，私有分类整块不出现；私有链接不出现在任何 `links` 数组里。
 - 前端用 TanStack Query 缓存此响应，写操作后 `invalidateQueries(['home'])`。
@@ -208,7 +208,7 @@
 |---|---|
 | `q` | 搜索词，走 `search_text` 粗筛 + 服务端精排（见 DATA_MODEL 第 3 节） |
 | `categoryId` | 限定分类 |
-| `parentId` | 限定某个分组（含其下所有分类的链接） |
+| `parentId` | 限定某个一级分类（含其下所有子分类的链接） |
 | `status` | `ok` / `warn` / `dead` / `unknown`，用于失效清单 |
 | `sort` | `manual`（默认，按 sort）或 `clicks` |
 | `page` / `pageSize` | 分页 |
@@ -379,7 +379,7 @@
 | `?links=move&moveToCategoryId=4` | 链接移到目标分类，再删分类 |
 | 不传 | 分类下（含子分类）有链接时返回 `409 link_exists_in_category`，前端应据此弹出选择框 |
 
-删除一级分组时，其子分类随之删除（同样按上述规则处理这些分类下的链接）。
+删除一级分类时，其子分类随之删除（同样按上述规则处理这些分类下的链接）。
 
 ---
 

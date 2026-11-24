@@ -41,7 +41,7 @@ interface AdminHeaderProps {
 const routeTitleMap: Record<string, string> = {
   '/admin': '概览看板',
   '/admin/categories': '分类管理',
-  '/admin/links': '书签管理',
+  '/admin/links': '链接管理',
   '/admin/settings': '站点设置',
   '/admin/account': '账户安全',
   '/admin/system': '运维维护',

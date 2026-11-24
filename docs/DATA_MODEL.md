@@ -81,11 +81,11 @@ CREATE TABLE api_token (
 
 ### 1.4 category
 
-两级结构：`parent_id IS NULL` 为一级分组，非空为组内分类。**服务端必须保证**：
+两级结构：`parent_id IS NULL` 为一级分类，非空为二级子分类。**服务端必须保证**：
 
 - 父级自身必须是 `parent_id IS NULL`（不支持三级）
 - 不能把分类设成自己的父级
-- 一级分组**允许直接挂链接**（首页把它当作一个有链接的区块）
+- 一级分类**允许直接挂链接**（首页把它当作一个有链接的区块）
 
 ```sql
 CREATE TABLE category (

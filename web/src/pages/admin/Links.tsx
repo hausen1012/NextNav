@@ -249,28 +249,28 @@ export function AdminLinksPage() {
       <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <div className='flex items-center gap-2'>
-            <h1 className='text-xl font-bold tracking-tight'>书签管理</h1>
+            <h1 className='text-xl font-bold tracking-tight'>链接管理</h1>
             <Badge variant='secondary' className='rounded-full px-2 py-0.5 text-xs font-normal'>
-              {flatLinks.length} 个书签
+              {flatLinks.length} 个链接
             </Badge>
           </div>
           <p className='text-xs text-muted-foreground mt-0.5'>
-            管理站点收录的全部书签导航、网址与健康状态
+            管理站点收录的全部网站链接、网址与健康状态
           </p>
         </div>
         <Button size='sm' className='gap-1.5' onClick={openCreate}>
           <Plus className='size-4' />
-          <span>添加书签</span>
+          <span>添加链接</span>
         </Button>
       </div>
 
-      {/* Clean Toolbar tailored for Bookmarks */}
+      {/* Clean Toolbar tailored for Links */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5'>
         <div className='flex flex-1 flex-wrap items-center gap-2'>
           <div className='relative w-full sm:w-64'>
             <Search className='absolute left-2.5 top-2.5 size-3.5 text-muted-foreground' />
             <Input
-              placeholder='搜索书签名称或网址...'
+              placeholder='搜索链接名称或网址...'
               value={keyword}
               onChange={(e) => {
                 setKeyword(e.target.value)
@@ -308,7 +308,7 @@ export function AdminLinksPage() {
             <option value='ok'>🟢 正常响应</option>
             <option value='warn'>🟡 响应较慢</option>
             <option value='dead'>🔴 链接失效</option>
-            <option value='private'>🔒 仅私有书签</option>
+            <option value='private'>🔒 仅私有链接</option>
           </select>
 
           {hasFilter && (
@@ -336,7 +336,7 @@ export function AdminLinksPage() {
                   onClick={() => handleSort('title')}
                 >
                   <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                    书签名称 {sortField === 'title' && (sortAsc ? '↑' : '↓')}
+                    链接名称 {sortField === 'title' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
                 <TableHead>网址 (URL)</TableHead>
@@ -371,13 +371,13 @@ export function AdminLinksPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className='h-28 text-center text-xs text-muted-foreground'>
-                    正在加载书签...
+                    正在加载链接...
                   </TableCell>
                 </TableRow>
               ) : paginatedLinks.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className='h-28 text-center text-xs text-muted-foreground'>
-                    {hasFilter ? '未找到符合条件的书签' : '暂无书签，点击右上角添加'}
+                    {hasFilter ? '未找到符合条件的链接' : '暂无链接，点击右上角添加'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -473,7 +473,7 @@ export function AdminLinksPage() {
                           size='icon'
                           className='size-7'
                           onClick={() => openEdit(link)}
-                          title='编辑书签'
+                          title='编辑链接'
                         >
                           <Edit2 className='size-3.5' />
                         </Button>
@@ -482,7 +482,7 @@ export function AdminLinksPage() {
                           size='icon'
                           className='size-7 text-destructive hover:text-destructive'
                           onClick={() => setDeleteItem(link)}
-                          title='删除书签'
+                          title='删除链接'
                         >
                           <Trash2 className='size-3.5' />
                         </Button>
@@ -514,14 +514,14 @@ export function AdminLinksPage() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
-            <DialogTitle>{editingId ? '编辑书签' : '新建书签'}</DialogTitle>
+            <DialogTitle>{editingId ? '编辑链接' : '新建链接'}</DialogTitle>
             <DialogDescription>
-              {editingId ? '修改书签详细配置与归属分类。' : '录入新书签信息并保存。'}
+              {editingId ? '修改链接详细配置与归属分类。' : '录入新链接信息并保存。'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className='space-y-4 pt-2'>
             {error && <p className='text-xs text-destructive'>{error}</p>}
-            <Field label='书签名称' htmlFor='modal-link-title'>
+            <Field label='链接名称' htmlFor='modal-link-title'>
               <Input
                 id='modal-link-title'
                 value={title}
@@ -580,7 +580,7 @@ export function AdminLinksPage() {
                 className='size-4 rounded border-input text-primary focus:ring-ring'
               />
               <label htmlFor='modal-link-private' className='text-sm text-foreground select-none cursor-pointer'>
-                设为私有书签（仅管理员可见）
+                设为私有链接（仅管理员可见）
               </label>
             </div>
             <DialogFooter className='pt-2'>
@@ -599,9 +599,9 @@ export function AdminLinksPage() {
       <Dialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
         <DialogContent className='sm:max-w-md'>
           <DialogHeader>
-            <DialogTitle className='text-destructive'>删除书签</DialogTitle>
+            <DialogTitle className='text-destructive'>删除链接</DialogTitle>
             <DialogDescription>
-              确定要删除书签 <strong className='text-foreground'>{deleteItem?.title}</strong> 吗？
+              确定要删除链接 <strong className='text-foreground'>{deleteItem?.title}</strong> 吗？
               此操作不可撤销。
             </DialogDescription>
           </DialogHeader>

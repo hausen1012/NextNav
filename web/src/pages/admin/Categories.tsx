@@ -299,7 +299,7 @@ export function AdminCategoriesPage() {
           <div className='relative w-full sm:w-64'>
             <Search className='absolute left-2.5 top-2.5 size-3.5 text-muted-foreground' />
             <Input
-              placeholder='搜索分类名、所属分组或描述...'
+              placeholder='搜索分类名、上级分类或描述...'
               value={keyword}
               onChange={(e) => {
                 setKeyword(e.target.value)
@@ -386,7 +386,7 @@ export function AdminCategoriesPage() {
                   onClick={() => handleSort('links')}
                 >
                   <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                    书签数 {sortField === 'links' && (sortAsc ? '↑' : '↓')}
+                    链接数 {sortField === 'links' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
                 <TableHead className='w-24'>可见权限</TableHead>
@@ -475,7 +475,7 @@ export function AdminCategoriesPage() {
                             size='sm'
                             className='h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground'
                             onClick={() => openCreate(cat.id)}
-                            title='在此分组下添加子分类'
+                            title='在此分类下添加子分类'
                           >
                             <Plus className='size-3' />
                             <span className='hidden sm:inline'>子分类</span>
@@ -768,13 +768,13 @@ export function AdminCategoriesPage() {
             <DialogTitle className='text-destructive'>删除分类</DialogTitle>
             <DialogDescription>
               确定要删除分类 <strong className='text-foreground'>{deleteItem?.name}</strong> 吗？
-              涉及 {deleteItem?.linkCount} 个书签。
+              涉及 {deleteItem?.linkCount} 个链接。
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleDelete} className='space-y-4 pt-2'>
             {error && <p className='text-xs text-destructive'>{error}</p>}
             <div className='space-y-2 text-sm'>
-              <p className='font-medium text-foreground'>该分类下的书签如何处理？</p>
+              <p className='font-medium text-foreground'>该分类下的链接如何处理？</p>
               <div className='flex items-center gap-2'>
                 <input
                   type='radio'
@@ -784,7 +784,7 @@ export function AdminCategoriesPage() {
                   onChange={() => setDeleteMode('delete')}
                 />
                 <label htmlFor='del-casc' className='cursor-pointer text-xs'>
-                  一并删除该分类下的所有书签
+                  一并删除该分类下的所有链接
                 </label>
               </div>
               <div className='flex items-center gap-2'>
@@ -796,7 +796,7 @@ export function AdminCategoriesPage() {
                   onChange={() => setDeleteMode('move')}
                 />
                 <label htmlFor='del-mv' className='cursor-pointer text-xs'>
-                  迁移书签至其他分类
+                  迁移链接至其他分类
                 </label>
               </div>
             </div>

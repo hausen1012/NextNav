@@ -2,7 +2,7 @@ import { NavLink, Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderTree,
-  Bookmark,
+  Link2,
   SlidersHorizontal,
   ShieldCheck,
   Wrench,
@@ -25,7 +25,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { title: '概览看板', href: '/admin', icon: LayoutDashboard },
   { title: '分类管理', href: '/admin/categories', icon: FolderTree },
-  { title: '书签管理', href: '/admin/links', icon: Bookmark },
+  { title: '链接管理', href: '/admin/links', icon: Link2 },
 ]
 
 const settingsNavItems: NavItem[] = [

@@ -74,7 +74,7 @@ function Section({ category, links, newTab }: { category: CategoryDTO; links: Li
   )
 }
 
-function GroupBlock({ group, newTab }: { group: GroupDTO; newTab: boolean }) {
+function CategoryBlock({ group, newTab }: { group: GroupDTO; newTab: boolean }) {
   const hasContent = group.links.length > 0 || group.categories.length > 0
   if (!hasContent) return null
 
@@ -145,13 +145,13 @@ export function HomePage() {
 
       {isEmpty ? (
         <div className='rounded-lg border border-dashed p-10 text-center'>
-          <p className='text-sm text-muted-foreground'>还没有任何收藏。</p>
+          <p className='text-sm text-muted-foreground'>还没有任何链接。</p>
           <Link to='/settings' className='mt-3 inline-block text-sm text-primary hover:underline'>
             前往设置开始添加
           </Link>
         </div>
       ) : (
-        data.groups.map((g) => <GroupBlock key={g.id} group={g} newTab={data.site.openInNewTab} />)
+        data.groups.map((g) => <CategoryBlock key={g.id} group={g} newTab={data.site.openInNewTab} />)
       )}
     </div>
   )
