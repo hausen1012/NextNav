@@ -12,7 +12,7 @@ import (
 func (s *Store) ListCategories() ([]Category, error) {
 	rows, err := s.DB.Query(
 		`SELECT id, name, icon_path, parent_id, sort, is_private, is_sample, description, created_at, updated_at
-		 FROM category ORDER BY parent_id IS NOT NULL, sort, id`)
+		 FROM category ORDER BY parent_id IS NOT NULL, sort ASC, created_at ASC, id ASC`)
 	if err != nil {
 		return nil, err
 	}

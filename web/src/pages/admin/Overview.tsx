@@ -38,7 +38,7 @@ export function AdminOverviewPage() {
   const [url, setUrl] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
   const [description, setDescription] = useState('')
-  const [sortWeight, setSortWeight] = useState('')
+  const [sortWeight, setSortWeight] = useState('10')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -97,7 +97,7 @@ export function AdminOverviewPage() {
       setTitle('')
       setUrl('')
       setDescription('')
-      setSortWeight('')
+      setSortWeight('10')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '创建链接失败')
     } finally {
@@ -385,13 +385,13 @@ export function AdminOverviewPage() {
                 placeholder='简要功能介绍'
               />
             </Field>
-            <Field label='权重 / 排序' htmlFor='link-sort'>
+            <Field label='排序' htmlFor='link-sort'>
               <Input
                 id='link-sort'
                 type='number'
                 value={sortWeight}
                 onChange={(e) => setSortWeight(e.target.value)}
-                placeholder='数值越小越靠前，留空自动分配'
+                placeholder='数字越小越靠前，默认 10'
               />
             </Field>
             <DialogFooter className='pt-2'>

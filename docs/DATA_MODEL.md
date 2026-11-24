@@ -93,7 +93,7 @@ CREATE TABLE category (
   name        TEXT    NOT NULL,
   icon_path   TEXT,                                  -- 图标：相对 data/ 的路径、外部 URL、emoji 或图标名，可空
   parent_id   INTEGER REFERENCES category(id) ON DELETE CASCADE,
-  sort        INTEGER NOT NULL DEFAULT 0,            -- 权重/排序值，数字越小越靠前
+  sort        INTEGER NOT NULL DEFAULT 10,           -- 排序值，数字越小越靠前，相同按添加时间先后排序
   is_private  INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
   description TEXT,                                  -- 分类描述，可空
   is_sample   INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
@@ -117,7 +117,7 @@ CREATE TABLE link (
   description     TEXT,
   icon_path       TEXT,
   icon_source     TEXT CHECK (icon_source IN ('upload','fetched','placeholder')),
-  sort            INTEGER NOT NULL DEFAULT 0,
+  sort            INTEGER NOT NULL DEFAULT 10,
   is_private      INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
   is_sample       INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
   click_count     INTEGER NOT NULL DEFAULT 0,
@@ -182,7 +182,7 @@ CREATE INDEX idx_check_link_time ON link_check(link_id, checked_at DESC);
 ## 2. 排序（sort）
 
 - 同一作用域内排序：分类的兄弟节点共享 `parent_id`，链接共享 `category_id`。
-- 新增时 `sort` 取该作用域 `MAX(sort) + 1000`。
+- 新增分类与链接时未显式指定 `sort` 则默认为 `10`。排序字段相同时按添加时间先后（`created_at ASC, id ASC`）排序。
 - 拖拽结束后，前端提交**该作用域完整的有序 id 数组**，服务端在一个事务里按序重写为 `1000, 2000, 3000...`。
 - 不做「中间插入取平均」的间隙算法——作用域内元素数量是几十到几百，整体重写更简单且不会累积浮点误差。
 

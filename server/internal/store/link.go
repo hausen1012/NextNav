@@ -16,7 +16,7 @@ func (s *Store) ListLinks(admin bool) ([]Link, error) {
 	if !admin {
 		q += ` WHERE is_private = 0`
 	}
-	q += ` ORDER BY sort, id`
+	q += ` ORDER BY sort ASC, created_at ASC, id ASC`
 
 	rows, err := s.DB.Query(q)
 	if err != nil {

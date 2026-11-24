@@ -111,3 +111,75 @@ func TestLinkBusinessRules(t *testing.T) {
 		t.Fatalf("expected ErrInvalidReorder, got %v", err)
 	}
 }
+
+func TestDefaultSortAndOrder(t *testing.T) {
+	svc, st := newTestService(t)
+
+	// 1. 验证分类默认排序为 10
+	catID1, err := svc.CreateCategory(service.CreateCategoryInput{Name: "分类1"})
+	if err != nil {
+		t.Fatalf("create category 1: %v", err)
+	}
+	cat1, err := st.GetCategory(catID1)
+	if err != nil {
+		t.Fatalf("get category 1: %v", err)
+	}
+	if cat1.Sort != 10 {
+		t.Errorf("expected cat1 sort 10, got %d", cat1.Sort)
+	}
+
+	catID2, err := svc.CreateCategory(service.CreateCategoryInput{Name: "分类2"})
+	if err != nil {
+		t.Fatalf("create category 2: %v", err)
+	}
+	cat2, err := st.GetCategory(catID2)
+	if err != nil {
+		t.Fatalf("get category 2: %v", err)
+	}
+	if cat2.Sort != 10 {
+		t.Errorf("expected cat2 sort 10, got %d", cat2.Sort)
+	}
+
+	// 验证同排序下分类按添加先后顺序排布
+	cats, err := st.ListCategories()
+	if err != nil {
+		t.Fatalf("list categories: %v", err)
+	}
+	if len(cats) < 2 || cats[0].ID != catID1 || cats[1].ID != catID2 {
+		t.Errorf("expected category order [cat1, cat2], got %#v", cats)
+	}
+
+	// 2. 验证链接默认排序为 10
+	link1, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID1,
+		Title:      "站点1",
+		URL:        "https://example.com/1",
+	})
+	if err != nil {
+		t.Fatalf("create link 1: %v", err)
+	}
+	if link1.Sort != 10 {
+		t.Errorf("expected link1 sort 10, got %d", link1.Sort)
+	}
+
+	link2, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID1,
+		Title:      "站点2",
+		URL:        "https://example.com/2",
+	})
+	if err != nil {
+		t.Fatalf("create link 2: %v", err)
+	}
+	if link2.Sort != 10 {
+		t.Errorf("expected link2 sort 10, got %d", link2.Sort)
+	}
+
+	// 验证同排序下链接按添加先后顺序排布
+	links, err := st.ListLinks(true)
+	if err != nil {
+		t.Fatalf("list links: %v", err)
+	}
+	if len(links) < 2 || links[0].ID != link1.ID || links[1].ID != link2.ID {
+		t.Errorf("expected link order [link1, link2], got %#v", links)
+	}
+}

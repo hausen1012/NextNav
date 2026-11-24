@@ -70,7 +70,7 @@ export function AdminCategoriesPage() {
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('')
   const [parentId, setParentId] = useState<number | undefined>(undefined)
-  const [sortWeight, setSortWeight] = useState<string>('')
+  const [sortWeight, setSortWeight] = useState<string>('10')
   const [description, setDescription] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -217,7 +217,8 @@ export function AdminCategoriesPage() {
         const sortedChildren = [...matchedChildren].sort((a, b) => {
           if (sortField === 'name') return (sortAsc ? 1 : -1) * a.name.localeCompare(b.name, 'zh')
           if (sortField === 'links') return (sortAsc ? 1 : -1) * ((a.links?.length ?? 0) - (b.links?.length ?? 0))
-          return (sortAsc ? 1 : -1) * (a.sort - b.sort)
+          const diff = a.sort - b.sort
+          return diff !== 0 ? (sortAsc ? 1 : -1) * diff : (sortAsc ? 1 : -1) * (a.id - b.id)
         })
 
         return {
@@ -231,7 +232,8 @@ export function AdminCategoriesPage() {
     return filtered.sort((a, b) => {
       if (sortField === 'name') return (sortAsc ? 1 : -1) * a.name.localeCompare(b.name, 'zh')
       if (sortField === 'links') return (sortAsc ? 1 : -1) * ((a.links?.length ?? 0) - (b.links?.length ?? 0))
-      return (sortAsc ? 1 : -1) * (a.sort - b.sort)
+      const diff = a.sort - b.sort
+      return diff !== 0 ? (sortAsc ? 1 : -1) * diff : (sortAsc ? 1 : -1) * (a.id - b.id)
     })
   }, [groups, keyword, selectedPrivacy, sortField, sortAsc])
 
@@ -255,7 +257,7 @@ export function AdminCategoriesPage() {
     setName('')
     setIcon('')
     setParentId(defaultParentId)
-    setSortWeight('')
+    setSortWeight('10')
     setDescription('')
     setIsPrivate(false)
     setError(null)
@@ -424,7 +426,7 @@ export function AdminCategoriesPage() {
                   onClick={() => handleSort('sort')}
                 >
                   <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                    权重 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
+                    排序 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
                 <TableHead
@@ -720,13 +722,13 @@ export function AdminCategoriesPage() {
                 />
               </Field>
 
-              <Field label='权重 / 排序' htmlFor='cat-sort-input'>
+              <Field label='排序' htmlFor='cat-sort-input'>
                 <Input
                   id='cat-sort-input'
                   type='number'
                   value={sortWeight}
                   onChange={(e) => setSortWeight(e.target.value)}
-                  placeholder='数值越小越靠前'
+                  placeholder='数字越小越靠前，默认 10'
                 />
               </Field>
             </div>
@@ -816,7 +818,7 @@ export function AdminCategoriesPage() {
         <DialogContent className='sm:max-w-lg'>
           <DialogHeader>
             <DialogTitle>编辑分类</DialogTitle>
-            <DialogDescription>修改分类图标、名称、父级归属、权重与描述。</DialogDescription>
+            <DialogDescription>修改分类图标、名称、父级归属、排序与描述。</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className='space-y-4 pt-1'>
             {error && <p className='text-xs text-destructive'>{error}</p>}
@@ -832,13 +834,13 @@ export function AdminCategoriesPage() {
                 />
               </Field>
 
-              <Field label='权重 / 排序' htmlFor='edit-cat-sort'>
+              <Field label='排序' htmlFor='edit-cat-sort'>
                 <Input
                   id='edit-cat-sort'
                   type='number'
                   value={editSortWeight}
                   onChange={(e) => setEditSortWeight(e.target.value)}
-                  placeholder='数值越小越靠前'
+                  placeholder='数字越小越靠前，默认 10'
                 />
               </Field>
             </div>

@@ -71,7 +71,7 @@ export function AdminLinksPage() {
   const [categoryId, setCategoryId] = useState<number>(0)
   const [description, setDescription] = useState('')
   const [backupUrl, setBackupUrl] = useState('')
-  const [sortWeight, setSortWeight] = useState<string>('')
+  const [sortWeight, setSortWeight] = useState<string>('10')
   const [isPrivate, setIsPrivate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -125,7 +125,12 @@ export function AdminLinksPage() {
       let cmp = 0
       if (sortField === 'title') cmp = a.title.localeCompare(b.title, 'zh')
       else if (sortField === 'category') cmp = a.categoryName.localeCompare(b.categoryName, 'zh')
-      else if (sortField === 'sort') cmp = (a.sort ?? 0) - (b.sort ?? 0)
+      else if (sortField === 'sort') {
+        cmp = (a.sort ?? 0) - (b.sort ?? 0)
+        if (cmp === 0) {
+          cmp = a.id - b.id
+        }
+      }
       else if (sortField === 'status') cmp = a.status.localeCompare(b.status)
       return sortAsc ? cmp : -cmp
     })
@@ -170,7 +175,7 @@ export function AdminLinksPage() {
     setCategoryId(flatCategories[0]?.id ?? 0)
     setDescription('')
     setBackupUrl('')
-    setSortWeight('')
+    setSortWeight('10')
     setIsPrivate(false)
     setError(null)
     setModalOpen(true)
@@ -363,7 +368,7 @@ export function AdminLinksPage() {
                   onClick={() => handleSort('sort')}
                 >
                   <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                    权重 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
+                    排序 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
                 <TableHead className='text-right w-24'>操作</TableHead>
@@ -573,13 +578,13 @@ export function AdminLinksPage() {
                 placeholder='备用镜像或备选站点'
               />
             </Field>
-            <Field label='权重 / 排序' htmlFor='modal-link-sort'>
+            <Field label='排序' htmlFor='modal-link-sort'>
               <Input
                 id='modal-link-sort'
                 type='number'
                 value={sortWeight}
                 onChange={(e) => setSortWeight(e.target.value)}
-                placeholder='数值越小越靠前，留空自动分配'
+                placeholder='数字越小越靠前，默认 10'
               />
             </Field>
             <div className='flex items-center gap-2 pt-1'>

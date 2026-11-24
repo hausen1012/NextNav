@@ -56,15 +56,9 @@ func (s *Service) CreateLink(input CreateLinkInput) (*LinkDTO, error) {
 		return nil, ErrDuplicateLink
 	}
 
-	var sortVal int64
+	var sortVal int64 = 10
 	if input.Sort != nil {
 		sortVal = *input.Sort
-	} else {
-		maxSort, err := s.store.GetLinkMaxSort(input.CategoryID)
-		if err != nil {
-			return nil, err
-		}
-		sortVal = maxSort + 1000
 	}
 
 	descStr := ""

@@ -31,15 +31,9 @@ func (s *Service) CreateCategory(input CreateCategoryInput) (int64, error) {
 		parentID = input.ParentID
 	}
 
-	var sortVal int64
+	var sortVal int64 = 10
 	if input.Sort != nil {
 		sortVal = *input.Sort
-	} else {
-		maxSort, err := s.store.GetCategoryMaxSort(parentID)
-		if err != nil {
-			return 0, err
-		}
-		sortVal = maxSort + 1000
 	}
 
 	c := &store.Category{
