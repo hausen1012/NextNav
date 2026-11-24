@@ -1,5 +1,5 @@
 # --- stage 1: frontend build ---
-FROM node:22-alpine AS web
+FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -7,7 +7,9 @@ COPY web/ ./
 RUN npm run build
 
 # --- stage 2: backend build ---
-FROM golang:1.23-alpine AS server
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS server
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src
 
 # Dependency layer first so source edits do not re-download modules.
@@ -17,7 +19,7 @@ RUN go mod download
 COPY server/ ./
 # Replace the placeholder bundle with the real build.
 COPY --from=web /app/web/dist ./internal/webembed/dist
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/nextnav ./cmd/nextnav
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/nextnav ./cmd/nextnav
 
 # --- stage 3: runtime ---
 FROM alpine:3.20

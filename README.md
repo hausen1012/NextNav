@@ -47,9 +47,23 @@ make test       # Go + 前端测试
 
 ## 部署
 
+### Docker Compose 本地构建
+
 ```bash
 cp .env.example .env   # 可选，调整端口与检测频率
 docker compose up -d --build
+```
+
+### 预构建镜像运行（GHCR / Docker Hub）
+
+```bash
+# 使用 GitHub Container Registry（测试版镜像）
+docker run -d \
+  --name nextnav \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  ghcr.io/<owner>/nextnav:beta
 ```
 
 数据（SQLite 与上传图标）保存在 `./data`，日志只写 stdout，由 Docker 日志驱动收集。
