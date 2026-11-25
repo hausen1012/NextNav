@@ -36,6 +36,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LazyImage } from '@/components/LazyImage'
 
 interface CategoryIconProps {
   icon?: string | null
@@ -99,17 +100,23 @@ export function CategoryIcon({ icon, isRoot = false, className, size }: Category
   const trimmed = icon?.trim()
 
   if (trimmed) {
-    // 1. External image or relative path
+    // 1. External image or relative path (支持懒加载)
     if (isImageUrl(trimmed)) {
       return (
-        <img
+        <LazyImage
           src={trimmed}
           alt=''
           className={cn('rounded object-contain shrink-0', className)}
           style={size ? { width: size, height: size } : undefined}
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
+          width={size}
+          height={size}
+          fallback={
+            isRoot ? (
+              <FolderTree className={cn('shrink-0', className)} style={size ? { width: size, height: size } : undefined} />
+            ) : (
+              <Folder className={cn('shrink-0', className)} style={size ? { width: size, height: size } : undefined} />
+            )
+          }
         />
       )
     }
