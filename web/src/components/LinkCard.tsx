@@ -85,28 +85,28 @@ export function LinkCard({
         target={newTab ? '_blank' : undefined}
         rel={newTab ? 'noopener noreferrer' : undefined}
         onContextMenu={handleContextMenu}
-        className='group relative flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800/80 dark:bg-[#1a1d24] select-none'
+        className='group relative flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-2xs transition-colors duration-150 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-xs dark:border-zinc-800/90 dark:bg-[#181a1f] dark:hover:border-zinc-700/80 dark:hover:bg-[#1c1f26] select-none'
       >
         <StatusDot status={link.status} />
 
-        {/* 网站图标容器 (纯圆形，暗黑模式无白边) */}
-        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100/80 dark:bg-zinc-800/80'>
-          <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={36} />
+        {/* 网站图标容器 */}
+        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-100/90 dark:bg-zinc-800/70 border border-zinc-200/60 dark:border-zinc-700/50'>
+          <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={24} />
         </div>
 
         {/* 文本区域：两行展示（标题 + 描述） */}
         <div className='min-w-0 flex-1 pr-1'>
           <div className='flex items-center gap-1.5'>
-            <span className='truncate text-sm font-semibold text-slate-800 dark:text-slate-100'>
+            <span className='truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100'>
               {link.title}
             </span>
             {link.isPrivate ? (
               <span title='私有链接'>
-                <Lock className='size-3 shrink-0 text-slate-400' />
+                <Lock className='size-3 shrink-0 text-zinc-400' />
               </span>
             ) : null}
           </div>
-          <p className='truncate text-xs text-slate-400 dark:text-neutral-500 mt-0.5 font-normal'>
+          <p className='truncate text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-normal'>
             {link.description || '没有描述'}
           </p>
         </div>
@@ -116,15 +116,15 @@ export function LinkCard({
       {menuPos && (
         <div
           ref={menuRef}
-          className='fixed z-50 min-w-40 rounded-xl border border-slate-100 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-900/95 text-xs text-slate-700 dark:text-neutral-200 animate-in fade-in zoom-in-95 duration-100'
+          className='fixed z-50 min-w-40 rounded-xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-zinc-800 dark:bg-[#1a1d24]/95 text-xs text-zinc-700 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-100'
           style={{ left: menuPos.x, top: menuPos.y }}
         >
           <button
             type='button'
             onClick={() => openURL(link.url)}
-            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
           >
-            <ExternalLink className='size-3.5 text-slate-400' />
+            <ExternalLink className='size-3.5 text-zinc-400' />
             <span>打开主链接</span>
           </button>
 
@@ -132,9 +132,9 @@ export function LinkCard({
             <button
               type='button'
               onClick={() => openURL(link.backupUrl!)}
-              className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+              className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
             >
-              <ExternalLink className='size-3.5 text-slate-400' />
+              <ExternalLink className='size-3.5 text-zinc-400' />
               <span>打开备用链接</span>
             </button>
           ) : null}
@@ -142,12 +142,12 @@ export function LinkCard({
           <button
             type='button'
             onClick={() => copyToClipboard(link.url, 'main')}
-            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
           >
             {copiedKey === 'main' ? (
               <Check className='size-3.5 text-green-500' />
             ) : (
-              <Copy className='size-3.5 text-slate-400' />
+              <Copy className='size-3.5 text-zinc-400' />
             )}
             <span>{copiedKey === 'main' ? '已复制主链接' : '复制主链接'}</span>
           </button>
@@ -156,12 +156,12 @@ export function LinkCard({
             <button
               type='button'
               onClick={() => copyToClipboard(link.backupUrl!, 'backup')}
-              className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+              className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
             >
               {copiedKey === 'backup' ? (
                 <Check className='size-3.5 text-green-500' />
               ) : (
-                <Copy className='size-3.5 text-slate-400' />
+                <Copy className='size-3.5 text-zinc-400' />
               )}
               <span>{copiedKey === 'backup' ? '已复制备用链接' : '复制备用链接'}</span>
             </button>
@@ -173,15 +173,15 @@ export function LinkCard({
               setMenuPos(null)
               onShowQR(link.url, link.title)
             }}
-            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
           >
-            <QrCode className='size-3.5 text-slate-400' />
+            <QrCode className='size-3.5 text-zinc-400' />
             <span>二维码</span>
           </button>
 
           {isAdmin ? (
             <>
-              <div className='my-1 border-t border-slate-100 dark:border-neutral-800' />
+              <div className='my-1 border-t border-zinc-100 dark:border-zinc-800' />
               {onCheck ? (
                 <button
                   type='button'
@@ -189,9 +189,9 @@ export function LinkCard({
                     setMenuPos(null)
                     onCheck(link)
                   }}
-                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
                 >
-                  <Activity className='size-3.5 text-slate-400' />
+                  <Activity className='size-3.5 text-zinc-400' />
                   <span>检测健康</span>
                 </button>
               ) : null}
@@ -202,9 +202,9 @@ export function LinkCard({
                     setMenuPos(null)
                     onEdit(link)
                   }}
-                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
                 >
-                  <Edit2 className='size-3.5 text-slate-400' />
+                  <Edit2 className='size-3.5 text-zinc-400' />
                   <span>编辑链接</span>
                 </button>
               ) : null}
