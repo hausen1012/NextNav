@@ -10,7 +10,7 @@ import (
 // ListLinks returns all links. If admin is false, private links are omitted.
 func (s *Store) ListLinks(admin bool) ([]Link, error) {
 	q := `SELECT id, category_id, title, url, backup_url, description, icon_path, icon_source,
-	             sort, is_private, is_sample, click_count, last_clicked_at, last_status,
+	             sort, is_private, is_sample, last_status,
 	             last_checked_at, title_norm, host, search_text,
 	             created_at, updated_at
 	      FROM link`
@@ -40,7 +40,7 @@ func (s *Store) ListLinks(admin bool) ([]Link, error) {
 func (s *Store) GetLink(id int64) (*Link, error) {
 	row := s.DB.QueryRow(
 		`SELECT id, category_id, title, url, backup_url, description, icon_path, icon_source,
-		        sort, is_private, is_sample, click_count, last_clicked_at, last_status,
+		        sort, is_private, is_sample, last_status,
 		        last_checked_at, title_norm, host, search_text,
 		        created_at, updated_at
 		 FROM link WHERE id = ?`, id,
@@ -80,10 +80,10 @@ func (s *Store) CreateLink(l *Link) (int64, error) {
 
 	res, err := s.DB.Exec(
 		`INSERT INTO link(category_id, title, url, backup_url, description, icon_path, icon_source,
-		                  sort, is_private, is_sample, click_count, last_clicked_at, last_status,
+		                  sort, is_private, is_sample, last_status,
 		                  last_checked_at, title_norm, host, search_text,
 		                  created_at, updated_at)
-		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, NULL, ?, ?, ?, ?, ?)`,
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
 		l.CategoryID, l.Title, l.URL, nullableString(l.BackupURL), nullableString(l.Description),
 		nullableString(l.IconPath), nullableString(l.IconSource), l.Sort, priv, sample,
 		status, l.TitleNorm, l.Host, l.SearchText, now, now,
@@ -197,12 +197,12 @@ func scanLinkRow(rows *sql.Rows) (Link, error) {
 	var l Link
 	var (
 		backup, desc, iconPath, iconSrc sql.NullString
-		lastClick, lastCheck            sql.NullInt64
+		lastCheck                       sql.NullInt64
 		priv, sample                    int64
 	)
 	err := rows.Scan(
 		&l.ID, &l.CategoryID, &l.Title, &l.URL, &backup, &desc, &iconPath, &iconSrc,
-		&l.Sort, &priv, &sample, &l.ClickCount, &lastClick, &l.LastStatus,
+		&l.Sort, &priv, &sample, &l.LastStatus,
 		&lastCheck, &l.TitleNorm, &l.Host, &l.SearchText,
 		&l.CreatedAt, &l.UpdatedAt,
 	)
@@ -213,7 +213,6 @@ func scanLinkRow(rows *sql.Rows) (Link, error) {
 	l.Description = nilIfEmptyStr(desc)
 	l.IconPath = nilIfEmptyStr(iconPath)
 	l.IconSource = nilIfEmptyStr(iconSrc)
-	l.LastClickedAt = nilIfZeroInt64(lastClick)
 	l.LastCheckedAt = nilIfZeroInt64(lastCheck)
 	l.IsPrivate = priv == 1
 	l.IsSample = sample == 1
@@ -224,12 +223,12 @@ func scanLinkSingle(row *sql.Row) (Link, error) {
 	var l Link
 	var (
 		backup, desc, iconPath, iconSrc sql.NullString
-		lastClick, lastCheck            sql.NullInt64
+		lastCheck                       sql.NullInt64
 		priv, sample                    int64
 	)
 	err := row.Scan(
 		&l.ID, &l.CategoryID, &l.Title, &l.URL, &backup, &desc, &iconPath, &iconSrc,
-		&l.Sort, &priv, &sample, &l.ClickCount, &lastClick, &l.LastStatus,
+		&l.Sort, &priv, &sample, &l.LastStatus,
 		&lastCheck, &l.TitleNorm, &l.Host, &l.SearchText,
 		&l.CreatedAt, &l.UpdatedAt,
 	)
@@ -240,7 +239,6 @@ func scanLinkSingle(row *sql.Row) (Link, error) {
 	l.Description = nilIfEmptyStr(desc)
 	l.IconPath = nilIfEmptyStr(iconPath)
 	l.IconSource = nilIfEmptyStr(iconSrc)
-	l.LastClickedAt = nilIfZeroInt64(lastClick)
 	l.LastCheckedAt = nilIfZeroInt64(lastCheck)
 	l.IsPrivate = priv == 1
 	l.IsSample = sample == 1

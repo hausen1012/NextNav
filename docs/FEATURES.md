@@ -58,7 +58,7 @@ setting        key, value                       # 站点名、logo 等
 admin          id, username, password_hash, created_at  # 单行，首次安装向导写入
 category       id, name, icon, parent_id, sort, is_private, description, is_sample, created_at
 link           id, category_id, title, url, backup_url, description,
-               icon_path, sort, is_private, is_sample, click_count, last_clicked_at,
+               icon_path, sort, is_private, is_sample,
                created_at, updated_at
 link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 ```
@@ -93,7 +93,6 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 |---|---|---|---|
 | B1 | 即时搜索 | P0 | 输入即过滤（debounce 200ms），匹配标题/域名/描述/分类名。`/` 或 `Ctrl+K` 聚焦，Esc 清空 |
 | B2 | 搜索范围与结果 | P0 | 默认全站搜索，结果按分类归类展示；空结果提示「换个关键词或检查分类」；私有内容对未登录访问者完全不出现（见 A5），不做「请登录查看」的占位 |
-| B5 | 搜索热度 | P2 | 记录搜索词；无结果的关键词在编辑模式下提示「添加为收藏」，预填搜索词 |
 
 ### C. 管理
 
@@ -115,7 +114,6 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 | D1 | 备用链接 | P1 | `backup_url` 字段。卡片右键菜单（长按）提供：打开 / 打开备用链接 / 复制 / 二维码 / 编辑 / 删除 |
 | D2 | 二维码 | P1 | 前端生成（不依赖第三方服务），可下载 PNG |
 | D4 | 标签 | P2 | 一个链接可挂多个标签，与分类并存，用于跨分类聚合 |
-| D5 | 点击统计 | P2 | click_count / last_clicked_at；编辑模式下按热度排序 |
 
 ### E. 健康检测
 

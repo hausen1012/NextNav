@@ -120,8 +120,6 @@ CREATE TABLE link (
   sort            INTEGER NOT NULL DEFAULT 10,
   is_private      INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
   is_sample       INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
-  click_count     INTEGER NOT NULL DEFAULT 0,
-  last_clicked_at INTEGER,
   -- 最近一次检测结果，denormalize 到主表，列表页无需 join
   last_status     TEXT    NOT NULL DEFAULT 'unknown'
                           CHECK (last_status IN ('ok','warn','dead','unknown')),
@@ -238,7 +236,7 @@ data/
   "links": [
     { "categoryRef": "c2", "title": "GitHub", "url": "https://github.com",
       "backupUrl": null, "description": "代码托管", "iconPath": null,
-      "sort": 1000, "isPrivate": false, "clickCount": 0 }
+      "sort": 1000, "isPrivate": false }
   ]
 }
 ```

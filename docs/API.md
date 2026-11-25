@@ -51,7 +51,7 @@
 | 403 | `csrf_failed` | cookie 写操作来源校验失败 |
 | 404 | `not_found` | 资源不存在，或对游客不可见 |
 | 409 | `duplicate_link` | 同分类下已存在相同 URL |
-| 429 | `rate_limited` | 登录失败过多 / 点击上报过频 |
+| 429 | `rate_limited` | 登录失败过多 |
 | 500 | `internal` | 其他，`message` 不含堆栈 |
 
 ### 0.5 分页与排序
@@ -103,7 +103,6 @@
 |---|---|---|---|
 | GET | `/api/links` | 任意 | 独立链接列表 / 服务端高级搜索 |
 | GET | `/api/links/{id}` | 任意 | 链接详情 |
-| POST | `/api/links/{id}/click` | 任意 | 点击计数上报 |
 | POST | `/api/links/{id}/check` | 管理员 | 单条健康检测 |
 | POST | `/api/links/check-all` | 管理员 | 全站健康检测 |
 | GET | `/api/check/status` | 管理员 | 检测进度查询 |
@@ -260,10 +259,6 @@
 ```
 
 `200 { "deleted": 2 }`。
-
-### POST /api/links/{id}/click
-
-任何身份可调用（游客也统计），`204`。同 IP + 同 link 60 秒内重复调用视为一次。
 
 ### POST /api/links/{id}/check
 

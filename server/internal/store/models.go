@@ -38,8 +38,6 @@ type Link struct {
 	Sort          int64
 	IsPrivate     bool
 	IsSample      bool
-	ClickCount    int64
-	LastClickedAt *int64
 	LastStatus    string
 	LastCheckedAt *int64
 	TitleNorm     string
