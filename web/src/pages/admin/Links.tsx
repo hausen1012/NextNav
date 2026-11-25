@@ -42,6 +42,7 @@ import { TablePagination } from '@/components/admin/TablePagination'
 import { LinkDialog } from '@/components/admin/LinkDialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/admin/DataTableColumnHeader'
+import { DataTableFloatingBar } from '@/components/admin/DataTableFloatingBar'
 
 export interface LinkWithMeta extends LinkDTO {
   categoryName: string
@@ -375,50 +376,6 @@ export function AdminLinksPage() {
         </div>
       </div>
 
-      {/* Batch Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className='flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3.5 py-2 text-xs animate-in fade-in'>
-          <span className='font-medium text-foreground'>
-            已选择 <strong className='text-primary'>{selectedIds.size}</strong> 项链接
-          </span>
-          <div className='flex items-center gap-2'>
-            <Button
-              variant='outline'
-              size='sm'
-              className='h-7 gap-1 text-xs'
-              onClick={() => {
-                setBatchMoveCatId(flatCategories[0]?.id || 0)
-                setBatchError(null)
-                setBatchMoveOpen(true)
-              }}
-            >
-              <FolderInput className='size-3.5' />
-              <span>移动到分类</span>
-            </Button>
-            <Button
-              variant='destructive'
-              size='sm'
-              className='h-7 gap-1 text-xs'
-              onClick={() => {
-                setBatchError(null)
-                setBatchDeleteOpen(true)
-              }}
-            >
-              <Trash2 className='size-3.5' />
-              <span>批量删除</span>
-            </Button>
-            <Button
-              variant='ghost'
-              size='sm'
-              className='h-7 text-xs text-muted-foreground'
-              onClick={() => setSelectedIds(new Set())}
-            >
-              取消选择
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Main Table */}
       <div className='overflow-hidden rounded-md border bg-card shadow-xs'>
         <Table>
@@ -658,6 +615,38 @@ export function AdminLinksPage() {
             pageSizeOptions={[10, 20, 50]}
           />
         )}
+
+      {/* Floating Batch Action Bar (参考 Shadcn Admin) */}
+      <DataTableFloatingBar
+        selectedCount={selectedIds.size}
+        onClearSelection={() => setSelectedIds(new Set())}
+      >
+        <Button
+          variant='ghost'
+          size='sm'
+          className='h-7 gap-1.5 text-xs'
+          onClick={() => {
+            setBatchMoveCatId(flatCategories[0]?.id || 0)
+            setBatchError(null)
+            setBatchMoveOpen(true)
+          }}
+        >
+          <FolderInput className='size-3.5' />
+          <span>移动到分类</span>
+        </Button>
+        <Button
+          variant='destructive'
+          size='sm'
+          className='h-7 gap-1.5 text-xs'
+          onClick={() => {
+            setBatchError(null)
+            setBatchDeleteOpen(true)
+          }}
+        >
+          <Trash2 className='size-3.5' />
+          <span>批量删除</span>
+        </Button>
+      </DataTableFloatingBar>
 
       {/* Create / Edit Dialog */}
       <LinkDialog
