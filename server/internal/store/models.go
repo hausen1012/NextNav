@@ -44,8 +44,6 @@ type Link struct {
 	LastCheckedAt *int64
 	TitleNorm     string
 	Host          string
-	PinyinFull    string
-	PinyinShort   string
 	SearchText    string
 	CreatedAt     int64
 	UpdatedAt     int64

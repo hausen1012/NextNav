@@ -211,7 +211,7 @@
 }
 ```
 
-`matchedField` ∈ `title | host | description | pinyin | category`。
+`matchedField` ∈ `title | host | description | category`。
 
 ---
 

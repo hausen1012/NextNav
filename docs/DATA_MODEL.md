@@ -129,8 +129,6 @@ CREATE TABLE link (
   -- 搜索索引，写入时生成，见第 3 节
   title_norm      TEXT    NOT NULL,
   host            TEXT    NOT NULL,
-  pinyin_full     TEXT    NOT NULL DEFAULT '',
-  pinyin_short    TEXT    NOT NULL DEFAULT '',
   search_text     TEXT    NOT NULL,
   created_at      INTEGER NOT NULL,
   updated_at      INTEGER NOT NULL
@@ -190,20 +188,18 @@ CREATE INDEX idx_check_link_time ON link_check(link_id, checked_at DESC);
 
 ## 3. 搜索索引
 
-写入（新增 / 编辑）时由服务端重新计算以下字段，四者一起更新：
+写入（新增 / 编辑）时由服务端重新计算以下字段并更新：
 
 | 字段 | 生成规则 | 例子（标题「微信」域名 `weixin.qq.com`） |
 |---|---|---|
 | `title_norm` | 标题转小写、去首尾空格 | `微信` |
 | `host` | URL 的 host，小写，去 `www.` | `weixin.qq.com` |
-| `pinyin_full` | 标题全拼，音节间以空格分隔 | `wei xin` |
-| `pinyin_short` | 标题首字母连写 | `wx` |
-| `search_text` | 上四者 + 原始描述 + 分类名，全部小写，空格拼接 | `微信 weixin.qq.com wei xin wx 即时通讯 社交…` |
+| `search_text` | 标题 + 域名 + 描述 + 分类名，全部小写，空格拼接 | `微信 weixin.qq.com 即时通讯 社交…` |
 
 查询流程：
 
-1. SQL 粗筛：`search_text LIKE '%' || ? || '%'`（查询词同样转小写、并同时生成拼音变体一起 OR）
-2. Go 内精排：按 B4 的权重打分——标题前缀 > 标题包含 > 域名 > 描述 > 拼音；同分按 `click_count` 降序
+1. SQL 粗筛：`search_text LIKE '%' || ? || '%'`（查询词转小写匹配）
+2. 排序：按 B4 的权重打分——标题前缀 > 标题包含 > 域名 > 描述；同分按 `click_count` 降序
 
 数据量在千级以内，一律取粗筛结果全量精排，不做 SQL 分页后再排序（会错序）。
 

@@ -11,7 +11,7 @@ import (
 func (s *Store) ListLinks(admin bool) ([]Link, error) {
 	q := `SELECT id, category_id, title, url, backup_url, description, icon_path, icon_source,
 	             sort, is_private, is_sample, click_count, last_clicked_at, last_status,
-	             last_checked_at, title_norm, host, pinyin_full, pinyin_short, search_text,
+	             last_checked_at, title_norm, host, search_text,
 	             created_at, updated_at
 	      FROM link`
 	if !admin {
@@ -41,7 +41,7 @@ func (s *Store) GetLink(id int64) (*Link, error) {
 	row := s.DB.QueryRow(
 		`SELECT id, category_id, title, url, backup_url, description, icon_path, icon_source,
 		        sort, is_private, is_sample, click_count, last_clicked_at, last_status,
-		        last_checked_at, title_norm, host, pinyin_full, pinyin_short, search_text,
+		        last_checked_at, title_norm, host, search_text,
 		        created_at, updated_at
 		 FROM link WHERE id = ?`, id,
 	)
@@ -81,12 +81,12 @@ func (s *Store) CreateLink(l *Link) (int64, error) {
 	res, err := s.DB.Exec(
 		`INSERT INTO link(category_id, title, url, backup_url, description, icon_path, icon_source,
 		                  sort, is_private, is_sample, click_count, last_clicked_at, last_status,
-		                  last_checked_at, title_norm, host, pinyin_full, pinyin_short, search_text,
+		                  last_checked_at, title_norm, host, search_text,
 		                  created_at, updated_at)
-		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, NULL, ?, ?, ?, ?, ?)`,
 		l.CategoryID, l.Title, l.URL, nullableString(l.BackupURL), nullableString(l.Description),
 		nullableString(l.IconPath), nullableString(l.IconSource), l.Sort, priv, sample,
-		status, l.TitleNorm, l.Host, l.PinyinFull, l.PinyinShort, l.SearchText, now, now,
+		status, l.TitleNorm, l.Host, l.SearchText, now, now,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
@@ -108,12 +108,12 @@ func (s *Store) UpdateLink(l *Link) error {
 	_, err := s.DB.Exec(
 		`UPDATE link SET category_id = ?, title = ?, url = ?, backup_url = ?, description = ?,
 		                 icon_path = ?, icon_source = ?, sort = ?, is_private = ?, is_sample = 0,
-		                 title_norm = ?, host = ?, pinyin_full = ?, pinyin_short = ?, search_text = ?,
+		                 title_norm = ?, host = ?, search_text = ?,
 		                 updated_at = ?
 		 WHERE id = ?`,
 		l.CategoryID, l.Title, l.URL, nullableString(l.BackupURL), nullableString(l.Description),
 		nullableString(l.IconPath), nullableString(l.IconSource), l.Sort, priv,
-		l.TitleNorm, l.Host, l.PinyinFull, l.PinyinShort, l.SearchText, now, l.ID,
+		l.TitleNorm, l.Host, l.SearchText, now, l.ID,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
@@ -241,7 +241,7 @@ func scanLinkRow(rows *sql.Rows) (Link, error) {
 	err := rows.Scan(
 		&l.ID, &l.CategoryID, &l.Title, &l.URL, &backup, &desc, &iconPath, &iconSrc,
 		&l.Sort, &priv, &sample, &l.ClickCount, &lastClick, &l.LastStatus,
-		&lastCheck, &l.TitleNorm, &l.Host, &l.PinyinFull, &l.PinyinShort, &l.SearchText,
+		&lastCheck, &l.TitleNorm, &l.Host, &l.SearchText,
 		&l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
@@ -268,7 +268,7 @@ func scanLinkSingle(row *sql.Row) (Link, error) {
 	err := row.Scan(
 		&l.ID, &l.CategoryID, &l.Title, &l.URL, &backup, &desc, &iconPath, &iconSrc,
 		&l.Sort, &priv, &sample, &l.ClickCount, &lastClick, &l.LastStatus,
-		&lastCheck, &l.TitleNorm, &l.Host, &l.PinyinFull, &l.PinyinShort, &l.SearchText,
+		&lastCheck, &l.TitleNorm, &l.Host, &l.SearchText,
 		&l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
