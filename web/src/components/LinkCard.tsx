@@ -89,9 +89,9 @@ export function LinkCard({
       >
         <StatusDot status={link.status} />
 
-        {/* 网站图标容器 */}
-        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-100/80 dark:bg-zinc-800/60'>
-          <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={24} />
+        {/* 网站图标容器 (圆形展示) */}
+        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100/80 dark:bg-zinc-800/60'>
+          <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={36} />
         </div>
 
         {/* 文本区域：两行展示（标题 + 描述） */}

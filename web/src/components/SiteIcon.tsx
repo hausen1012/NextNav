@@ -11,7 +11,7 @@ type Props = {
 
 // Icon with a deterministic letter fallback: no network request is required
 // when a favicon is missing (docs/FEATURES.md A6).
-export function SiteIcon({ name, url = '', iconUrl, size = 26, className = '' }: Props) {
+export function SiteIcon({ name, url = '', iconUrl, size = 36, className = '' }: Props) {
   const [failed, setFailed] = useState(false)
 
   if (iconUrl && !failed) {
@@ -24,7 +24,7 @@ export function SiteIcon({ name, url = '', iconUrl, size = 26, className = '' }:
         loading='lazy'
         decoding='async'
         onError={() => setFailed(true)}
-        className={`shrink-0 rounded-md object-contain ${className}`}
+        className={`shrink-0 rounded-full object-contain ${className}`}
         style={{ width: size, height: size }}
       />
     )
@@ -34,7 +34,7 @@ export function SiteIcon({ name, url = '', iconUrl, size = 26, className = '' }:
   return (
     <span
       aria-hidden='true'
-      className={`flex shrink-0 items-center justify-center rounded-lg font-semibold text-white select-none ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none ${className}`}
       style={{
         width: size,
         height: size,
