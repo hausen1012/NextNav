@@ -629,7 +629,7 @@ export function HomePage() {
         </div>
 
         {/* 分类导航树形列表 (纯净无编辑按钮) */}
-        <nav className='flex-1 overflow-y-auto px-3 py-4 space-y-1 select-none scrollbar-thin'>
+        <nav className='flex-1 overflow-y-auto px-3 py-4 space-y-1 select-none no-scrollbar hover:scrollbar-thin'>
           {data.groups.map((group) => {
             const hasSub = group.categories && group.categories.length > 0
             const isGroupOpen = !!openGroupIds[group.id]
@@ -873,9 +873,9 @@ export function HomePage() {
                   key={group.id}
                   id={`group-${group.id}`}
                   data-nav-section
-                  className='scroll-mt-6 space-y-5'
+                  className='group/root scroll-mt-6 space-y-5'
                 >
-                  {/* 一级分类标题行 (仅保留分类编辑按钮，无多余添加链接按钮) */}
+                  {/* 一级分类标题行 (悬浮在分类或直属链接区域时显现编辑按钮) */}
                   <div className='flex items-center justify-between pt-2'>
                     <div className='flex items-baseline gap-2.5'>
                       <div className='flex items-center gap-2'>
@@ -895,12 +895,12 @@ export function HomePage() {
                       )}
                     </div>
 
-                    {/* 管理员仅编辑分类按钮 */}
+                    {/* 管理员编辑分类按钮（悬浮在分类区块或链接下时显示） */}
                     {isAdmin && (
                       <button
                         type='button'
                         onClick={() => openEditCategoryModal(group)}
-                        className='flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 shadow-2xs hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white dark:hover:border-zinc-600 transition'
+                        className='opacity-0 group-hover/root:opacity-100 flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 shadow-2xs hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
                         title='编辑此分类'
                       >
                         <SquarePen className='size-3.5' />
@@ -934,9 +934,9 @@ export function HomePage() {
                         key={sub.id}
                         id={`cat-${sub.id}`}
                         data-nav-section
-                        className='scroll-mt-6 space-y-3 pt-2'
+                        className='group/sub scroll-mt-6 space-y-3 pt-2'
                       >
-                        {/* 二级子分类标题行 (仅保留分类编辑按钮，无添加链接按钮) */}
+                        {/* 二级子分类标题行 (悬浮在子分类或其链接区域时显现编辑按钮) */}
                         <div className='flex items-center justify-between'>
                           <div className='flex items-center gap-2'>
                             <CategoryIcon
@@ -958,7 +958,7 @@ export function HomePage() {
                             <button
                               type='button'
                               onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
-                              className='flex size-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:hover:text-white dark:hover:border-zinc-600 transition'
+                              className='opacity-0 group-hover/sub:opacity-100 flex size-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
                               title='编辑子分类'
                             >
                               <SquarePen className='size-3' />

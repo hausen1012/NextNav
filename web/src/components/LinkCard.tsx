@@ -89,40 +89,6 @@ export function LinkCard({
       >
         <StatusDot status={link.status} />
 
-        {/* 管理员悬浮快捷操作按钮 */}
-        {isAdmin && (
-          <div className='absolute right-2 top-2 hidden group-hover:flex items-center gap-1 z-10 animate-in fade-in duration-150'>
-            {onEdit && (
-              <button
-                type='button'
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onEdit(link)
-                }}
-                className='flex size-6 items-center justify-center rounded-md bg-white/95 text-slate-500 shadow-xs border border-slate-200 hover:text-zinc-900 hover:border-zinc-400 dark:bg-neutral-800/95 dark:text-neutral-400 dark:border-neutral-700 dark:hover:text-white dark:hover:border-zinc-500 transition'
-                title='编辑链接'
-              >
-                <Edit2 className='size-3' />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                type='button'
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onDelete(link)
-                }}
-                className='flex size-6 items-center justify-center rounded-md bg-white/95 text-slate-500 shadow-xs border border-slate-200 hover:text-red-600 hover:border-red-300 dark:bg-neutral-800/95 dark:text-neutral-400 dark:border-neutral-700 dark:hover:text-red-400 transition'
-                title='删除链接'
-              >
-                <Trash2 className='size-3' />
-              </button>
-            )}
-          </div>
-        )}
-
         {/* 网站图标容器 (纯圆形，暗黑模式无白边) */}
         <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100/80 dark:bg-zinc-800/80'>
           <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={36} />
