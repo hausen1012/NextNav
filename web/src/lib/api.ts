@@ -48,6 +48,7 @@ export interface SiteDTO {
   background: string
   logoUrl: string | null
   openInNewTab: boolean
+  faviconServiceUrl?: string
 }
 
 export interface HomeResponse {
@@ -170,6 +171,7 @@ export const api = {
     description: string
     background: string
     openInNewTab: boolean
+    faviconServiceUrl: string
   }>) => request<{ site: SiteDTO }>('/api/settings', { method: 'PATCH', ...json(patch) }),
 
   createLink: (body: {

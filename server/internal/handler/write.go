@@ -343,10 +343,11 @@ func (a *API) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name         *string `json:"name"`
-		Description  *string `json:"description"`
-		Background   *string `json:"background"`
-		OpenInNewTab *bool   `json:"openInNewTab"`
+		Name              *string `json:"name"`
+		Description       *string `json:"description"`
+		Background        *string `json:"background"`
+		FaviconServiceURL *string `json:"faviconServiceUrl"`
+		OpenInNewTab      *bool   `json:"openInNewTab"`
 	}
 	if err := httpx.DecodeJSON(r, &req); err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
@@ -362,10 +363,11 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	site := a.Service.UpdateSettings(service.UpdateSettingsInput{
-		Name:         req.Name,
-		Description:  req.Description,
-		Background:   req.Background,
-		OpenInNewTab: req.OpenInNewTab,
+		Name:              req.Name,
+		Description:       req.Description,
+		Background:        req.Background,
+		FaviconServiceURL: req.FaviconServiceURL,
+		OpenInNewTab:      req.OpenInNewTab,
 	})
 	httpx.JSON(w, http.StatusOK, map[string]any{"site": site})
 }

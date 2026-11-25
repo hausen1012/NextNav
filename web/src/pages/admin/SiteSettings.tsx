@@ -15,6 +15,7 @@ export function AdminSiteSettingsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [background, setBackground] = useState('')
+  const [faviconServiceUrl, setFaviconServiceUrl] = useState('')
   const [openInNewTab, setOpenInNewTab] = useState(true)
 
   const [notice, setNotice] = useState<string | null>(null)
@@ -28,6 +29,7 @@ export function AdminSiteSettingsPage() {
       setName(home.site.name)
       setDescription(home.site.description)
       setBackground(home.site.background)
+      setFaviconServiceUrl(home.site.faviconServiceUrl || '')
       setOpenInNewTab(home.site.openInNewTab ?? true)
     }
   }, [home])
@@ -76,7 +78,7 @@ export function AdminSiteSettingsPage() {
     setNotice(null)
     setError(null)
     try {
-      await api.updateSettings({ name, description, background, openInNewTab })
+      await api.updateSettings({ name, description, background, faviconServiceUrl, openInNewTab })
       invalidate()
       setNotice('站点设置已成功保存')
     } catch (err) {
@@ -190,6 +192,47 @@ export function AdminSiteSettingsPage() {
                     title='颜色预览'
                   />
                 )}
+              </div>
+            </Field>
+
+            <Field
+              label='全局图标服务 (Favicon)'
+              htmlFor='site-favicon-service'
+              hint='未单独设置图标的链接将由此自动拼接获取。支持 {domain} 占位符或直接以前缀/结尾（留空则不启用）。'
+            >
+              <div className='space-y-2'>
+                <Input
+                  id='site-favicon-service'
+                  value={faviconServiceUrl}
+                  onChange={(e) => setFaviconServiceUrl(e.target.value)}
+                  placeholder='例如：https://a.favicon.im/ 或 /api/favicon/{domain}.png'
+                />
+                <div className='flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground'>
+                  <span>常用预设：</span>
+                  <button
+                    type='button'
+                    onClick={() => setFaviconServiceUrl('/api/favicon/{domain}.png')}
+                    className='rounded border border-border px-1.5 py-0.5 hover:bg-muted transition text-foreground'
+                  >
+                    内置服务 (/api/favicon/{'{domain}'}.png)
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setFaviconServiceUrl('https://a.favicon.im/')}
+                    className='rounded border border-border px-1.5 py-0.5 hover:bg-muted transition text-foreground'
+                  >
+                    Favicon.im (https://a.favicon.im/)
+                  </button>
+                  {faviconServiceUrl && (
+                    <button
+                      type='button'
+                      onClick={() => setFaviconServiceUrl('')}
+                      className='rounded border border-border px-1.5 py-0.5 hover:bg-muted transition text-muted-foreground'
+                    >
+                      清空
+                    </button>
+                  )}
+                </div>
               </div>
             </Field>
 

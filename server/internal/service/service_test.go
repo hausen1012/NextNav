@@ -421,3 +421,105 @@ func TestFaviconCache(t *testing.T) {
 		t.Errorf("expected 1 reference from favicon_cache, got %d", count)
 	}
 }
+
+func TestFormatFaviconURLAndExtractDomain(t *testing.T) {
+	// 测试 ExtractDomain
+	tests := []struct {
+		rawURL string
+		expect string
+	}{
+		{"https://www.amjun.com", "www.amjun.com"},
+		{"http://github.com/nextnav/web", "github.com"},
+		{"baidu.com", "baidu.com"},
+		{"https://sub.domain.co.uk:8080/path?query=1", "sub.domain.co.uk"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		got := service.ExtractDomain(tt.rawURL)
+		if got != tt.expect {
+			t.Errorf("ExtractDomain(%q) = %q, want %q", tt.rawURL, got, tt.expect)
+		}
+	}
+
+	// 测试 FormatFaviconURL
+	fmtTests := []struct {
+		template string
+		domain   string
+		expect   string
+	}{
+		{"https://a.favicon.im/", "www.amjun.com", "https://a.favicon.im/www.amjun.com"},
+		{"https://a.favicon.im", "www.amjun.com", "https://a.favicon.im/www.amjun.com"},
+		{"https://nav.amjun.com/api/favicon/{domain}.png", "www.amjun.com", "https://nav.amjun.com/api/favicon/www.amjun.com.png"},
+		{"/api/favicon/{domain}.png", "baidu.com", "/api/favicon/baidu.com.png"},
+		{"https://favicon.splitbee.io/?url={domain}", "v2ex.com", "https://favicon.splitbee.io/?url=v2ex.com"},
+		{"", "v2ex.com", ""},
+	}
+	for _, tt := range fmtTests {
+		got := service.FormatFaviconURL(tt.template, tt.domain)
+		if got != tt.expect {
+			t.Errorf("FormatFaviconURL(%q, %q) = %q, want %q", tt.template, tt.domain, got, tt.expect)
+		}
+	}
+}
+
+func TestFaviconServicePriority(t *testing.T) {
+	svc, _ := newTestService(t)
+
+	// 配置全局 Favicon 服务
+	favURL := "https://a.favicon.im/{domain}"
+	svc.UpdateSettings(service.UpdateSettingsInput{
+		FaviconServiceURL: &favURL,
+	})
+
+	catID, err := svc.CreateCategory(service.CreateCategoryInput{Name: "测试分类"})
+	if err != nil {
+		t.Fatalf("create category: %v", err)
+	}
+
+	// 1. 无上传、无单独外链 -> 应走全局 Favicon 服务拼接
+	l1, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID,
+		Title:      "站点1",
+		URL:        "https://www.amjun.com/index.html",
+	})
+	if err != nil {
+		t.Fatalf("create link 1: %v", err)
+	}
+	if l1.IconURL == nil || *l1.IconURL != "https://a.favicon.im/www.amjun.com" {
+		t.Fatalf("expected global favicon URL 'https://a.favicon.im/www.amjun.com', got %v", l1.IconURL)
+	}
+
+	// 2. 单独配置了图标链接 (CustomIconURL) -> 应覆盖全局 Favicon 服务
+	customURL := "https://custom.icon.png"
+	l2, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID,
+		Title:      "站点2",
+		URL:        "https://www.amjun.com/page2",
+		IconURL:    &customURL,
+	})
+	if err != nil {
+		t.Fatalf("create link 2: %v", err)
+	}
+	if l2.IconURL == nil || *l2.IconURL != customURL {
+		t.Fatalf("expected custom icon URL %q, got %v", customURL, l2.IconURL)
+	}
+
+	// 3. 上传了本地图标 (IconPath) -> 最高优先级
+	relPath, err := svc.SaveIconContent([]byte("fake image data"), "icon.png")
+	if err != nil {
+		t.Fatalf("save icon content: %v", err)
+	}
+	l3, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID,
+		Title:      "站点3",
+		URL:        "https://www.amjun.com/page3",
+		IconPath:   &relPath,
+		IconURL:    &customURL,
+	})
+	if err != nil {
+		t.Fatalf("create link 3: %v", err)
+	}
+	if l3.IconURL == nil || *l3.IconURL != "/"+relPath {
+		t.Fatalf("expected local icon path '/%s', got %v", relPath, l3.IconURL)
+	}
+}

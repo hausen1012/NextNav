@@ -431,13 +431,13 @@
 
 ### GET /api/settings
 
-游客可用，只返回公开子集（站点名、描述、背景、logoUrl、openInNewTab）。**不得**返回任何 `secret.*`。
+游客可用，只返回公开子集（站点名、描述、背景、logoUrl、openInNewTab、faviconServiceUrl）。**不得**返回任何 `secret.*`。
 
 ### PATCH /api/settings
 
 ```json
 { "name": "我的导航", "description": "...", "background": "#0f1115",
-  "openInNewTab": true }
+  "openInNewTab": true, "faviconServiceUrl": "https://a.favicon.im/" }
 ```
 
 logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 `POST /api/settings/logo`（multipart，≤ 1 MB，png/jpeg/webp）。**不接受 SVG。**

@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { hashHue, hostOf, initialOf } from './utils'
+import { hashHue, hostOf, initialOf, extractDomain, formatFaviconUrl } from './utils'
+
+describe('extractDomain & formatFaviconUrl', () => {
+  it('extracts domain correctly', () => {
+    expect(extractDomain('https://www.amjun.com/index.html')).toBe('www.amjun.com')
+    expect(extractDomain('http://baidu.com')).toBe('baidu.com')
+    expect(extractDomain('v2ex.com/t/123')).toBe('v2ex.com')
+    expect(extractDomain('')).toBe('')
+  })
+
+  it('formats favicon URL using template', () => {
+    expect(formatFaviconUrl('https://a.favicon.im/', 'https://www.amjun.com')).toBe('https://a.favicon.im/www.amjun.com')
+    expect(formatFaviconUrl('https://a.favicon.im', 'https://www.amjun.com')).toBe('https://a.favicon.im/www.amjun.com')
+    expect(formatFaviconUrl('https://nav.amjun.com/api/favicon/{domain}.png', 'https://www.amjun.com')).toBe('https://nav.amjun.com/api/favicon/www.amjun.com.png')
+    expect(formatFaviconUrl('/api/favicon/{domain}.png', 'baidu.com')).toBe('/api/favicon/baidu.com.png')
+    expect(formatFaviconUrl('', 'https://www.amjun.com')).toBeNull()
+    expect(formatFaviconUrl('https://a.favicon.im', '')).toBeNull()
+  })
+})
 
 describe('initialOf', () => {
   it('returns the first character of a title', () => {

@@ -39,6 +39,44 @@ func CleanDomain(raw string) (string, error) {
 	return s, nil
 }
 
+// ExtractDomain extracts and cleans the domain hostname from a raw link URL.
+func ExtractDomain(rawURL string) string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return ""
+	}
+	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
+		rawURL = "https://" + rawURL
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	host := u.Hostname()
+	dom, err := CleanDomain(host)
+	if err != nil {
+		return ""
+	}
+	return dom
+}
+
+// FormatFaviconURL formats a favicon service URL using the template and domain.
+// Supports "{domain}" placeholder, or appends domain to prefix.
+func FormatFaviconURL(template, domain string) string {
+	template = strings.TrimSpace(template)
+	domain = strings.TrimSpace(domain)
+	if template == "" || domain == "" {
+		return ""
+	}
+	if strings.Contains(template, "{domain}") {
+		return strings.ReplaceAll(template, "{domain}", domain)
+	}
+	if strings.HasSuffix(template, "/") {
+		return template + domain
+	}
+	return template + "/" + domain
+}
+
 // GetOrFetchFavicon retrieves a cached favicon or fetches it from the remote site.
 func (s *Service) GetOrFetchFavicon(ctx context.Context, domain string) (string, error) {
 	dom, err := CleanDomain(domain)

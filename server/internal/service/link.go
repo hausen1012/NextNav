@@ -258,12 +258,8 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 		catName = cat.Name
 	}
 
-	var finalIconURL *string
-	if l.IconPath != nil && *l.IconPath != "" {
-		finalIconURL = IconURL(*l.IconPath)
-	} else if l.IconURL != nil && *l.IconURL != "" {
-		finalIconURL = l.IconURL
-	}
+	faviconService := s.store.GetSetting("site.favicon_service_url", "")
+	finalIconURL := s.resolveDisplayIconURL(l.IconPath, l.IconURL, l.URL, faviconService)
 
 	return &LinkDTO{
 		ID:            l.ID,

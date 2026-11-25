@@ -14,7 +14,7 @@ import {
   ContextMenuItem,
 } from '@/components/ui/context-menu'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
-import { hostOf } from '@/lib/utils'
+import { hostOf, formatFaviconUrl } from '@/lib/utils'
 import {
   Search,
   X,
@@ -1466,7 +1466,7 @@ export function HomePage() {
                             ? `/${linkModal.iconPath.replace(/^\//, '')}`
                             : linkModal.customIconUrl.trim()
                               ? linkModal.customIconUrl.trim()
-                              : null
+                              : formatFaviconUrl(data?.site.faviconServiceUrl, linkModal.url)
                       }
                       size={40}
                     />
@@ -1523,6 +1523,13 @@ export function HomePage() {
                     onClick={() => {
                       const trimmed = linkModal.url.trim()
                       if (!trimmed) return
+                      if (data?.site.faviconServiceUrl) {
+                        const generated = formatFaviconUrl(data.site.faviconServiceUrl, trimmed)
+                        if (generated) {
+                          setLinkModal((prev) => ({ ...prev, customIconUrl: generated }))
+                          return
+                        }
+                      }
                       try {
                         const u = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
                         if (u.hostname) {

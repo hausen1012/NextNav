@@ -22,12 +22,33 @@ func IconURL(path string) *string {
 	return &u
 }
 
+func (s *Service) resolveDisplayIconURL(iconPath, customIconURL *string, linkURL, faviconService string) *string {
+	if iconPath != nil && *iconPath != "" {
+		return IconURL(*iconPath)
+	}
+	if customIconURL != nil && *customIconURL != "" {
+		return customIconURL
+	}
+	faviconService = strings.TrimSpace(faviconService)
+	if faviconService != "" && linkURL != "" {
+		domain := ExtractDomain(linkURL)
+		if domain != "" {
+			res := FormatFaviconURL(faviconService, domain)
+			if res != "" {
+				return &res
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Service) GetPublicSite() PublicSiteDTO {
 	name := s.store.GetSetting("site.name", "NextNav")
 	desc := s.store.GetSetting("site.description", "")
 	bg := s.store.GetSetting("site.background", "")
 	logo := s.store.GetSetting("site.logo_path", "")
 	openNew := s.store.GetSetting("link.open_in_new_tab", "1") == "1"
+	favService := s.store.GetSetting("site.favicon_service_url", "")
 
 	var logoURL *string
 	if logo != "" {
@@ -36,11 +57,12 @@ func (s *Service) GetPublicSite() PublicSiteDTO {
 	}
 
 	return PublicSiteDTO{
-		Name:         name,
-		Description:  desc,
-		Background:   bg,
-		LogoURL:      logoURL,
-		OpenInNewTab: openNew,
+		Name:              name,
+		Description:       desc,
+		Background:        bg,
+		LogoURL:           logoURL,
+		OpenInNewTab:      openNew,
+		FaviconServiceURL: favService,
 	}
 }
 
@@ -79,13 +101,9 @@ func (s *Service) BuildCategoryTree(admin, withLinks bool) ([]GroupDTO, error) {
 		if err != nil {
 			return nil, err
 		}
+		faviconService := s.store.GetSetting("site.favicon_service_url", "")
 		for _, l := range allLinks {
-			var displayIconURL *string
-			if l.IconPath != nil && *l.IconPath != "" {
-				displayIconURL = IconURL(*l.IconPath)
-			} else if l.IconURL != nil && *l.IconURL != "" {
-				displayIconURL = l.IconURL
-			}
+			displayIconURL := s.resolveDisplayIconURL(l.IconPath, l.IconURL, l.URL, faviconService)
 
 			linksByCat[l.CategoryID] = append(linksByCat[l.CategoryID], LinkDTO{
 				ID:            l.ID,

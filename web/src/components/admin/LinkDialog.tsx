@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '@/lib/api'
+import { useHome } from '@/lib/query'
+import { formatFaviconUrl } from '@/lib/utils'
 import { Sparkles, Upload, Trash2, Globe } from 'lucide-react'
 import {
   Dialog,
@@ -45,6 +47,7 @@ export function LinkDialog({
   categories,
   onSuccess,
 }: LinkDialogProps) {
+  const { data: home } = useHome()
   const isEdit = Boolean(link?.id)
 
   const [title, setTitle] = useState('')
@@ -121,6 +124,13 @@ export function LinkDialog({
   function applyFaviconApi() {
     const trimmed = url.trim()
     if (!trimmed) return
+    if (home?.site.faviconServiceUrl) {
+      const generated = formatFaviconUrl(home.site.faviconServiceUrl, trimmed)
+      if (generated) {
+        setIconLink(generated)
+        return
+      }
+    }
     try {
       const u = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
       if (u.hostname) {
@@ -131,13 +141,15 @@ export function LinkDialog({
     }
   }
 
+  const globalFaviconUrl = formatFaviconUrl(home?.site.faviconServiceUrl, url)
+
   const previewIconUrl = stagedBlobUrl
     ? stagedBlobUrl
     : iconPath
       ? `/${iconPath.replace(/^\//, '')}`
       : iconLink.trim()
         ? iconLink.trim()
-        : null
+        : globalFaviconUrl
 
   async function handleAutoFetch() {
     const trimmed = url.trim()
