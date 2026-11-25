@@ -14,6 +14,7 @@ var (
 	ErrInvalidReorder       = errors.New("invalid reorder list")
 	ErrSubcategoriesExist   = errors.New("subcategories exist")
 	ErrSelfParent           = errors.New("cannot set self as parent")
+	ErrAlreadyRunning       = errors.New("already running")
 )
 
 type Service struct {

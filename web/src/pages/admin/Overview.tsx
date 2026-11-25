@@ -116,9 +116,19 @@ export function AdminOverviewPage() {
             <AlertTriangle className='size-4 text-amber-500' />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{isLoading ? '...' : deadOrWarnLinks.length}</div>
+            <div className='flex items-center justify-between'>
+              <div className='text-2xl font-bold'>{isLoading ? '...' : deadOrWarnLinks.length}</div>
+              {deadOrWarnLinks.length > 0 && (
+                <Button variant='ghost' size='sm' className='h-6 px-1.5 text-xs text-amber-600 dark:text-amber-400 gap-0.5' asChild>
+                  <Link to='/admin/links'>
+                    <span>排查</span>
+                    <ArrowUpRight className='size-3' />
+                  </Link>
+                </Button>
+              )}
+            </div>
             <p className='text-xs text-muted-foreground mt-1'>
-              {deadOrWarnLinks.length === 0 ? '所有链接正常' : '需要关注状态'}
+              {deadOrWarnLinks.length === 0 ? '所有链接正常' : '项链接异常或失效'}
             </p>
           </CardContent>
         </Card>

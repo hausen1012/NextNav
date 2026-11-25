@@ -26,6 +26,16 @@ export function useHome() {
   return useQuery({ queryKey: ['home'], queryFn: api.home, staleTime: 60 * 60 * 1000 })
 }
 
+export function useCheckStatus(polling = false) {
+  return useQuery({
+    queryKey: ['check-status'],
+    queryFn: api.getCheckStatus,
+    refetchInterval: (query) => {
+      return query.state.data?.running || polling ? 1000 : false
+    },
+  })
+}
+
 export async function clearAllApiCache() {
   if (typeof caches !== 'undefined') {
     try {

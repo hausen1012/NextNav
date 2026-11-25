@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Plus,
   ExternalLink,
@@ -13,8 +13,10 @@ import {
   Shield,
   RotateCcw,
   FolderInput,
+  Activity,
+  RefreshCw,
 } from 'lucide-react'
-import { useHome, useInvalidateHome } from '@/lib/query'
+import { useHome, useInvalidateHome, useCheckStatus } from '@/lib/query'
 import { api, type LinkDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -81,6 +83,43 @@ export function AdminLinksPage() {
   const [isBatchOperating, setIsBatchOperating] = useState(false)
   const [batchError, setBatchError] = useState<string | null>(null)
 
+  // Health check states
+  const { data: checkStatus, refetch: refetchCheckStatus } = useCheckStatus(true)
+  const [isStartingCheck, setIsStartingCheck] = useState(false)
+  const [checkingLinkId, setCheckingLinkId] = useState<number | null>(null)
+  const wasRunningRef = useRef(false)
+
+  useEffect(() => {
+    if (wasRunningRef.current && !checkStatus?.running) {
+      invalidate()
+    }
+    wasRunningRef.current = !!checkStatus?.running
+  }, [checkStatus?.running, invalidate])
+
+  async function handleCheckAll() {
+    try {
+      setIsStartingCheck(true)
+      await api.checkAll()
+      await refetchCheckStatus()
+    } catch {
+      // 容错
+    } finally {
+      setIsStartingCheck(false)
+    }
+  }
+
+  async function handleSingleCheck(link: LinkWithMeta) {
+    try {
+      setCheckingLinkId(link.id)
+      await api.checkLink(link.id)
+      invalidate()
+    } catch {
+      // 容错
+    } finally {
+      setCheckingLinkId(null)
+    }
+  }
+
   // Flatten links and category options
   const { flatCategories, flatLinks } = useMemo(() => {
     const categories: { id: number; name: string }[] = []
@@ -118,7 +157,8 @@ export function AdminLinksPage() {
       }
       if (selectedStatus !== 'all') {
         if (selectedStatus === 'private' && !link.isPrivate) return false
-        if (selectedStatus !== 'private' && link.status !== selectedStatus) return false
+        if (selectedStatus === 'issues' && link.status !== 'dead' && link.status !== 'warn') return false
+        if (selectedStatus !== 'private' && selectedStatus !== 'issues' && link.status !== selectedStatus) return false
       }
       return true
     })
@@ -240,10 +280,30 @@ export function AdminLinksPage() {
             管理站点收录的网站链接与健康状态
           </p>
         </div>
-        <Button size='sm' className='gap-1.5' onClick={openCreate}>
-          <Plus className='size-4' />
-          <span>添加链接</span>
-        </Button>
+        <div className='flex items-center gap-2'>
+          {checkStatus?.running ? (
+            <div className='flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-600 dark:text-amber-400'>
+              <RefreshCw className='size-3.5 animate-spin' />
+              <span>检测中 ({checkStatus.done} / {checkStatus.total})</span>
+            </div>
+          ) : (
+            <Button
+              variant='outline'
+              size='sm'
+              className='gap-1.5'
+              onClick={handleCheckAll}
+              disabled={isStartingCheck}
+            >
+              <Activity className='size-4 text-emerald-600 dark:text-emerald-400' />
+              <span>{isStartingCheck ? '正在启动...' : '检测全站健康'}</span>
+            </Button>
+          )}
+
+          <Button size='sm' className='gap-1.5' onClick={openCreate}>
+            <Plus className='size-4' />
+            <span>添加链接</span>
+          </Button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -287,9 +347,10 @@ export function AdminLinksPage() {
             className='h-8 rounded-md border border-input bg-background px-2.5 text-xs shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
           >
             <option value='all'>全部状态</option>
-            <option value='ok'>正常响应</option>
-            <option value='warn'>响应较慢</option>
+            <option value='issues'>失效与异常</option>
             <option value='dead'>链接失效</option>
+            <option value='warn'>响应较慢</option>
+            <option value='ok'>正常响应</option>
             <option value='private'>仅私有链接</option>
           </select>
 
@@ -499,27 +560,34 @@ export function AdminLinksPage() {
                     </TableCell>
 
                     <TableCell>
-                      {link.status === 'ok' && (
-                        <span className='inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium'>
-                          <CheckCircle2 className='size-3.5' />
-                          正常
-                        </span>
-                      )}
-                      {link.status === 'warn' && (
-                        <span className='inline-flex items-center gap-1 text-xs text-amber-500 font-medium'>
-                          <AlertCircle className='size-3.5' />
-                          较慢
-                        </span>
-                      )}
-                      {link.status === 'dead' && (
-                        <span className='inline-flex items-center gap-1 text-xs text-destructive font-medium'>
-                          <XCircle className='size-3.5' />
-                          失效
-                        </span>
-                      )}
-                      {link.status === 'unknown' && (
-                        <span className='text-xs text-muted-foreground'>未检测</span>
-                      )}
+                      <div className='flex flex-col gap-0.5'>
+                        {link.status === 'ok' && (
+                          <span className='inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium'>
+                            <CheckCircle2 className='size-3.5' />
+                            正常
+                          </span>
+                        )}
+                        {link.status === 'warn' && (
+                          <span className='inline-flex items-center gap-1 text-xs text-amber-500 font-medium'>
+                            <AlertCircle className='size-3.5' />
+                            较慢/异常
+                          </span>
+                        )}
+                        {link.status === 'dead' && (
+                          <span className='inline-flex items-center gap-1 text-xs text-destructive font-medium'>
+                            <XCircle className='size-3.5' />
+                            失效
+                          </span>
+                        )}
+                        {link.status === 'unknown' && (
+                          <span className='text-xs text-muted-foreground'>未检测</span>
+                        )}
+                        {link.lastCheckedAt ? (
+                          <span className='text-[10px] text-muted-foreground/70 font-mono'>
+                            {new Date(link.lastCheckedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        ) : null}
+                      </div>
                     </TableCell>
 
                     <TableCell className='text-center text-xs text-muted-foreground font-mono'>
@@ -528,6 +596,20 @@ export function AdminLinksPage() {
 
                     <TableCell className='text-right'>
                       <div className='flex items-center justify-end gap-1'>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='size-7 text-muted-foreground hover:text-emerald-600'
+                          onClick={() => handleSingleCheck(link)}
+                          disabled={checkingLinkId === link.id}
+                          title='检测健康'
+                        >
+                          {checkingLinkId === link.id ? (
+                            <RefreshCw className='size-3.5 animate-spin' />
+                          ) : (
+                            <Activity className='size-3.5' />
+                          )}
+                        </Button>
                         <Button
                           variant='ghost'
                           size='icon'

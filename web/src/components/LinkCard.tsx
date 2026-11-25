@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import type { LinkDTO } from '@/lib/api'
 import { SiteIcon } from '@/components/SiteIcon'
-import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check, Lock } from 'lucide-react'
+import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check, Lock, Activity } from 'lucide-react'
 
 function StatusDot({ status }: { status: LinkDTO['status'] }) {
   if (status === 'dead') {
     return <span className='absolute right-2 top-2 size-2 rounded-full bg-red-500' title='链接失效' />
   }
   if (status === 'warn') {
-    return <span className='absolute right-2 top-2 size-2 rounded-full bg-amber-400' title='响应较慢' />
+    return <span className='absolute right-2 top-2 size-2 rounded-full bg-amber-400' title='响应较慢/异常' />
   }
   return null
 }
@@ -20,6 +20,7 @@ interface LinkCardProps {
   onShowQR: (url: string, title: string) => void
   onEdit?: (link: LinkDTO) => void
   onDelete?: (link: LinkDTO) => void
+  onCheck?: (link: LinkDTO) => void
 }
 
 export function LinkCard({
@@ -29,6 +30,7 @@ export function LinkCard({
   onShowQR,
   onEdit,
   onDelete,
+  onCheck,
 }: LinkCardProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
@@ -214,6 +216,19 @@ export function LinkCard({
           {isAdmin ? (
             <>
               <div className='my-1 border-t border-slate-100 dark:border-neutral-800' />
+              {onCheck ? (
+                <button
+                  type='button'
+                  onClick={() => {
+                    setMenuPos(null)
+                    onCheck(link)
+                  }}
+                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-neutral-800'
+                >
+                  <Activity className='size-3.5 text-slate-400' />
+                  <span>检测健康</span>
+                </button>
+              ) : null}
               {onEdit ? (
                 <button
                   type='button'

@@ -65,6 +65,33 @@ export interface TokenInfo {
   lastUsedAt?: number | null
 }
 
+export interface CheckItem {
+  linkId: number
+  title: string
+  url: string
+  categoryName: string
+  status: 'ok' | 'warn' | 'dead' | 'unknown'
+  httpStatus?: number | null
+  latencyMs?: number | null
+  errorType?: string | null
+  checkedAt: number
+}
+
+export interface CheckStatusResponse {
+  running: boolean
+  done: number
+  total: number
+  startedAt: number
+}
+
+export interface SingleCheckResponse {
+  status: 'ok' | 'warn' | 'dead' | 'unknown'
+  httpStatus?: number | null
+  latencyMs?: number | null
+  errorType?: string | null
+  checkedAt: number
+}
+
 export class ApiError extends Error {
   code: string
   field?: string
@@ -229,4 +256,25 @@ export const api = {
       method: 'POST',
       ...json(data),
     }),
+
+  checkLink: (id: number) =>
+    request<SingleCheckResponse>(`/api/links/${id}/check`, { method: 'POST' }),
+
+  checkAll: () =>
+    request<{ started: boolean; total: number }>('/api/links/check-all', { method: 'POST' }),
+
+  getCheckStatus: () =>
+    request<CheckStatusResponse>('/api/check/status'),
+
+  listChecks: (params?: { status?: string; categoryId?: number; page?: number; pageSize?: number }) => {
+    const sp = new URLSearchParams()
+    if (params?.status) sp.set('status', params.status)
+    if (params?.categoryId) sp.set('categoryId', String(params.categoryId))
+    if (params?.page) sp.set('page', String(params.page))
+    if (params?.pageSize) sp.set('pageSize', String(params.pageSize))
+    const qs = sp.toString()
+    return request<{ items: CheckItem[]; total: number; page: number; pageSize: number }>(
+      qs ? `/api/checks?${qs}` : '/api/checks',
+    )
+  },
 }

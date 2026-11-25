@@ -819,3 +819,63 @@ func TestBackupExportImport(t *testing.T) {
 		t.Fatalf("import overwrite failed: %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestHealthCheckAPI(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	// 1. Get check status initially
+	rec := do(t, h, "GET", "/api/check/status", reqOpts{cookie: cookie})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get check status: %d %s", rec.Code, rec.Body)
+	}
+
+	// 2. Trigger check all
+	rec = do(t, h, "POST", "/api/links/check-all", reqOpts{cookie: cookie, origin: "http://example.com"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("check-all: %d %s", rec.Code, rec.Body)
+	}
+	var checkAllResp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &checkAllResp); err != nil {
+		t.Fatalf("unmarshal check-all: %v", err)
+	}
+	if checkAllResp["started"] != true {
+		t.Fatalf("expected started true, got %v", checkAllResp)
+	}
+
+	// 3. Single link check
+	catID, err := api.Service.Store().CreateCategory(&store.Category{Name: "Dev", Sort: 10})
+	if err != nil {
+		t.Fatalf("create category: %v", err)
+	}
+	linkID, err := api.Service.Store().CreateLink(&store.Link{
+		CategoryID: catID,
+		Title:      "Local Server",
+		URL:        "https://example.com",
+		Sort:       10,
+		TitleNorm:  "local server",
+		Host:       "example.com",
+		SearchText: "local server",
+	})
+	if err != nil {
+		t.Fatalf("create link: %v", err)
+	}
+
+	rec = do(t, h, "POST", fmt.Sprintf("/api/links/%d/check", linkID), reqOpts{cookie: cookie, origin: "http://example.com"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("single link check: %d %s", rec.Code, rec.Body)
+	}
+
+	// 4. Query checks list
+	rec = do(t, h, "GET", "/api/checks?status=all&page=1&pageSize=10", reqOpts{cookie: cookie})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list checks: %d %s", rec.Code, rec.Body)
+	}
+	var listResp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &listResp); err != nil {
+		t.Fatalf("unmarshal list checks: %v", err)
+	}
+	if listResp["items"] == nil {
+		t.Fatalf("expected items array in checks list")
+	}
+}

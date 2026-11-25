@@ -30,6 +30,12 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("POST /api/links/batch-delete", a.RequireAdmin(a.BatchDeleteLinks))
 	mux.HandleFunc("POST /api/links/batch-move", a.RequireAdmin(a.BatchMoveLinks))
 
+	// --- health checks ---
+	mux.HandleFunc("POST /api/links/{id}/check", a.RequireAdmin(a.CheckLink))
+	mux.HandleFunc("POST /api/links/check-all", a.RequireAdmin(a.CheckAll))
+	mux.HandleFunc("GET /api/check/status", a.RequireAdmin(a.GetCheckStatus))
+	mux.HandleFunc("GET /api/checks", a.RequireAdmin(a.ListChecks))
+
 	// --- write: categories ---
 	mux.HandleFunc("POST /api/categories", a.RequireAdmin(a.CreateCategory))
 	mux.HandleFunc("PATCH /api/categories/{id}", a.RequireAdmin(a.UpdateCategory))

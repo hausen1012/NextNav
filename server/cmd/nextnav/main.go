@@ -34,6 +34,11 @@ func main() {
 		slogx.Error("init admin", "err", err)
 		os.Exit(1)
 	}
+
+	appCtx, appCancel := context.WithCancel(context.Background())
+	defer appCancel()
+	svc.StartPeriodicChecker(appCtx, cfg.CheckInterval)
+
 	api := handler.NewAPI(svc, cfg.SecureCookie, webembed.FS())
 
 	addr := ":" + cfg.Port
