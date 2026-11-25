@@ -9,11 +9,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"nextnav/internal/slogx"
+	"nextnav/internal/store"
 )
 
 var (
 	ErrInvalidImageType = errors.New("invalid image type")
 	ErrImageTooLarge    = errors.New("image exceeds 1MB limit")
+)
+
+const (
+	iconSourceUpload = "upload"
+	iconSourceFetch  = "fetched"
 )
 
 // DetectImageType checks magic bytes or content type and returns canonical extension (.png, .jpg, .webp, .ico).
@@ -97,3 +105,150 @@ func (s *Service) SaveIconContent(data []byte, filename string) (string, error) 
 	relPath := filepath.ToSlash(filepath.Join("icons", p1, p2, fn))
 	return relPath, nil
 }
+
+// iconFilePath resolves a stored icon path to an absolute path inside data/icons.
+// It returns ok=false for anything that is not a plain path under icons/.
+func (s *Service) iconFilePath(relPath string) (string, bool) {
+	relPath = strings.TrimSpace(filepath.ToSlash(relPath))
+	if relPath == "" || strings.Contains(relPath, "..") || !strings.HasPrefix(relPath, "icons/") {
+		return "", false
+	}
+	full := filepath.Join(s.DataDir(), filepath.FromSlash(relPath))
+	return full, true
+}
+
+// resolveStoredIcon validates an incoming icon path. Empty (or nil) clears the
+// icon; otherwise it must be an existing file inside data/icons. It returns the
+// normalized relative path.
+func (s *Service) resolveStoredIcon(raw *string) (*string, error) {
+	if raw == nil || strings.TrimSpace(*raw) == "" {
+		return nil, nil
+	}
+	full, ok := s.iconFilePath(*raw)
+	if !ok {
+		return nil, ErrInvalidIconPath
+	}
+	if info, err := os.Stat(full); err != nil || info.IsDir() {
+		return nil, ErrInvalidIconPath
+	}
+	p := filepath.ToSlash(strings.TrimSpace(*raw))
+	return &p, nil
+}
+
+// SetLinkIcon points a link at a stored icon file, or clears it when iconPath
+// is nil. Arbitrary values are rejected so the database cannot reference files
+// outside the icon store.
+func (s *Service) SetLinkIcon(linkID int64, iconPath *string) (*LinkDTO, error) {
+	return s.applyLinkIcon(linkID, iconPath, iconSourceUpload)
+}
+
+// applyLinkIcon writes the icon and recycles the previous file when it is no
+// longer referenced.
+func (s *Service) applyLinkIcon(linkID int64, iconPath *string, source string) (*LinkDTO, error) {
+	cur, err := s.store.GetLink(linkID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	newPath, err := s.resolveStoredIcon(iconPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var src *string
+	if newPath != nil {
+		src = &source
+	}
+	if err := s.store.SetLinkIcon(linkID, newPath, src); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	if cur.IconPath != nil && (newPath == nil || *newPath != *cur.IconPath) {
+		s.CleanupIconIfUnreferenced(*cur.IconPath)
+	}
+	return s.GetLinkDTO(linkID)
+}
+
+// SaveLinkIconUpload stores an uploaded icon and attaches it to the link.
+func (s *Service) SaveLinkIconUpload(linkID int64, data []byte, filename string) (*LinkDTO, error) {
+	relPath, err := s.SaveIconContent(data, filename)
+	if err != nil {
+		return nil, err
+	}
+	return s.applyLinkIcon(linkID, &relPath, iconSourceUpload)
+}
+
+// CleanupIconIfUnreferenced removes the icon file when no link, category or
+// site logo points at it any more.
+func (s *Service) CleanupIconIfUnreferenced(relPath string) {
+	if strings.TrimSpace(relPath) == "" {
+		return
+	}
+	n, err := s.store.CountIconReferences(relPath)
+	if err != nil || n > 0 {
+		return
+	}
+	s.removeIconFile(relPath)
+}
+
+func (s *Service) removeIconFile(relPath string) {
+	full, ok := s.iconFilePath(relPath)
+	if !ok {
+		return
+	}
+	if err := os.Remove(full); err != nil && !os.IsNotExist(err) {
+		slogx.Warn("remove icon file", "path", relPath, "err", err)
+	}
+}
+
+// PurgeOrphanIcons deletes icon files that no row references and returns how
+// many were removed.
+func (s *Service) PurgeOrphanIcons() (int, error) {
+	referenced, err := s.store.ListIconPaths()
+	if err != nil {
+		return 0, err
+	}
+	keep := make(map[string]struct{}, len(referenced))
+	for _, p := range referenced {
+		keep[filepath.ToSlash(filepath.Clean(p))] = struct{}{}
+	}
+
+	base := filepath.Join(s.DataDir(), "icons")
+	var removed int
+	err = filepath.WalkDir(base, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			if os.IsNotExist(walkErr) {
+				return nil
+			}
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(s.DataDir(), path)
+		if err != nil {
+			return nil
+		}
+		rel = filepath.ToSlash(rel)
+		if _, ok := keep[rel]; ok {
+			return nil
+		}
+		if err := os.Remove(path); err != nil {
+			slogx.Warn("purge icon file", "path", rel, "err", err)
+			return nil
+		}
+		removed++
+		return nil
+	})
+	if err != nil && !os.IsNotExist(err) {
+		return removed, err
+	}
+	return removed, nil
+}
+
+func strPtr(s string) *string { return &s }

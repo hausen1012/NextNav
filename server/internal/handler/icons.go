@@ -1,11 +1,87 @@
 package handler
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"nextnav/internal/httpx"
+	"nextnav/internal/service"
 )
+
+// UploadLinkIcon replaces a link's icon with a user-supplied image.
+func (a *API) UploadLinkIcon(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(r)
+	if !ok {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024+1024)
+	if err := r.ParseMultipartForm(1024 * 1024); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "file_too_large", "文件大小不能超过 1MB")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请上传文件 (file 字段)")
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(io.LimitReader(file, 1024*1024+1))
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "读取上传文件失败")
+		return
+	}
+
+	d, err := a.Service.SaveLinkIconUpload(id, data, header.Filename)
+	switch {
+	case errors.Is(err, service.ErrNotFound):
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
+	case errors.Is(err, service.ErrImageTooLarge):
+		httpx.Fail(w, http.StatusBadRequest, "file_too_large", "文件大小不能超过 1MB")
+	case errors.Is(err, service.ErrInvalidImageType):
+		httpx.Fail(w, http.StatusBadRequest, "invalid_type", "仅支持 PNG、JPEG、WebP 或 ICO 格式的图片")
+	case err != nil:
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存图标失败")
+	default:
+		httpx.JSON(w, http.StatusOK, d)
+	}
+}
+
+// ClearLinkIcon removes a link's custom icon so the card falls back to the
+// letter placeholder.
+func (a *API) ClearLinkIcon(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(r)
+	if !ok {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
+		return
+	}
+	d, err := a.Service.SetLinkIcon(id, nil)
+	if errors.Is(err, service.ErrNotFound) {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "清除图标失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, d)
+}
+
+// PurgeOrphanIcons deletes cached icon files that no row references.
+func (a *API) PurgeOrphanIcons(w http.ResponseWriter, r *http.Request) {
+	removed, err := a.Service.PurgeOrphanIcons()
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "清理图标缓存失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]int{"removed": removed})
+}
 
 // ServeIcon serves cached icons from data/icons with immutable caching.
 // Only paths that resolve inside the icons directory are served.

@@ -107,6 +107,67 @@ func TestLinkBusinessRules(t *testing.T) {
 
 }
 
+func TestLinkIconRules(t *testing.T) {
+	svc, st := newTestService(t)
+
+	catID, err := svc.CreateCategory(service.CreateCategoryInput{Name: "图标测试"})
+	if err != nil {
+		t.Fatalf("create category: %v", err)
+	}
+
+	// 未保存过的路径一律拒绝，防止数据库引用任意文件
+	missing := "icons/ab/cd/0000000000000000.png"
+	_, err = svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID,
+		Title:      "Bad Icon",
+		URL:        "https://example.com/bad",
+		IconPath:   &missing,
+	})
+	if !errors.Is(err, service.ErrInvalidIconPath) {
+		t.Fatalf("expected ErrInvalidIconPath on create, got %v", err)
+	}
+
+	link, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID,
+		Title:      "Good",
+		URL:        "https://example.com/good",
+	})
+	if err != nil {
+		t.Fatalf("create link: %v", err)
+	}
+
+	// 上传后可写入，且 source 记为 upload
+	updated, err := svc.SaveLinkIconUpload(link.ID, samplePNG, "icon.png")
+	if err != nil {
+		t.Fatalf("save icon upload: %v", err)
+	}
+	if updated.IconPath == nil || *updated.IconPath == "" || updated.IconURL == nil {
+		t.Fatalf("expected icon path/url, got %+v", updated)
+	}
+
+	// 改 URL 时未传 iconPath，图标保持不变
+	otherURL := "https://example.com/good2"
+	kept, err := svc.UpdateLink(link.ID, service.UpdateLinkInput{URL: &otherURL})
+	if err != nil {
+		t.Fatalf("update link: %v", err)
+	}
+	if kept.IconPath == nil || *kept.IconPath != *updated.IconPath {
+		t.Fatalf("icon should be preserved, got %v", kept.IconPath)
+	}
+
+	// 清空后文件被回收
+	cleared, err := svc.SetLinkIcon(link.ID, nil)
+	if err != nil {
+		t.Fatalf("clear icon: %v", err)
+	}
+	if cleared.IconURL != nil {
+		t.Fatalf("expected nil iconUrl after clear, got %v", cleared.IconURL)
+	}
+	if n, err := st.CountIconReferences(*updated.IconPath); err != nil || n != 0 {
+		t.Fatalf("expected 0 references after clear, got %d err=%v", n, err)
+	}
+}
+
 func TestDefaultSortAndOrder(t *testing.T) {
 	svc, st := newTestService(t)
 

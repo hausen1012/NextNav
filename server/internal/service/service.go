@@ -14,6 +14,7 @@ var (
 	ErrSubcategoriesExist   = errors.New("subcategories exist")
 	ErrSelfParent           = errors.New("cannot set self as parent")
 	ErrAlreadyRunning       = errors.New("already running")
+	ErrInvalidIconPath      = errors.New("invalid icon path")
 )
 
 type Service struct {

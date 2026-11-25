@@ -4,7 +4,7 @@ import { useInvalidateHome } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Notice } from '@/components/Field'
-import { AlertTriangle, RefreshCw, Download, Upload, Database } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Download, Upload, Database, HardDrive } from 'lucide-react'
 
 export function AdminSystemMaintenancePage() {
   const invalidate = useInvalidateHome()
@@ -17,6 +17,7 @@ export function AdminSystemMaintenancePage() {
   const [importing, setImporting] = useState(false)
   const [importMode, setImportMode] = useState<'merge' | 'overwrite'>('merge')
   const [importFile, setImportFile] = useState<File | null>(null)
+  const [purgingIcons, setPurgingIcons] = useState(false)
 
   async function clearSample() {
     if (!window.confirm('将删除所有标记为示例的分类与链接，确定吗？')) return
@@ -54,6 +55,20 @@ export function AdminSystemMaintenancePage() {
       setError(err instanceof ApiError ? err.message : '备份导出失败')
     } finally {
       setExporting(false)
+    }
+  }
+
+  async function handlePurgeIcons() {
+    setPurgingIcons(true)
+    setNotice(null)
+    setError(null)
+    try {
+      const r = await api.purgeIcons()
+      setNotice(`已清理 ${r.removed} 个未被引用的图标文件`)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '清理图标缓存失败')
+    } finally {
+      setPurgingIcons(false)
     }
   }
 
@@ -204,9 +219,9 @@ export function AdminSystemMaintenancePage() {
         </CardHeader>
         <CardContent className='space-y-4'>
           <p className='text-sm text-muted-foreground'>
-            在多设备维护或数据未及时更新时，可主动重载最新数据状态。
+            多设备维护或数据未及时更新时，可主动重载最新数据状态；图标目录中的孤立文件可在此回收。
           </p>
-          <div>
+          <div className='flex flex-wrap gap-2'>
             <Button
               variant='outline'
               size='sm'
@@ -218,6 +233,16 @@ export function AdminSystemMaintenancePage() {
             >
               <RefreshCw className='size-3.5' />
               <span>刷新系统数据缓存</span>
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              className='gap-2 text-xs'
+              onClick={handlePurgeIcons}
+              disabled={purgingIcons}
+            >
+              <HardDrive className='size-3.5' />
+              <span>{purgingIcons ? '正在清理...' : '清理未引用图标'}</span>
             </Button>
           </div>
         </CardContent>

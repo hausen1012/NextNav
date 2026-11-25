@@ -14,6 +14,7 @@ type CreateLinkInput struct {
 	URL         string
 	BackupURL   *string
 	Description *string
+	IconPath    *string
 	Sort        *int64
 	IsPrivate   *bool
 }
@@ -24,6 +25,7 @@ type UpdateLinkInput struct {
 	URL         *string
 	BackupURL   *string
 	Description *string
+	IconPath    *string
 	Sort        *int64
 	IsPrivate   *bool
 }
@@ -74,12 +76,23 @@ func (s *Service) CreateLink(input CreateLinkInput) (*LinkDTO, error) {
 	titleNorm := normalizeTitle(input.Title)
 	searchText := buildSearchText(titleNorm, host, descStr, cat.Name)
 
+	iconPath, err := s.resolveStoredIcon(input.IconPath)
+	if err != nil {
+		return nil, err
+	}
+	var iconSource *string
+	if iconPath != nil {
+		iconSource = strPtr(iconSourceFetch)
+	}
+
 	l := &store.Link{
 		CategoryID:  input.CategoryID,
 		Title:       input.Title,
 		URL:         input.URL,
 		BackupURL:   input.BackupURL,
 		Description: input.Description,
+		IconPath:    iconPath,
+		IconSource:  iconSource,
 		Sort:        sortVal,
 		IsPrivate:   priv,
 		LastStatus:  "unknown",
@@ -159,6 +172,20 @@ func (s *Service) UpdateLink(id int64, input UpdateLinkInput) (*LinkDTO, error) 
 	titleNorm := normalizeTitle(title)
 	searchText := buildSearchText(titleNorm, host, descStr, cat.Name)
 
+	iconPath := cur.IconPath
+	iconSource := cur.IconSource
+	if input.IconPath != nil {
+		nextPath, err := s.resolveStoredIcon(input.IconPath)
+		if err != nil {
+			return nil, err
+		}
+		iconPath = nextPath
+		iconSource = nil
+		if nextPath != nil {
+			iconSource = strPtr(iconSourceFetch)
+		}
+	}
+
 	l := &store.Link{
 		ID:          id,
 		CategoryID:  catID,
@@ -166,8 +193,8 @@ func (s *Service) UpdateLink(id int64, input UpdateLinkInput) (*LinkDTO, error) 
 		URL:         linkURL,
 		BackupURL:   backupURL,
 		Description: desc,
-		IconPath:    cur.IconPath,
-		IconSource:  cur.IconSource,
+		IconPath:    iconPath,
+		IconSource:  iconSource,
 		Sort:        sortVal,
 		IsPrivate:   priv,
 		TitleNorm:   titleNorm,
@@ -181,11 +208,28 @@ func (s *Service) UpdateLink(id int64, input UpdateLinkInput) (*LinkDTO, error) 
 		}
 		return nil, err
 	}
+	if input.IconPath != nil && cur.IconPath != nil && *cur.IconPath != "" &&
+		(iconPath == nil || *iconPath != *cur.IconPath) {
+		s.CleanupIconIfUnreferenced(*cur.IconPath)
+	}
 	return s.GetLinkDTO(id)
 }
 
 func (s *Service) DeleteLink(id int64) error {
-	return s.store.DeleteLink(id)
+	l, err := s.store.GetLink(id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if err := s.store.DeleteLink(id); err != nil {
+		return err
+	}
+	if l.IconPath != nil {
+		s.CleanupIconIfUnreferenced(*l.IconPath)
+	}
+	return nil
 }
 
 func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
@@ -206,6 +250,7 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 		BackupURL:     l.BackupURL,
 		Description:   l.Description,
 		IconURL:       IconURL(iconStr),
+		IconPath:      l.IconPath,
 		CategoryID:    l.CategoryID,
 		CategoryName:  catName,
 		IsPrivate:     l.IsPrivate,
@@ -216,7 +261,20 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 }
 
 func (s *Service) BatchDeleteLinks(ids []int64) (int64, error) {
-	return s.store.BatchDeleteLinks(ids)
+	icons := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if l, err := s.store.GetLink(id); err == nil && l.IconPath != nil {
+			icons = append(icons, *l.IconPath)
+		}
+	}
+	n, err := s.store.BatchDeleteLinks(ids)
+	if err != nil {
+		return n, err
+	}
+	for _, p := range icons {
+		s.CleanupIconIfUnreferenced(p)
+	}
+	return n, nil
 }
 
 func (s *Service) BatchMoveLinks(ids []int64, targetCategoryID int64) (int64, error) {

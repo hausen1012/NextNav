@@ -9,6 +9,7 @@ export interface LinkDTO {
   backupUrl: string | null
   description: string | null
   iconUrl: string | null
+  iconPath?: string | null
   categoryId: number
   categoryName?: string
   isPrivate: boolean
@@ -115,10 +116,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // FormData must keep the browser-generated multipart boundary; only plain
+  // bodies get the JSON content type.
+  const isForm = init?.body instanceof FormData
   const res = await fetch(path, {
     credentials: 'same-origin',
     headers: {
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init?.body && !isForm ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers ?? {}),
     },
     ...init,
@@ -173,6 +177,7 @@ export const api = {
     url: string
     backupUrl?: string | null
     description?: string | null
+    iconPath?: string | null
     sort?: number
     isPrivate?: boolean
   }) => request<LinkDTO>('/api/links', { method: 'POST', ...json(body) }),
@@ -294,4 +299,15 @@ export const api = {
     request<void>('/api/settings/logo', {
       method: 'DELETE',
     }),
+
+  uploadLinkIcon: (id: number, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request<LinkDTO>(`/api/links/${id}/icon`, { method: 'POST', body: formData })
+  },
+
+  clearLinkIcon: (id: number) =>
+    request<LinkDTO>(`/api/links/${id}/icon`, { method: 'DELETE' }),
+
+  purgeIcons: () => request<{ removed: number }>('/api/icons/purge', { method: 'POST' }),
 }

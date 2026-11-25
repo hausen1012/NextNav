@@ -5,6 +5,7 @@ import { useHome, useMe, useInvalidateHome, clearHomeCache } from '@/lib/query'
 import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
+import { SiteIcon } from '@/components/SiteIcon'
 import { Logo } from '@/components/Logo'
 import {
   ContextMenu,
@@ -36,6 +37,7 @@ import {
   Sparkles,
   Trash2,
   ExternalLink,
+  Upload,
 } from 'lucide-react'
 
 // 搜索引擎配置
@@ -97,6 +99,8 @@ export function HomePage() {
     backupUrl: string
     categoryId: number
     description: string
+    iconPath: string
+    iconUrl: string | null
     isPrivate: boolean
     sort: number
   }>({
@@ -107,12 +111,17 @@ export function HomePage() {
     backupUrl: '',
     categoryId: 0,
     description: '',
+    iconPath: '',
+    iconUrl: null,
     isPrivate: false,
     sort: 10,
   })
   const [linkSubmitting, setLinkSubmitting] = useState(false)
   const [linkFetchingMeta, setLinkFetchingMeta] = useState(false)
+  const [linkUploadingIcon, setLinkUploadingIcon] = useState(false)
   const [linkFormError, setLinkFormError] = useState<string | null>(null)
+  const [linkIconFile, setLinkIconFile] = useState<File | null>(null)
+  const linkIconInputRef = useRef<HTMLInputElement>(null)
 
   const handleAutoFetchMeta = async () => {
     const trimmed = linkModal.url.trim()
@@ -126,11 +135,65 @@ export function HomePage() {
         title: prev.title || meta.title || '',
         description: prev.description || meta.description || '',
         url: meta.resolvedUrl || prev.url,
+        iconPath: prev.iconPath || meta.iconPath || '',
+        iconUrl: prev.iconUrl || meta.iconUrl || null,
       }))
     } catch {
       // 抓取失败不中断流程
     } finally {
       setLinkFetchingMeta(false)
+    }
+  }
+
+  const handleLinkIconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > 1024 * 1024) {
+      setLinkFormError('图标文件不能超过 1MB')
+      return
+    }
+    setLinkFormError(null)
+    if (linkModal.mode !== 'edit' || !linkModal.id) {
+      setLinkIconFile(file)
+      setLinkModal((prev) => ({
+        ...prev,
+        iconPath: '',
+        iconUrl: URL.createObjectURL(file),
+      }))
+      return
+    }
+    setLinkUploadingIcon(true)
+    try {
+      const updated = await api.uploadLinkIcon(linkModal.id, file)
+      setLinkModal((prev) => ({
+        ...prev,
+        iconPath: updated.iconPath || '',
+        iconUrl: updated.iconUrl,
+      }))
+      await invalidate()
+    } catch (err) {
+      setLinkFormError(err instanceof Error ? err.message : '图标上传失败')
+    } finally {
+      setLinkUploadingIcon(false)
+    }
+  }
+
+  const handleClearLinkIcon = async () => {
+    setLinkIconFile(null)
+    if (linkModal.mode !== 'edit' || !linkModal.id) {
+      setLinkModal((prev) => ({ ...prev, iconPath: '', iconUrl: null }))
+      return
+    }
+    setLinkUploadingIcon(true)
+    try {
+      await api.clearLinkIcon(linkModal.id)
+      setLinkModal((prev) => ({ ...prev, iconPath: '', iconUrl: null }))
+      await invalidate()
+    } catch (err) {
+      setLinkFormError(err instanceof Error ? err.message : '清除图标失败')
+    } finally {
+      setLinkUploadingIcon(false)
     }
   }
 
@@ -400,6 +463,7 @@ export function HomePage() {
   const openCreateLinkModal = (defaultCatId?: number) => {
     const firstCatId = defaultCatId || flatCategoryOptions[0]?.id || 0
     setLinkFormError(null)
+    setLinkIconFile(null)
     setLinkModal({
       open: true,
       mode: 'create',
@@ -408,6 +472,8 @@ export function HomePage() {
       backupUrl: '',
       categoryId: firstCatId,
       description: '',
+      iconPath: '',
+      iconUrl: null,
       isPrivate: false,
       sort: 10,
     })
@@ -415,6 +481,7 @@ export function HomePage() {
 
   const openEditLinkModal = (link: LinkDTO) => {
     setLinkFormError(null)
+    setLinkIconFile(null)
     setLinkModal({
       open: true,
       mode: 'edit',
@@ -424,6 +491,8 @@ export function HomePage() {
       backupUrl: link.backupUrl || '',
       categoryId: link.categoryId,
       description: link.description || '',
+      iconPath: link.iconPath || '',
+      iconUrl: link.iconUrl,
       isPrivate: link.isPrivate,
       sort: link.sort ?? 10,
     })
@@ -453,16 +522,21 @@ export function HomePage() {
         backupUrl: linkModal.backupUrl.trim() || null,
         categoryId: Number(linkModal.categoryId),
         description: linkModal.description.trim() || null,
+        iconPath: linkModal.iconPath || null,
         isPrivate: linkModal.isPrivate,
         sort: Number(linkModal.sort) || 10,
       }
 
       if (linkModal.mode === 'create') {
-        await api.createLink(payload)
+        const created = await api.createLink(payload)
+        if (linkIconFile) {
+          await api.uploadLinkIcon(created.id, linkIconFile)
+        }
       } else if (linkModal.id) {
         await api.updateLink(linkModal.id, payload)
       }
 
+      setLinkIconFile(null)
       await invalidate()
       setLinkModal((prev) => ({ ...prev, open: false }))
     } catch (err) {
@@ -1366,6 +1440,53 @@ export function HomePage() {
                   rows={2}
                   className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 resize-none'
                 />
+              </div>
+
+              {/* 图标 */}
+              <div>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
+                  链接图标
+                </label>
+                <div className='flex items-center gap-3'>
+                  <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full'>
+                    <SiteIcon
+                      name={linkModal.title || '?'}
+                      url={linkModal.url}
+                      iconUrl={linkModal.iconUrl}
+                      size={40}
+                    />
+                  </div>
+                  <input
+                    ref={linkIconInputRef}
+                    type='file'
+                    accept='image/png,image/jpeg,image/webp,image/x-icon'
+                    className='hidden'
+                    onChange={handleLinkIconChange}
+                  />
+                  <button
+                    type='button'
+                    disabled={linkUploadingIcon}
+                    onClick={() => linkIconInputRef.current?.click()}
+                    className='flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition'
+                  >
+                    <Upload className='size-3.5' />
+                    <span>{linkUploadingIcon ? '上传中...' : '上传图标'}</span>
+                  </button>
+                  {linkModal.iconUrl ? (
+                    <button
+                      type='button'
+                      disabled={linkUploadingIcon}
+                      onClick={handleClearLinkIcon}
+                      className='flex items-center gap-1 rounded-xl px-2 py-2 text-xs text-zinc-500 hover:text-red-600 disabled:opacity-40 dark:text-zinc-400 dark:hover:text-red-400 transition'
+                    >
+                      <Trash2 className='size-3.5' />
+                      <span>移除</span>
+                    </button>
+                  ) : null}
+                  <span className='text-[11px] text-zinc-400 dark:text-zinc-500'>
+                    不设置时使用抓取图标或首字母
+                  </span>
+                </div>
               </div>
 
               {/* 排序与私有状态 */}

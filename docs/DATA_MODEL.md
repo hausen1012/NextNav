@@ -141,6 +141,7 @@ CREATE INDEX idx_link_status        ON link(last_status);
 
 - **`url` 不做唯一约束**。同一个站点在不同分类下重复收录是合理需求；新增时检测到「同分类 + 同 URL」返回 409 由前端提示，但不强制。
 - `icon_source = 'upload'` 时 `icon_path` 必填；`'placeholder'` 表示走前端首字母渲染。
+- `icon_path` 只允许指向 `data/icons` 下已存在的文件；写入接口校验失败返回 `400 invalid_icon`。
 - `last_status` 是缓存值，权威数据在 `link_check`。
 
 ### 1.6 link_check
@@ -216,6 +217,7 @@ data/
 - 允许类型：`png` / `jpeg` / `webp` / `ico`。**禁止 SVG**（可内嵌脚本，作为图片返回仍有风险）。
 - 上传限制：单文件 ≤ 1 MB。抓取 favicon 同样走此限制，超限按失败处理。
 - `icon_path` 存相对 `data/` 的路径（如 `icons/ab/cd/....webp`），对外 URL 为 `/icons/ab/cd/....webp`。
+- 引用计数：链接、分类与 `site.logo_path` 都算引用。删除链接、清除图标或换 Logo 时，若文件引用归零则立即删除；`POST /api/icons/purge` 扫描目录回收其余孤立文件。
 
 ---
 

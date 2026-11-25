@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"nextnav/internal/httpx"
@@ -983,5 +984,194 @@ func TestUploadAndRemoveLogoAPI(t *testing.T) {
 	siteAfter := homeRespAfter["site"].(map[string]any)
 	if siteAfter["logoUrl"] != nil {
 		t.Fatalf("expected nil logoUrl, got %v", siteAfter["logoUrl"])
+	}
+}
+
+// uploadIcon posts a PNG as the icon of the given link.
+func uploadIcon(t *testing.T, h http.Handler, cookie *http.Cookie, linkID int) *httptest.ResponseRecorder {
+	t.Helper()
+	pngBytes := []byte{
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+		0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+		0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+		0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+		0x42, 0x60, 0x82,
+	}
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "icon.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(pngBytes); err != nil {
+		t.Fatal(err)
+	}
+	_ = writer.Close()
+
+	req := httptest.NewRequest("POST", fmt.Sprintf("/api/links/%d/icon", linkID), body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Origin", "http://example.com")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.AddCookie(cookie)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestUploadLinkIconAndClear(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	rec := uploadIcon(t, h, cookie, 1)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("upload icon: got %d %s", rec.Code, rec.Body)
+	}
+	d := decode[service.LinkDTO](t, rec)
+	if d.IconURL == nil || !strings.HasPrefix(*d.IconURL, "/icons/") {
+		t.Fatalf("expected icon url, got %v", d.IconURL)
+	}
+	iconURL := *d.IconURL
+
+	// The icon must be served and visible in the home payload.
+	if recIcon := do(t, h, "GET", iconURL, reqOpts{}); recIcon.Code != http.StatusOK {
+		t.Fatalf("serve icon: got %d", recIcon.Code)
+	}
+	home := decode[map[string]any](t, do(t, h, "GET", "/api/home", reqOpts{cookie: cookie}))
+	groups := home["groups"].([]any)
+	firstLink := groups[0].(map[string]any)["categories"].([]any)[0].(map[string]any)["links"].([]any)[0].(map[string]any)
+	if firstLink["iconUrl"] != iconURL {
+		t.Fatalf("home iconUrl = %v, want %v", firstLink["iconUrl"], iconURL)
+	}
+
+	// Clearing removes the reference and the now-unreferenced file.
+	recClear := do(t, h, "DELETE", "/api/links/1/icon", reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+	})
+	if recClear.Code != http.StatusOK {
+		t.Fatalf("clear icon: got %d %s", recClear.Code, recClear.Body)
+	}
+	if d = decode[service.LinkDTO](t, recClear); d.IconURL != nil {
+		t.Fatalf("expected nil iconUrl after clear, got %v", d.IconURL)
+	}
+	if recIcon := do(t, h, "GET", iconURL, reqOpts{}); recIcon.Code != http.StatusNotFound {
+		t.Fatalf("expected icon file deleted, got %d", recIcon.Code)
+	}
+}
+
+func TestUploadLinkIconRejectsBadInput(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	if rec := uploadIcon(t, h, cookie, 9999); rec.Code != http.StatusNotFound {
+		t.Fatalf("unknown link: got %d %s", rec.Code, rec.Body)
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "evil.svg")
+	_, _ = part.Write([]byte("<svg onload='alert(1)'></svg>"))
+	_ = writer.Close()
+	req := httptest.NewRequest("POST", "/api/links/1/icon", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Origin", "http://example.com")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.AddCookie(cookie)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for svg, got %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestLinkIconPathMustExistInStore(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	// A path that was never stored must not be accepted.
+	rec := do(t, h, "PATCH", "/api/links/1", reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+		body: map[string]any{"iconPath": "icons/ab/cd/not-real.png"},
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing icon, got %d %s", rec.Code, rec.Body)
+	}
+
+	// Traversal is rejected too.
+	rec = do(t, h, "PATCH", "/api/links/1", reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+		body: map[string]any{"iconPath": "icons/../../etc/passwd"},
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for traversal, got %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestDeleteLinkPurgesUnreferencedIcon(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	d := decode[service.LinkDTO](t, uploadIcon(t, h, cookie, 1))
+	iconURL := *d.IconURL
+
+	// Two links sharing the same icon file: deleting one must keep the file.
+	recDup := do(t, h, "POST", "/api/links", reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+		body: map[string]any{
+			"categoryId": 2, "title": "Google Mirror", "url": "https://google.example.com",
+			"iconPath": strings.TrimPrefix(iconURL, "/"),
+		},
+	})
+	if recDup.Code != http.StatusCreated {
+		t.Fatalf("create duplicate-icon link: got %d %s", recDup.Code, recDup.Body)
+	}
+
+	if rec := do(t, h, "DELETE", "/api/links/1", reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+	}); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete link: got %d %s", rec.Code, rec.Body)
+	}
+	if rec := do(t, h, "GET", iconURL, reqOpts{}); rec.Code != http.StatusOK {
+		t.Fatalf("shared icon should survive, got %d", rec.Code)
+	}
+
+	mirrorID := int(decode[service.LinkDTO](t, recDup).ID)
+	if rec := do(t, h, "DELETE", fmt.Sprintf("/api/links/%d", mirrorID), reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+	}); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete mirror: got %d %s", rec.Code, rec.Body)
+	}
+	if rec := do(t, h, "GET", iconURL, reqOpts{}); rec.Code != http.StatusNotFound {
+		t.Fatalf("last reference deleted should purge file, got %d", rec.Code)
+	}
+}
+
+func TestPurgeOrphanIconsAPI(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	d := decode[service.LinkDTO](t, uploadIcon(t, h, cookie, 1))
+	iconURL := *d.IconURL
+
+	// Drop the reference behind the API's back to simulate a stale file.
+	if _, err := api.Service.Store().DB.Exec(`UPDATE link SET icon_path = NULL, icon_source = NULL WHERE id = 1`); err != nil {
+		t.Fatalf("clear icon ref: %v", err)
+	}
+
+	rec := do(t, h, "POST", "/api/icons/purge", reqOpts{
+		cookie: cookie, origin: "http://example.com", fetchSite: "same-origin",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("purge: got %d %s", rec.Code, rec.Body)
+	}
+	if got := decode[map[string]int](t, rec)["removed"]; got != 1 {
+		t.Fatalf("expected 1 removed file, got %d", got)
+	}
+	if rec := do(t, h, "GET", iconURL, reqOpts{}); rec.Code != http.StatusNotFound {
+		t.Fatalf("orphan icon should be gone, got %d", rec.Code)
 	}
 }

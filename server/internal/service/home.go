@@ -91,6 +91,7 @@ func (s *Service) BuildCategoryTree(admin, withLinks bool) ([]GroupDTO, error) {
 				BackupURL:     l.BackupURL,
 				Description:   l.Description,
 				IconURL:       IconURL(iconStr),
+				IconPath:      l.IconPath,
 				CategoryID:    l.CategoryID,
 				IsPrivate:     l.IsPrivate,
 				Status:        l.LastStatus,

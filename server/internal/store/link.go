@@ -124,6 +124,71 @@ func (s *Store) UpdateLink(l *Link) error {
 	return nil
 }
 
+// SetLinkIcon updates a link's icon path and source. A nil path clears the icon.
+func (s *Store) SetLinkIcon(id int64, iconPath, iconSource *string) error {
+	now := time.Now().UnixMilli()
+	res, err := s.DB.Exec(
+		`UPDATE link SET icon_path = ?, icon_source = ?, updated_at = ? WHERE id = ?`,
+		nullableString(iconPath), nullableString(iconSource), now, id,
+	)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// CountIconReferences counts every row that still points at the icon path,
+// including categories and the site logo.
+func (s *Store) CountIconReferences(relPath string) (int64, error) {
+	if relPath == "" {
+		return 0, nil
+	}
+	var total int64
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM link WHERE icon_path = ?`, relPath).Scan(&total); err != nil {
+		return 0, err
+	}
+	var n int64
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM category WHERE icon_path = ?`, relPath).Scan(&n); err != nil {
+		return 0, err
+	}
+	total += n
+	if err := s.DB.QueryRow(`SELECT COUNT(*) FROM setting WHERE key = 'site.logo_path' AND value = ?`, relPath).Scan(&n); err != nil {
+		return 0, err
+	}
+	return total + n, nil
+}
+
+// ListIconPaths returns every icon path referenced by links, categories or the logo.
+func (s *Store) ListIconPaths() ([]string, error) {
+	rows, err := s.DB.Query(`
+		SELECT icon_path FROM link WHERE icon_path IS NOT NULL AND icon_path <> ''
+		UNION
+		SELECT icon_path FROM category WHERE icon_path IS NOT NULL AND icon_path <> ''
+		UNION
+		SELECT value FROM setting WHERE key = 'site.logo_path' AND value <> ''`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 // DeleteLink deletes a link by ID.
 func (s *Store) DeleteLink(id int64) error {
 	_, err := s.DB.Exec(`DELETE FROM link WHERE id = ?`, id)

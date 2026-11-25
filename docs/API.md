@@ -46,6 +46,7 @@
 | 400 | `bad_request` | JSON 解析失败、参数类型错误 |
 | 400 | `invalid_url` | URL 非法（非 http/https） |
 | 400 | `invalid_name` | 名称为空或超长（> 64 字符） |
+| 400 | `invalid_icon` | `iconPath` 不是已落盘的图标文件 |
 | 401 | `unauthorized` | 未登录执行写操作 / token 无效 |
 | 401 | `bad_credentials` | 用户名或密码错误 |
 | 403 | `csrf_failed` | cookie 写操作来源校验失败 |
@@ -86,6 +87,8 @@
 | DELETE | `/api/links/{id}` | 管理员 | 删除链接 |
 | POST | `/api/links/batch-delete` | 管理员 | 批量删除链接 |
 | POST | `/api/links/batch-move` | 管理员 | 批量移动链接到目标分类 |
+| POST | `/api/links/{id}/icon` | 管理员 | 上传自定义图标（multipart） |
+| DELETE | `/api/links/{id}/icon` | 管理员 | 移除自定义图标 |
 | GET | `/api/settings` | 公开 | 站点公开设置 |
 | PATCH | `/api/settings` | 管理员 | 修改站点设置 |
 | POST | `/api/settings/account` | 管理员 | 修改管理员用户名与密码 |
@@ -95,6 +98,7 @@
 | GET | `/api/backup/export` | 管理员 | 导出全站数据 JSON 备份 |
 | POST | `/api/backup/import` | 管理员 | 导入全站数据（支持 merge / overwrite） |
 | POST | `/api/sample/clear` | 管理员 | 清空预置示例数据 |
+| POST | `/api/icons/purge` | 管理员 | 清理未被引用的图标文件 |
 | GET | `/icons/*` | 公开 | 图标静态资源托管 |
 
 ### 1.2 规划中扩展端点
@@ -108,7 +112,6 @@
 | GET | `/api/check/status` | 管理员 | 检测进度查询 |
 | POST | `/api/meta` | 管理员 | 抓取 URL 元信息预览 |
 | GET | `/api/checks` | 管理员 | 检测记录查询（失效清单） |
-| POST | `/api/links/{id}/icon` | 管理员 | 上传自定义图标 |
 
 非 `/api` 的静态路径：`/icons/*`（图标，长缓存）、`/manifest.webmanifest`、`/sw.js`；其余路径一律返回 SPA 的 `index.html`。
 
@@ -224,6 +227,7 @@
   "url": "https://github.com",
   "backupUrl": null,
   "description": "代码托管",
+  "iconPath": "icons/ab/cd/abcdef0123456789.png",
   "sort": 1000,
   "isPrivate": false
 }
@@ -232,13 +236,13 @@
 - `categoryId` 与 `url` 为必填项；`url` 必须为 http/https。
 - `title` 为空时服务端使用 host 兜底（最多 128 字符）。
 - `backupUrl`、`description`、`sort`、`isPrivate` 为可选项。
+- `iconPath` 必须是 `/api/meta` 或图标上传接口已写入 `data/icons` 的相对路径（不带前导 `/`），否则 `400 invalid_icon`；不传则使用首字母占位。
 - 同分类下 URL 重复 → `409 duplicate_link`。
-- 响应 `201` + 完整链接对象。
+- 响应 `201` + 完整链接对象（含 `iconUrl` 与 `iconPath`）。
 
 ### PATCH /api/links/{id}
 
-只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。
-响应 `200` + 完整更新后的链接对象。
+只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `iconPath` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。`iconPath` 传 `null` 表示清除图标。响应 `200` + 完整更新后的链接对象。
 
 ### DELETE /api/links/{id}
 
@@ -295,10 +299,12 @@
 // 200
 { "resolvedUrl": "https://github.com/", "title": "GitHub",
   "description": "GitHub is where people build software.",
-  "host": "github.com", "iconUrl": "/icons/..." }
+  "host": "github.com", "iconUrl": "/icons/...", "iconPath": "icons/..." }
 ```
 
 抓取失败仍返回 `200`，字段尽量给：`{ "resolvedUrl": "...", "title": null, ... }`，前端回退到手填。
+
+抓到的 favicon 已写入 `data/icons`。把响应里的 `iconPath`（不含前导 `/`）随 `POST /api/links` 一起提交即可持久化该图标；不提交时该文件保持未被引用，可由 `POST /api/icons/purge` 回收。
 
 ---
 
@@ -478,7 +484,19 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 - 大小 ≤ 1 MB
 - 服务端重算内容哈希命名，不信任客户端文件名
 
-成功返回 `{ "iconUrl": "/icons/ab/cd/....webp" }`，并把该链接 `icon_source` 置 `upload`。
+成功返回 `200` + 更新后的完整链接对象，其中 `iconUrl` 为新图标地址，该链接 `icon_source` 置 `upload`。原图标若不再被任何链接、分类或站点 Logo 引用，立即从磁盘删除。
+
+### DELETE /api/links/{id}/icon
+
+`200` + 更新后的链接对象（`iconUrl` 为 `null`，卡片回退首字母占位），同样按引用计数回收文件。
+
+### POST /api/icons/purge
+
+扫描 `data/icons`，删除没有任何行引用的文件。
+
+```json
+{ "removed": 12 }
+```
 
 ---
 

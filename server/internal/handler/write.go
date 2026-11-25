@@ -28,6 +28,7 @@ type linkReq struct {
 	URL         string  `json:"url"`
 	BackupURL   *string `json:"backupUrl"`
 	Description *string `json:"description"`
+	IconPath    *string `json:"iconPath"`
 	Sort        *int64  `json:"sort"`
 	IsPrivate   *bool   `json:"isPrivate"`
 }
@@ -63,11 +64,16 @@ func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 		URL:         req.URL,
 		BackupURL:   req.BackupURL,
 		Description: req.Description,
+		IconPath:    req.IconPath,
 		Sort:        req.Sort,
 		IsPrivate:   req.IsPrivate,
 	})
 	if errors.Is(err, service.ErrNotFound) {
 		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不存在", "categoryId")
+		return
+	}
+	if errors.Is(err, service.ErrInvalidIconPath) {
+		httpx.FailField(w, http.StatusBadRequest, "invalid_icon", "图标文件不存在", "iconPath")
 		return
 	}
 	if errors.Is(err, service.ErrDuplicateLink) {
@@ -93,6 +99,7 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		URL         *string `json:"url"`
 		BackupURL   *string `json:"backupUrl"`
 		Description *string `json:"description"`
+		IconPath    *string `json:"iconPath"`
 		Sort        *int64  `json:"sort"`
 		IsPrivate   *bool   `json:"isPrivate"`
 	}
@@ -128,11 +135,16 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		URL:         req.URL,
 		BackupURL:   req.BackupURL,
 		Description: req.Description,
+		IconPath:    req.IconPath,
 		Sort:        req.Sort,
 		IsPrivate:   req.IsPrivate,
 	})
 	if errors.Is(err, service.ErrNotFound) {
 		httpx.FailField(w, http.StatusBadRequest, "bad_request", "分类不存在", "categoryId")
+		return
+	}
+	if errors.Is(err, service.ErrInvalidIconPath) {
+		httpx.FailField(w, http.StatusBadRequest, "invalid_icon", "图标文件不存在", "iconPath")
 		return
 	}
 	if errors.Is(err, service.ErrDuplicateLink) {
@@ -153,6 +165,10 @@ func (a *API) DeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.Service.DeleteLink(id); err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
+			return
+		}
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "删除失败")
 		return
 	}

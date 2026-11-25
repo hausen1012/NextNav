@@ -28,6 +28,8 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("DELETE /api/links/{id}", a.RequireAdmin(a.DeleteLink))
 	mux.HandleFunc("POST /api/links/batch-delete", a.RequireAdmin(a.BatchDeleteLinks))
 	mux.HandleFunc("POST /api/links/batch-move", a.RequireAdmin(a.BatchMoveLinks))
+	mux.HandleFunc("POST /api/links/{id}/icon", a.RequireAdmin(a.UploadLinkIcon))
+	mux.HandleFunc("DELETE /api/links/{id}/icon", a.RequireAdmin(a.ClearLinkIcon))
 	mux.HandleFunc("POST /api/meta", a.RequireAdmin(a.FetchMeta))
 
 	// --- health checks ---
@@ -58,6 +60,7 @@ func NewRouter(a *API) http.Handler {
 
 	// --- icons & sample data ---
 	mux.HandleFunc("GET /icons/", a.ServeIcon)
+	mux.HandleFunc("POST /api/icons/purge", a.RequireAdmin(a.PurgeOrphanIcons))
 	mux.HandleFunc("POST /api/sample/clear", a.RequireAdmin(a.ClearSample))
 
 	// Everything else is the SPA (client-side routing + static assets).
