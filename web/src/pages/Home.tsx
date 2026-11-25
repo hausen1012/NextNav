@@ -5,6 +5,7 @@ import { useHome, useMe, useInvalidateHome, clearHomeCache } from '@/lib/query'
 import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
+import { Logo } from '@/components/Logo'
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -614,17 +615,7 @@ export function HomePage() {
         {/* 顶部 Logo 与站点名称 */}
         <div className='flex h-16 items-center px-4 border-b border-zinc-200/60 dark:border-zinc-800/60'>
           <div className='flex items-center gap-2.5 truncate'>
-            {data.site.logoUrl ? (
-              <img
-                src={data.site.logoUrl}
-                alt={data.site.name}
-                className='size-8 object-contain rounded-full overflow-hidden'
-              />
-            ) : (
-              <div className='flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 font-bold text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'>
-                {data.site.name ? data.site.name.charAt(0).toUpperCase() : 'N'}
-              </div>
-            )}
+            <Logo src={data.site.logoUrl} alt={data.site.name} className='size-8' />
             <button
               type='button'
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

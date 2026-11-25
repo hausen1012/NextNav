@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Compass, LogIn, Loader2, Sun, Moon, ArrowLeft } from 'lucide-react'
+import { LogIn, Loader2, Sun, Moon, ArrowLeft } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import { api, ApiError } from '@/lib/api'
 import { clearHomeCache, useHome } from '@/lib/query'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
@@ -88,9 +89,7 @@ export function LoginPage() {
       <div className='mx-auto flex w-full flex-col justify-center space-y-4 py-8 sm:w-[380px]'>
         {/* 品牌标识 */}
         <div className='mb-2 flex items-center justify-center gap-2.5'>
-          <div className='flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs'>
-            <Compass className='size-4' />
-          </div>
+          <Logo src={homeData?.site.logoUrl} className='size-8' />
           <h1 className='text-xl font-medium tracking-tight text-foreground'>
             {siteName}
           </h1>

@@ -33,6 +33,16 @@ export default defineConfig({
             type: 'image/svg+xml',
             purpose: 'any',
           },
+          {
+            src: '/nextnav-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/nextnav-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
         ],
       },
       workbox: {

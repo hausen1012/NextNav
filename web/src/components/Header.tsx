@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { useMe, clearHomeCache } from '@/lib/query'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/Logo'
 import { Moon, Sun, LayoutDashboard, LogOut, RotateCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -35,8 +36,9 @@ export function Header({ siteName }: { siteName: string }) {
   return (
     <header className='sticky top-0 z-20 border-b bg-background/85 backdrop-blur'>
       <div className='mx-auto flex h-14 max-w-[1280px] items-center gap-3 px-4'>
-        <Link to='/' className='text-lg font-semibold tracking-tight'>
-          {siteName || 'NextNav'}
+        <Link to='/' className='flex items-center gap-2.5 text-lg font-semibold tracking-tight'>
+          <Logo className='size-7' />
+          <span>{siteName || 'NextNav'}</span>
         </Link>
         <div className='flex-1' />
         <Button
