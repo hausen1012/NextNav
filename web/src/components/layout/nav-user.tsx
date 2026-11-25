@@ -31,6 +31,12 @@ export function NavUser({ me }: NavUserProps) {
   const username = me?.username || '管理员'
   const initial = username.slice(0, 1).toUpperCase()
 
+  const handleLogout = async () => {
+    await api.logout()
+    await clearHomeCache()
+    window.location.href = '/'
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -38,8 +44,7 @@ export function NavUser({ me }: NavUserProps) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size='lg'
-              tooltip={username}
-              className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center'
+              className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:justify-center cursor-pointer'
             >
               <div className='flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-semibold text-xs'>
                 {initial}
@@ -52,7 +57,7 @@ export function NavUser({ me }: NavUserProps) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className='w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg'
+            className='w-56 rounded-lg'
             side={isMobile ? 'bottom' : 'right'}
             align='end'
             sideOffset={4}
@@ -76,7 +81,7 @@ export function NavUser({ me }: NavUserProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to='/' className='cursor-pointer'>
+              <Link to='/' target='_blank' rel='noopener noreferrer' className='cursor-pointer'>
                 <ExternalLink className='mr-2 size-4' />
                 <span>访问前台</span>
               </Link>
@@ -84,11 +89,7 @@ export function NavUser({ me }: NavUserProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className='cursor-pointer text-destructive focus:text-destructive'
-              onClick={async () => {
-                await api.logout()
-                await clearHomeCache()
-                window.location.href = '/'
-              }}
+              onClick={handleLogout}
             >
               <LogOut className='mr-2 size-4' />
               <span>退出登录</span>

@@ -6,7 +6,6 @@ import {
   SlidersHorizontal,
   ShieldCheck,
   Wrench,
-  ExternalLink,
   Compass,
 } from 'lucide-react'
 import {
@@ -80,18 +79,8 @@ export function AppSidebar({ siteName, me }: AppSidebarProps) {
         ))}
       </SidebarContent>
 
-      {/* Footer User & External Link */}
+      {/* Footer User */}
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip='访问前台'>
-              <Link to='/' target='_blank' rel='noopener noreferrer'>
-                <ExternalLink className='size-4' />
-                <span className='group-data-[collapsible=icon]:hidden'>访问前台</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
         <NavUser me={me} />
       </SidebarFooter>
 

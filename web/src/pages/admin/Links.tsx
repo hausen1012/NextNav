@@ -84,7 +84,7 @@ export function AdminLinksPage() {
   const [batchError, setBatchError] = useState<string | null>(null)
 
   // Health check states
-  const { data: checkStatus, refetch: refetchCheckStatus } = useCheckStatus(true)
+  const { data: checkStatus, refetch: refetchCheckStatus } = useCheckStatus()
   const [isStartingCheck, setIsStartingCheck] = useState(false)
   const [checkingLinkId, setCheckingLinkId] = useState<number | null>(null)
   const wasRunningRef = useRef(false)
@@ -418,7 +418,7 @@ export function AdminLinksPage() {
           <Table>
             <TableHeader>
               <TableRow className='hover:bg-transparent'>
-                <TableHead className='w-10 text-center'>
+                <TableHead className='w-10 text-center shrink-0'>
                   <input
                     type='checkbox'
                     aria-label='全选当页'
@@ -439,16 +439,16 @@ export function AdminLinksPage() {
                   />
                 </TableHead>
                 <TableHead
-                  className='cursor-pointer select-none'
+                  className='cursor-pointer select-none min-w-[180px]'
                   onClick={() => handleSort('title')}
                 >
                   <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
                     链接名称 {sortField === 'title' && (sortAsc ? '↑' : '↓')}
                   </span>
                 </TableHead>
-                <TableHead>网址 (URL)</TableHead>
+                <TableHead className='min-w-[200px]'>网址 (URL)</TableHead>
                 <TableHead
-                  className='cursor-pointer select-none'
+                  className='cursor-pointer select-none w-36'
                   onClick={() => handleSort('category')}
                 >
                   <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
@@ -456,7 +456,7 @@ export function AdminLinksPage() {
                   </span>
                 </TableHead>
                 <TableHead
-                  className='cursor-pointer select-none'
+                  className='cursor-pointer select-none w-28'
                   onClick={() => handleSort('status')}
                 >
                   <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>

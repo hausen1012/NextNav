@@ -10,12 +10,17 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
   }
 
   body {
     @apply min-h-svh w-full bg-background text-foreground antialiased has-[div[data-variant='inset']]:bg-sidebar;
     font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
       'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  body[data-scroll-locked] {
+    padding-right: 0px !important;
   }
 
   button:not(:disabled),

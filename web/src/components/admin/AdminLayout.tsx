@@ -65,7 +65,7 @@ export function AdminLayout() {
             'peer-data-[variant=inset]:min-h-[calc(100svh-1rem)]'
           )}
         >
-          <Header />
+          <Header me={me} />
           <Main>
             <Outlet />
           </Main>
