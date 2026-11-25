@@ -20,10 +20,11 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  RotateCw,
+  RefreshCw,
   Settings,
   Plus,
   ArrowUp,
+  User,
   LogOut,
   Menu,
   SquarePen,
@@ -557,7 +558,7 @@ export function HomePage() {
     return (
       <div className='flex min-h-screen items-center justify-center bg-[#f4f5f7] dark:bg-[#0f1114]'>
         <div className='flex flex-col items-center gap-3 text-zinc-400'>
-          <RotateCw className='size-8 animate-spin text-zinc-600 dark:text-zinc-300' />
+          <RefreshCw className='size-8 animate-spin text-zinc-600 dark:text-zinc-300' />
           <p className='text-sm font-medium'>正在加载导航数据...</p>
         </div>
       </div>
@@ -1130,10 +1131,10 @@ export function HomePage() {
             title='刷新导航数据'
             aria-label='刷新导航数据'
           >
-            <RotateCw className={`size-4 ${refreshing ? 'animate-spin text-zinc-900 dark:text-zinc-100' : ''}`} />
+            <RefreshCw className={`size-4 ${refreshing ? 'animate-spin text-zinc-900 dark:text-zinc-100' : ''}`} />
           </button>
 
-          {/* 后台管理入口 */}
+          {/* 后台管理入口 / 登录入口 */}
           {isAdmin ? (
             <Link
               to='/admin'
@@ -1148,7 +1149,7 @@ export function HomePage() {
               className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition'
               title='登录'
             >
-              <Settings className='size-4' />
+              <User className='size-4' />
             </Link>
           )}
 
