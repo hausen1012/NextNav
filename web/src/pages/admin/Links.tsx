@@ -21,7 +21,6 @@ import { api, type LinkDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -41,6 +40,8 @@ import {
 import { SiteIcon } from '@/components/SiteIcon'
 import { TablePagination } from '@/components/admin/TablePagination'
 import { LinkDialog } from '@/components/admin/LinkDialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DataTableColumnHeader } from '@/components/admin/DataTableColumnHeader'
 
 export interface LinkWithMeta extends LinkDTO {
   categoryName: string
@@ -185,6 +186,12 @@ export function AdminLinksPage() {
     const start = (page - 1) * pageSize
     return filteredLinks.slice(start, start + pageSize)
   }, [filteredLinks, page, pageSize])
+
+  const currentSelectedCount = useMemo(() => {
+    return paginatedLinks.filter((l) => selectedIds.has(l.id)).length
+  }, [paginatedLinks, selectedIds])
+  const isAllCurrentSelected = paginatedLinks.length > 0 && currentSelectedCount === paginatedLinks.length
+  const isSomeCurrentSelected = currentSelectedCount > 0 && !isAllCurrentSelected
 
   const hasFilter = keyword.trim() !== '' || selectedCatId !== 'all' || selectedStatus !== 'all'
 
@@ -412,66 +419,69 @@ export function AdminLinksPage() {
         </div>
       )}
 
-      {/* Main Table Card */}
-      <Card className='shadow-xs'>
-        <CardContent className='p-0'>
-          <Table>
+      {/* Main Table */}
+      <div className='overflow-hidden rounded-md border bg-card shadow-xs'>
+        <Table>
             <TableHeader>
               <TableRow className='hover:bg-transparent'>
-                <TableHead className='w-10 text-center shrink-0'>
-                  <input
-                    type='checkbox'
-                    aria-label='全选当页'
-                    checked={
-                      paginatedLinks.length > 0 &&
-                      paginatedLinks.every((l) => selectedIds.has(l.id))
-                    }
-                    onChange={(e) => {
-                      const next = new Set(selectedIds)
-                      if (e.target.checked) {
-                        paginatedLinks.forEach((l) => next.add(l.id))
-                      } else {
-                        paginatedLinks.forEach((l) => next.delete(l.id))
+                <TableHead className='w-12 text-center'>
+                  <div className='flex items-center justify-center'>
+                    <Checkbox
+                      aria-label='全选当页'
+                      checked={
+                        isAllCurrentSelected
+                          ? true
+                          : isSomeCurrentSelected
+                            ? 'indeterminate'
+                            : false
                       }
-                      setSelectedIds(next)
-                    }}
-                    className='size-4 rounded border-input align-middle cursor-pointer accent-primary'
+                      onCheckedChange={(checked) => {
+                        const next = new Set(selectedIds)
+                        if (checked) {
+                          paginatedLinks.forEach((l) => next.add(l.id))
+                        } else {
+                          paginatedLinks.forEach((l) => next.delete(l.id))
+                        }
+                        setSelectedIds(next)
+                      }}
+                    />
+                  </div>
+                </TableHead>
+                <TableHead className='min-w-[180px]'>
+                  <DataTableColumnHeader
+                    title='链接名称'
+                    isSorted={sortField === 'title' ? (sortAsc ? 'asc' : 'desc') : false}
+                    onToggle={() => handleSort('title')}
                   />
                 </TableHead>
-                <TableHead
-                  className='cursor-pointer select-none min-w-[180px]'
-                  onClick={() => handleSort('title')}
-                >
-                  <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                    链接名称 {sortField === 'title' && (sortAsc ? '↑' : '↓')}
-                  </span>
+                <TableHead className='min-w-[200px]'>
+                  <DataTableColumnHeader title='网址 (URL)' canSort={false} />
                 </TableHead>
-                <TableHead className='min-w-[200px]'>网址 (URL)</TableHead>
-                <TableHead
-                  className='cursor-pointer select-none w-36'
-                  onClick={() => handleSort('category')}
-                >
-                  <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                    归属分类 {sortField === 'category' && (sortAsc ? '↑' : '↓')}
-                  </span>
+                <TableHead className='w-36'>
+                  <DataTableColumnHeader
+                    title='归属分类'
+                    isSorted={sortField === 'category' ? (sortAsc ? 'asc' : 'desc') : false}
+                    onToggle={() => handleSort('category')}
+                  />
                 </TableHead>
-                <TableHead
-                  className='cursor-pointer select-none w-28'
-                  onClick={() => handleSort('status')}
-                >
-                  <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                    状态 {sortField === 'status' && (sortAsc ? '↑' : '↓')}
-                  </span>
+                <TableHead className='w-28'>
+                  <DataTableColumnHeader
+                    title='状态'
+                    isSorted={sortField === 'status' ? (sortAsc ? 'asc' : 'desc') : false}
+                    onToggle={() => handleSort('status')}
+                  />
                 </TableHead>
-                <TableHead
-                  className='cursor-pointer select-none w-20 text-center'
-                  onClick={() => handleSort('sort')}
-                >
-                  <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                    排序 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
-                  </span>
+                <TableHead className='w-20 text-center'>
+                  <DataTableColumnHeader
+                    title='排序'
+                    align='center'
+                    isSorted={sortField === 'sort' ? (sortAsc ? 'asc' : 'desc') : false}
+                    onToggle={() => handleSort('sort')}
+                  />
                 </TableHead>
-                <TableHead className='text-right w-24'>操作</TableHead>
+                <TableHead className='text-right w-24'>
+                  <DataTableColumnHeader title='操作' canSort={false} align='right' />
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -491,18 +501,18 @@ export function AdminLinksPage() {
                 paginatedLinks.map((link) => (
                   <TableRow key={link.id} className='transition-colors'>
                     <TableCell className='text-center'>
-                      <input
-                        type='checkbox'
-                        aria-label={`选择 ${link.title}`}
-                        checked={selectedIds.has(link.id)}
-                        onChange={(e) => {
-                          const next = new Set(selectedIds)
-                          if (e.target.checked) next.add(link.id)
-                          else next.delete(link.id)
-                          setSelectedIds(next)
-                        }}
-                        className='size-4 rounded border-input align-middle cursor-pointer accent-primary'
-                      />
+                      <div className='flex items-center justify-center'>
+                        <Checkbox
+                          aria-label={`选择 ${link.title}`}
+                          checked={selectedIds.has(link.id)}
+                          onCheckedChange={(checked) => {
+                            const next = new Set(selectedIds)
+                            if (checked) next.add(link.id)
+                            else next.delete(link.id)
+                            setSelectedIds(next)
+                          }}
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className='flex items-center gap-2.5 min-w-[200px]'>
@@ -635,22 +645,19 @@ export function AdminLinksPage() {
               )}
             </TableBody>
           </Table>
+        </div>
 
-          {/* Clean Shadcn Pagination */}
-          {filteredLinks.length > 0 && (
-            <div className='p-3'>
-              <TablePagination
-                page={page}
-                pageSize={pageSize}
-                total={filteredLinks.length}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-                pageSizeOptions={[10, 20, 50]}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Clean Shadcn Pagination */}
+        {filteredLinks.length > 0 && (
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={filteredLinks.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 20, 50]}
+          />
+        )}
 
       {/* Create / Edit Dialog */}
       <LinkDialog

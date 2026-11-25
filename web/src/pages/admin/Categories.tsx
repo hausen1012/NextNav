@@ -31,7 +31,6 @@ import { useHome, useInvalidateHome } from '@/lib/query'
 import { api, type GroupDTO, type CategoryDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -40,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { DataTableColumnHeader } from '@/components/admin/DataTableColumnHeader'
 import {
   Dialog,
   DialogContent,
@@ -430,45 +430,49 @@ export function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* Tree Table Card */}
-      <Card className='shadow-xs'>
-        <CardContent className='p-0'>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <Table>
+      {/* Tree Table */}
+      <div className='overflow-hidden rounded-md border bg-card shadow-xs'>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <Table>
               <TableHeader>
                 <TableRow className='hover:bg-transparent'>
                   <TableHead className='w-8' />
-                  <TableHead
-                    className='cursor-pointer select-none min-w-[240px]'
-                    onClick={() => handleSort('name')}
-                  >
-                    <span className='inline-flex items-center gap-1 font-semibold text-xs text-foreground'>
-                      分类名称 {sortField === 'name' && (sortAsc ? '↑' : '↓')}
-                    </span>
+                  <TableHead className='min-w-[240px]'>
+                    <DataTableColumnHeader
+                      title='分类名称'
+                      isSorted={sortField === 'name' ? (sortAsc ? 'asc' : 'desc') : false}
+                      onToggle={() => handleSort('name')}
+                    />
                   </TableHead>
-                  <TableHead className='min-w-[160px]'>描述说明</TableHead>
-                  <TableHead
-                    className='cursor-pointer select-none w-20 text-center'
-                    onClick={() => handleSort('sort')}
-                  >
-                    <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                      排序 {sortField === 'sort' && (sortAsc ? '↑' : '↓')}
-                    </span>
+                  <TableHead className='min-w-[160px]'>
+                    <DataTableColumnHeader title='描述说明' canSort={false} />
                   </TableHead>
-                  <TableHead
-                    className='cursor-pointer select-none w-24 text-center'
-                    onClick={() => handleSort('links')}
-                  >
-                    <span className='inline-flex w-full items-center justify-center gap-1 font-semibold text-xs text-foreground'>
-                      直属链接 {sortField === 'links' && (sortAsc ? '↑' : '↓')}
-                    </span>
+                  <TableHead className='w-20 text-center'>
+                    <DataTableColumnHeader
+                      title='排序'
+                      align='center'
+                      isSorted={sortField === 'sort' ? (sortAsc ? 'asc' : 'desc') : false}
+                      onToggle={() => handleSort('sort')}
+                    />
                   </TableHead>
-                  <TableHead className='w-20 text-center'>可见性</TableHead>
-                  <TableHead className='text-right w-40'>操作</TableHead>
+                  <TableHead className='w-24 text-center'>
+                    <DataTableColumnHeader
+                      title='直属链接'
+                      align='center'
+                      isSorted={sortField === 'links' ? (sortAsc ? 'asc' : 'desc') : false}
+                      onToggle={() => handleSort('links')}
+                    />
+                  </TableHead>
+                  <TableHead className='w-20 text-center'>
+                    <DataTableColumnHeader title='可见性' canSort={false} align='center' />
+                  </TableHead>
+                  <TableHead className='text-right w-40'>
+                    <DataTableColumnHeader title='操作' canSort={false} align='right' />
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -733,8 +737,7 @@ export function AdminCategoriesPage() {
               </TableBody>
             </Table>
           </DndContext>
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Shared Category Dialog */}
       <CategoryDialog
