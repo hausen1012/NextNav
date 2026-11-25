@@ -14,8 +14,8 @@
 | 1 | 产品名 | **NextNav**。暂不做图形 logo，页头用文字字标渲染；管理员可在设置页改站点名、描述、背景，并上传自己的 logo |
 | 2 | 用户模型 | 单用户。用户名 + 密码，无注册入口、无角色。登录 = 管理员。账号在首次安装向导中创建 |
 | 3 | 可见性 | **公开可读**：未登录可浏览公开分类与链接。**默认全部公开，私有需手动勾选**；`is_private` 内容仅登录可见 |
-| 4 | 技术栈 | **Go 后端 + React 前端**：Go 单二进制（`go:embed` 内嵌前端构建产物）+ SQLite；前端 Vite + React + Tailwind + shadcn/ui。**首要约束是低内存占用** |
-| 5 | 渲染方式 | **纯 SPA**（前端路由 + JSON API），不做 SSR/SEO。首屏依赖 JS，靠控制包体与内联关键样式弥补 |
+| 4 | 技术栈 | **Go 后端 + React 前端**：Go 单二进制（`go:embed` 内嵌前端构建产物）+ SQLite；前端 Vite + React + Tailwind + shadcn/ui |
+| 5 | 渲染方式 | **纯 SPA**（前端路由 + JSON API），不做 SSR/SEO |
 | 6 | 前台/后台 | 双端架构：前台专注公开访问与导航浏览；管理员登录后通过顶部入口进入管理后台（`/admin`，基于 shadcn-admin 架构）统一维护数据 |
 | 7 | 移动端 | 与桌面同一套响应式布局，前台网格与后台管理端均自适应移动端屏幕 |
 | 8 | AI 与拼音检索 | **不做**。检索只走纯文本关键词（标题/域名/描述/分类名）即时匹配，避免引入重型分词或拼音词典包 |
@@ -42,7 +42,7 @@
 **不做（Non-goals，明确划线）**：
 - 多用户、注册、邀请码、分类权限
 - 访客投稿 / 审核流程
-- AI 检索 / 拼音检索（检索路径聚焦于标题/域名/描述/分类名纯关键词即时匹配，不引入拼音字库以保证极速与小包体）
+- AI 检索 / 拼音检索（检索路径聚焦于标题/域名/描述/分类名纯关键词即时匹配）
 - 浏览器书签 HTML 导入（不做外部 HTML 导入）
 - 反向代理、HTTPS 证书、编排多服务、运维手册（部署只做 Docker + compose）
 - 主题市场、插件系统、一键在线升级
@@ -144,7 +144,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 
 | 层 | 选择 | 理由 |
 |---|---|---|
-| 后端 | Go（net/http + chi 或 stdlib 路由） | 单个静态二进制，常驻内存约 20–40 MB；比 Node 常驻进程轻一个数量级 |
+| 后端 | Go（net/http + chi 或 stdlib 路由） | 单个静态二进制，无额外外部依赖与独立运行时 |
 | 内嵌资源 | `go:embed` 把前端 `dist/` 打进二进制 | 部署只有一个文件 + 一个数据目录，没有静态服务器 |
 | 数据库 | SQLite（`modernc.org/sqlite` 纯 Go 驱动，无需 CGO；或 mattn/go-sqlite3） | 单文件、零运维；跨平台交叉编译时纯 Go 驱动更省事 |
 | 迁移 | 内嵌 SQL 迁移文件（如 goose / golang-migrate 的内嵌模式） | 二进制自带 schema 版本，启动自动迁移 |
@@ -155,7 +155,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 | 密码 | argon2id（golang.org/x/crypto/argon2） | 标准库生态内即可实现，无需外部依赖 |
 | 定时任务 | 进程内 goroutine ticker + 数据库锁标记 | 单实例够用；间隔读 `CHECK_INTERVAL` |
 | 图标 | 服务端抓取 + 本地存储 | 避免前端每次请求第三方 |
-| 部署 | 多阶段 Dockerfile：Node 构建前端 → Go 编译 → 极小运行镜像（distroless/scratch + CA 证书） | 最终镜像约 20–30 MB；**前端产物已 `go:embed` 进二进制，服务端是唯一入口**，静态资源与 `/api` 都由同一个 Go 服务提供，生产反代只需一条规则 |
+| 部署 | 多阶段 Dockerfile：Node 构建前端 → Go 编译 → 极小运行镜像（distroless/scratch + CA 证书） | **前端产物已 `go:embed` 进二进制，服务端是唯一入口**，静态资源与 `/api` 都由同一个 Go 服务提供，生产反代只需一条规则 |
 | 测试 | Go `testing`（后端纯逻辑）+ Vitest（前端组件） | 重点覆盖：搜索匹配与排序、健康检测错误判定、导入合并、种子数据 |
 
 ---
@@ -168,7 +168,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 | M1 可用 | A1–A6 + B1–B2 + C3–C5 + C8（C1/C2 已在 M0 完成） | 完成安装后首页即有预置演示内容；能自行录入 20 个链接，完整浏览、即时搜索，手机可用，未登录可读公开内容 |
 | M2 增强 | D1–D3 + B4 + C6–C7 + F2–F3 | 备用链接/二维码/拖拽/备份导入/API 全部可用 |
 | M3 健康 | E1–E4 | 检测能正确标红失效站，可筛选可手动重测 |
-| M4 打磨 | F4–F5、E5、性能与动效 | Lighthouse 移动端 ≥ 90；首屏 JS（gzip 后）< 200 KB；服务端常驻内存 < 80 MB |
+| M4 打磨 | F4–F5、E5、性能与动效 | Lighthouse 移动端 ≥ 90，全站交互流畅无卡顿 |
 
 ---
 
@@ -183,7 +183,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 6. 健康检测频率由环境变量 `CHECK_INTERVAL` 决定，默认每天一次。
 7. 站点名为 NextNav，本期不做图形 logo，页头直接排文字字标；管理员可在设置页修改站点名/描述/背景，并可选上传自己的 logo。
 8. 安装向导支持勾选是否导入预置演示数据（默认不勾选，见第 8 节）；设置页提供「清空示例数据」按钮。
-9. 技术栈：Go（`go:embed` 内嵌前端）+ SQLite，前端 React + shadcn/ui；以**低内存占用**为首要约束。纯 SPA，不做 SSR。
+9. 技术栈：Go（`go:embed` 内嵌前端）+ SQLite，前端 React + shadcn/ui。纯 SPA，不做 SSR。
 10. API 统一为 `/api`：中间件按 Bearer token 或 cookie 判定身份（游客只读公开内容），写操作仅对 cookie 身份做 CSRF 同源校验。
 
 ---
