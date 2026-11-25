@@ -78,20 +78,30 @@ function Reset-ConsoleState {
     try {
         [Console]::TreatControlCAsInput = $false
         [Console]::ResetColor()
-        while ([Console]::KeyAvailable) {
+        $flushLimit = 50
+        while ([Console]::KeyAvailable -and $flushLimit -gt 0) {
             [void][Console]::ReadKey($true)
+            $flushLimit--
         }
     } catch {}
 }
 
 function Stop-PortProcess([int]$Port) {
     try {
-        $conns = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
-        foreach ($c in $conns) {
-            if ($c.OwningProcess -and $c.OwningProcess -ne $PID -and $c.OwningProcess -ne 0) {
-                try {
-                    & taskkill /PID $c.OwningProcess /T /F *>$null
-                } catch {}
+        $lines = netstat -ano -p tcp | Select-String ":$Port\s"
+        $killed = @{}
+        foreach ($line in $lines) {
+            $parts = ($line.ToString().Trim() -split '\s+')
+            if ($parts.Count -ge 5 -and $parts[1] -match ":$Port$") {
+                $targetPid = 0
+                if ([int]::TryParse($parts[-1], [ref]$targetPid)) {
+                    if ($targetPid -gt 0 -and $targetPid -ne $PID -and -not $killed.ContainsKey($targetPid)) {
+                        $killed[$targetPid] = $true
+                        try {
+                            & taskkill /PID $targetPid /T /F *>$null
+                        } catch {}
+                    }
+                }
             }
         }
     } catch {}
@@ -168,9 +178,11 @@ function Invoke-Dev {
         Write-Host ''
         Write-Host 'Stopping services...' -ForegroundColor DarkGray
         foreach ($p in @($backend, $frontend)) {
-            if ($p -and -not $p.HasExited) {
+            if ($p) {
                 try {
-                    & taskkill /PID $p.Id /T /F *>$null
+                    if (-not $p.HasExited) {
+                        & taskkill /PID $p.Id /T /F *>$null
+                    }
                 } catch {}
             }
         }
