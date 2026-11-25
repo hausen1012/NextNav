@@ -1,4 +1,4 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useHome, useMe } from '@/lib/query'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function AdminLayout() {
+  const location = useLocation()
   const { data: me, isLoading: meLoading } = useMe()
   const { data: home } = useHome()
   const defaultOpen = getCookie('sidebar_state') !== 'false'
@@ -43,7 +44,7 @@ export function AdminLayout() {
             </div>
             <div className='pt-2'>
               <Link
-                to='/login'
+                to={`/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`}
                 className='inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90'
               >
                 前往登录

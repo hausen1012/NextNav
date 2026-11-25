@@ -1,6 +1,4 @@
 import { Link, Outlet, createBrowserRouter, RouterProvider, useRouteError, Navigate } from 'react-router-dom'
-import { Header } from './components/Header'
-import { useHome } from './lib/query'
 import { HomePage } from './pages/Home'
 import { LoginPage } from './pages/Login'
 
@@ -18,13 +16,9 @@ function Layout() {
 }
 
 function AuthLayout() {
-  const { data } = useHome()
   return (
-    <div className='min-h-dvh'>
-      <Header siteName={data?.site.name ?? 'NextNav'} />
-      <main className='mx-auto flex max-w-md flex-col px-4 py-12'>
-        <Outlet />
-      </main>
+    <div className='min-h-svh bg-background text-foreground antialiased'>
+      <Outlet />
     </div>
   )
 }
@@ -72,12 +66,13 @@ const router = createBrowserRouter([
       { path: '*', element: <NotFound /> },
     ],
   },
-  // Auth layout (Login)
+  // Auth layout (Login / Sign-in)
   {
     element: <AuthLayout />,
     errorElement: <ErrorBoundary />,
     children: [
       { path: 'login', element: <LoginPage /> },
+      { path: 'sign-in', element: <LoginPage /> },
     ],
   },
   // shadcn-admin Management Portal
