@@ -5,6 +5,12 @@ import { useHome, useMe, useInvalidateHome, clearHomeCache } from '@/lib/query'
 import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from '@/components/ui/context-menu'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { hostOf } from '@/lib/utils'
 import {
@@ -638,48 +644,136 @@ export function HomePage() {
             return (
               <div key={group.id} className='space-y-0.5'>
                 {/* 一级分类项 */}
-                <div
-                  className={`group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition cursor-pointer ${
-                    isGroupActive
-                      ? 'bg-zinc-200/80 text-zinc-950 dark:bg-zinc-800/80 dark:text-zinc-100 font-semibold shadow-2xs'
-                      : 'text-zinc-600 hover:bg-zinc-200/40 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100'
-                  }`}
-                  onClick={() => scrollToCategory(`group-${group.id}`)}
-                >
-                  <div className='flex items-center gap-2.5 truncate'>
-                    <CategoryIcon
-                      icon={group.icon || group.iconUrl}
-                      isRoot={true}
-                      className={`size-4 shrink-0 ${isGroupActive ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`}
-                    />
-                    <span className='truncate'>{group.name}</span>
-                  </div>
+                {isAdmin ? (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className={`group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition cursor-pointer ${
+                          isGroupActive
+                            ? 'bg-zinc-200/80 text-zinc-950 dark:bg-zinc-800/80 dark:text-zinc-100 font-semibold shadow-2xs'
+                            : 'text-zinc-600 hover:bg-zinc-200/40 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100'
+                        }`}
+                        onClick={() => scrollToCategory(`group-${group.id}`)}
+                      >
+                        <div className='flex items-center gap-2.5 truncate'>
+                          <CategoryIcon
+                            icon={group.icon || group.iconUrl}
+                            isRoot={true}
+                            className={`size-4 shrink-0 ${isGroupActive ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`}
+                          />
+                          <span className='truncate'>{group.name}</span>
+                        </div>
 
-                  {/* 折叠/展开箭头 (无多余编辑按钮) */}
-                  {hasSub && (
-                    <button
-                      type='button'
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleGroup(group.id)
-                      }}
-                      className='rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition'
-                    >
-                      {isGroupOpen ? (
-                        <ChevronDown className='size-3.5' />
-                      ) : (
-                        <ChevronRight className='size-3.5' />
-                      )}
-                    </button>
-                  )}
-                </div>
+                        {/* 折叠/展开箭头 */}
+                        {hasSub && (
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleGroup(group.id)
+                            }}
+                            className='rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition'
+                          >
+                            {isGroupOpen ? (
+                              <ChevronDown className='size-3.5' />
+                            ) : (
+                              <ChevronRight className='size-3.5' />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className='w-36'>
+                      <ContextMenuItem onClick={() => openEditCategoryModal(group)}>
+                        <SquarePen className='mr-2 size-3.5 text-zinc-500' />
+                        <span>编辑分类</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        variant='destructive'
+                        onClick={() => setDeletingCategory({ id: group.id, name: group.name })}
+                      >
+                        <Trash2 className='mr-2 size-3.5' />
+                        <span>删除分类</span>
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ) : (
+                  <div
+                    className={`group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition cursor-pointer ${
+                      isGroupActive
+                        ? 'bg-zinc-200/80 text-zinc-950 dark:bg-zinc-800/80 dark:text-zinc-100 font-semibold shadow-2xs'
+                        : 'text-zinc-600 hover:bg-zinc-200/40 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100'
+                    }`}
+                    onClick={() => scrollToCategory(`group-${group.id}`)}
+                  >
+                    <div className='flex items-center gap-2.5 truncate'>
+                      <CategoryIcon
+                        icon={group.icon || group.iconUrl}
+                        isRoot={true}
+                        className={`size-4 shrink-0 ${isGroupActive ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 group-hover:text-zinc-700 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`}
+                      />
+                      <span className='truncate'>{group.name}</span>
+                    </div>
+
+                    {/* 折叠/展开箭头 */}
+                    {hasSub && (
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleGroup(group.id)
+                        }}
+                        className='rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition'
+                      >
+                        {isGroupOpen ? (
+                          <ChevronDown className='size-3.5' />
+                        ) : (
+                          <ChevronRight className='size-3.5' />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* 二级子分类列表 (纯净无编辑按钮) */}
                 {hasSub && isGroupOpen && (
                   <div className='pl-6 space-y-0.5 pt-0.5'>
                     {group.categories.map((sub) => {
                       const isSubActive = activeId === `cat-${sub.id}`
-                      return (
+                      return isAdmin ? (
+                        <ContextMenu key={sub.id}>
+                          <ContextMenuTrigger asChild>
+                            <div
+                              onClick={() => scrollToCategory(`cat-${sub.id}`)}
+                              className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition cursor-pointer ${
+                                isSubActive
+                                  ? 'bg-zinc-200/70 text-zinc-950 dark:bg-zinc-800/60 dark:text-zinc-100 font-medium'
+                                  : 'text-zinc-500 hover:bg-zinc-200/40 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/40 dark:hover:text-zinc-200'
+                              }`}
+                            >
+                              <CategoryIcon
+                                icon={sub.icon || sub.iconUrl}
+                                isRoot={false}
+                                className='size-3 shrink-0 text-zinc-400 dark:text-zinc-500'
+                              />
+                              <span className='truncate'>{sub.name}</span>
+                            </div>
+                          </ContextMenuTrigger>
+                          <ContextMenuContent className='w-36'>
+                            <ContextMenuItem onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}>
+                              <SquarePen className='mr-2 size-3.5 text-zinc-500' />
+                              <span>编辑分类</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                              variant='destructive'
+                              onClick={() => setDeletingCategory({ id: sub.id, name: sub.name })}
+                            >
+                              <Trash2 className='mr-2 size-3.5' />
+                              <span>删除分类</span>
+                            </ContextMenuItem>
+                          </ContextMenuContent>
+                        </ContextMenu>
+                      ) : (
                         <div
                           key={sub.id}
                           onClick={() => scrollToCategory(`cat-${sub.id}`)}
@@ -866,7 +960,7 @@ export function HomePage() {
                 group.links.length > 0 ||
                 group.categories.some((c) => c.links.length > 0)
 
-              if (!hasGroupContent && !isAdmin) return null
+              if (!hasGroupContent) return null
 
               return (
                 <div
@@ -928,7 +1022,7 @@ export function HomePage() {
 
                   {/* 二级子分类区块 */}
                   {group.categories.map((sub) => {
-                    if (sub.links.length === 0 && !isAdmin) return null
+                    if (sub.links.length === 0) return null
                     return (
                       <div
                         key={sub.id}
