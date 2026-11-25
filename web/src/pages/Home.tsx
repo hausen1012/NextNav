@@ -33,6 +33,7 @@ import {
   Copy,
   Check,
   AlertTriangle,
+  Sparkles,
   Trash2,
 } from 'lucide-react'
 
@@ -109,7 +110,28 @@ export function HomePage() {
     sort: 10,
   })
   const [linkSubmitting, setLinkSubmitting] = useState(false)
+  const [linkFetchingMeta, setLinkFetchingMeta] = useState(false)
   const [linkFormError, setLinkFormError] = useState<string | null>(null)
+
+  const handleAutoFetchMeta = async () => {
+    const trimmed = linkModal.url.trim()
+    if (!trimmed) return
+    setLinkFetchingMeta(true)
+    setLinkFormError(null)
+    try {
+      const meta = await api.fetchMeta(trimmed)
+      setLinkModal((prev) => ({
+        ...prev,
+        title: prev.title || meta.title || '',
+        description: prev.description || meta.description || '',
+        url: meta.resolvedUrl || prev.url,
+      }))
+    } catch {
+      // 抓取失败不中断流程
+    } finally {
+      setLinkFetchingMeta(false)
+    }
+  }
 
   // 4. 分类表单弹窗 (新建 / 编辑)
   const [categoryModal, setCategoryModal] = useState<{
@@ -1218,14 +1240,26 @@ export function HomePage() {
                 <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
                   网址 URL <span className='text-red-500'>*</span>
                 </label>
-                <input
-                  type='url'
-                  value={linkModal.url}
-                  onChange={(e) => setLinkModal({ ...linkModal, url: e.target.value })}
-                  placeholder='https://...'
-                  required
-                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
-                />
+                <div className='flex items-center gap-2'>
+                  <input
+                    type='url'
+                    value={linkModal.url}
+                    onChange={(e) => setLinkModal({ ...linkModal, url: e.target.value })}
+                    placeholder='https://...'
+                    required
+                    className='flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
+                  />
+                  <button
+                    type='button'
+                    disabled={linkFetchingMeta || !linkModal.url.trim()}
+                    onClick={handleAutoFetchMeta}
+                    className='shrink-0 flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer'
+                    title='自动获取网站标题与描述'
+                  >
+                    <Sparkles className='size-3.5' />
+                    <span>{linkFetchingMeta ? '抓取中...' : '自动获取'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* 所属分类与备用网址 (两列) */}

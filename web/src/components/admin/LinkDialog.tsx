@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
+import { Sparkles } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -50,7 +51,25 @@ export function LinkDialog({
   const [sortWeight, setSortWeight] = useState('10')
   const [isPrivate, setIsPrivate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isFetchingMeta, setIsFetchingMeta] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function handleAutoFetch() {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    setIsFetchingMeta(true)
+    setError(null)
+    try {
+      const meta = await api.fetchMeta(trimmed)
+      if (meta.title && !title) setTitle(meta.title)
+      if (meta.description && !description) setDescription(meta.description)
+      if (meta.resolvedUrl && trimmed !== meta.resolvedUrl) setUrl(meta.resolvedUrl)
+    } catch {
+      // 抓取失败不打断流程
+    } finally {
+      setIsFetchingMeta(false)
+    }
+  }
 
   useEffect(() => {
     if (open) {
@@ -140,14 +159,29 @@ export function LinkDialog({
           </Field>
 
           <Field label='网址 (URL)' htmlFor='link-form-url'>
-            <Input
-              id='link-form-url'
-              type='url'
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder='https://tailwindcss.com'
-              required
-            />
+            <div className='flex items-center gap-2'>
+              <Input
+                id='link-form-url'
+                type='url'
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder='https://tailwindcss.com'
+                required
+                className='flex-1'
+              />
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                disabled={isFetchingMeta || !url.trim()}
+                onClick={handleAutoFetch}
+                className='shrink-0 gap-1 text-xs'
+                title='自动抓取网页标题与描述'
+              >
+                <Sparkles className='size-3.5' />
+                <span>{isFetchingMeta ? '抓取中...' : '自动获取'}</span>
+              </Button>
+            </div>
           </Field>
 
           <Field label='归属分类' htmlFor='link-form-cat'>

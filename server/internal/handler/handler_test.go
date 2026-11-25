@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -867,5 +868,120 @@ func TestHealthCheckAPI(t *testing.T) {
 	}
 	if listResp["items"] == nil {
 		t.Fatalf("expected items array in checks list")
+	}
+}
+
+func TestFetchMetaAPI(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><title>Meta API Title</title><meta name="description" content="Meta API Desc"/></head><body></body></html>`))
+	}))
+	defer ts.Close()
+
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	// 1. Guest request rejected
+	rec := do(t, h, "POST", "/api/meta", reqOpts{body: map[string]string{"url": ts.URL}})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for guest, got %d", rec.Code)
+	}
+
+	// 2. Admin request success
+	rec = do(t, h, "POST", "/api/meta", reqOpts{
+		cookie:    cookie,
+		origin:    "http://example.com",
+		fetchSite: "same-origin",
+		body:      map[string]string{"url": ts.URL},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d %s", rec.Code, rec.Body)
+	}
+
+	var metaResp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &metaResp); err != nil {
+		t.Fatalf("unmarshal meta resp: %v", err)
+	}
+	if metaResp["title"] != "Meta API Title" {
+		t.Errorf("expected title 'Meta API Title', got %v", metaResp["title"])
+	}
+	if metaResp["description"] != "Meta API Desc" {
+		t.Errorf("expected description 'Meta API Desc', got %v", metaResp["description"])
+	}
+}
+
+func TestUploadAndRemoveLogoAPI(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	pngBytes := []byte{
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+		0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+		0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+		0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+		0x42, 0x60, 0x82,
+	}
+
+	// 1. Upload valid PNG logo
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "logo.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(pngBytes); err != nil {
+		t.Fatal(err)
+	}
+	_ = writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/settings/logo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Origin", "http://example.com")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.AddCookie(cookie)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for upload logo, got %d %s", rec.Code, rec.Body)
+	}
+
+	var uploadResp map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &uploadResp); err != nil {
+		t.Fatalf("unmarshal upload resp: %v", err)
+	}
+	if uploadResp["logoUrl"] == "" {
+		t.Fatalf("expected non-empty logoUrl")
+	}
+
+	// Verify public settings reflects logo
+	recHome := do(t, h, "GET", "/api/home", reqOpts{})
+	var homeResp map[string]any
+	_ = json.Unmarshal(recHome.Body.Bytes(), &homeResp)
+	site := homeResp["site"].(map[string]any)
+	if site["logoUrl"] != uploadResp["logoUrl"] {
+		t.Fatalf("expected logoUrl %v, got %v", uploadResp["logoUrl"], site["logoUrl"])
+	}
+
+	// 2. Remove Logo
+	recDel := do(t, h, "DELETE", "/api/settings/logo", reqOpts{
+		cookie:    cookie,
+		origin:    "http://example.com",
+		fetchSite: "same-origin",
+	})
+	if recDel.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 for delete logo, got %d %s", recDel.Code, recDel.Body)
+	}
+
+	recHomeAfter := do(t, h, "GET", "/api/home", reqOpts{})
+	var homeRespAfter map[string]any
+	_ = json.Unmarshal(recHomeAfter.Body.Bytes(), &homeRespAfter)
+	siteAfter := homeRespAfter["site"].(map[string]any)
+	if siteAfter["logoUrl"] != nil {
+		t.Fatalf("expected nil logoUrl, got %v", siteAfter["logoUrl"])
 	}
 }

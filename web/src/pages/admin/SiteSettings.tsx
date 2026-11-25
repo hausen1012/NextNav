@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '@/lib/api'
 import { useHome, useInvalidateHome } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Field, Notice } from '@/components/Field'
-import { Check } from 'lucide-react'
+import { Check, Trash2, Upload } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 
 export function AdminSiteSettingsPage() {
   const { data: home } = useHome()
@@ -19,6 +20,8 @@ export function AdminSiteSettingsPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (home) {
@@ -28,6 +31,44 @@ export function AdminSiteSettingsPage() {
       setOpenInNewTab(home.site.openInNewTab ?? true)
     }
   }, [home])
+
+  async function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 1024 * 1024) {
+      setError('文件大小不能超过 1MB')
+      return
+    }
+    setUploadingLogo(true)
+    setError(null)
+    setNotice(null)
+    try {
+      await api.uploadLogo(file)
+      invalidate()
+      setNotice('Logo 已成功更新')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Logo 上传失败')
+    } finally {
+      setUploadingLogo(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleLogoRemove() {
+    if (!confirm('确定恢复为默认罗盘 Logo 吗？')) return
+    setUploadingLogo(true)
+    setError(null)
+    setNotice(null)
+    try {
+      await api.removeLogo()
+      invalidate()
+      setNotice('已恢复为默认 Logo')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '清除 Logo 失败')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -63,6 +104,53 @@ export function AdminSiteSettingsPage() {
           <form onSubmit={save} className='space-y-4'>
             {notice && <Notice kind='success'>{notice}</Notice>}
             {error && <Notice kind='error'>{error}</Notice>}
+
+            <Field label='站点图标 / Logo' htmlFor='site-logo'>
+              <div className='flex items-center gap-4 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 p-4'>
+                <div className='flex size-14 shrink-0 items-center justify-center rounded-xl border bg-muted/30 shadow-2xs overflow-hidden'>
+                  <Logo src={home?.site.logoUrl} className='size-10' />
+                </div>
+                <div className='space-y-1.5 flex-1'>
+                  <div className='flex items-center gap-2'>
+                    <input
+                      type='file'
+                      ref={fileInputRef}
+                      onChange={handleLogoFileChange}
+                      accept='image/png,image/jpeg,image/webp'
+                      className='hidden'
+                      id='logo-file-input'
+                    />
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      disabled={uploadingLogo}
+                      onClick={() => fileInputRef.current?.click()}
+                      className='gap-1.5 text-xs'
+                    >
+                      <Upload className='size-3.5' />
+                      <span>{uploadingLogo ? '上传中...' : '上传新 Logo'}</span>
+                    </Button>
+                    {home?.site.logoUrl && (
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        disabled={uploadingLogo}
+                        onClick={handleLogoRemove}
+                        className='gap-1.5 text-xs text-destructive hover:text-destructive'
+                      >
+                        <Trash2 className='size-3.5' />
+                        <span>恢复默认</span>
+                      </Button>
+                    )}
+                  </div>
+                  <p className='text-xs text-muted-foreground'>
+                    支持 PNG、JPEG、WebP 格式，文件大小不超过 1MB。
+                  </p>
+                </div>
+              </div>
+            </Field>
 
             <Field label='站点标题' htmlFor='site-name'>
               <Input

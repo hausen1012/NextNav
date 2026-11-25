@@ -28,6 +28,7 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("DELETE /api/links/{id}", a.RequireAdmin(a.DeleteLink))
 	mux.HandleFunc("POST /api/links/batch-delete", a.RequireAdmin(a.BatchDeleteLinks))
 	mux.HandleFunc("POST /api/links/batch-move", a.RequireAdmin(a.BatchMoveLinks))
+	mux.HandleFunc("POST /api/meta", a.RequireAdmin(a.FetchMeta))
 
 	// --- health checks ---
 	mux.HandleFunc("POST /api/links/{id}/check", a.RequireAdmin(a.CheckLink))
@@ -51,6 +52,8 @@ func NewRouter(a *API) http.Handler {
 
 	// --- settings ---
 	mux.HandleFunc("PATCH /api/settings", a.RequireAdmin(a.UpdateSettings))
+	mux.HandleFunc("POST /api/settings/logo", a.RequireAdmin(a.UploadLogo))
+	mux.HandleFunc("DELETE /api/settings/logo", a.RequireAdmin(a.RemoveLogo))
 	mux.HandleFunc("POST /api/settings/account", a.RequireAdmin(a.UpdateAccount))
 
 	// --- icons & sample data ---

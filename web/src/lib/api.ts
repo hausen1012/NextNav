@@ -77,6 +77,15 @@ export interface CheckItem {
   checkedAt: number
 }
 
+export interface MetaResult {
+  resolvedUrl: string
+  host: string
+  title: string
+  description: string
+  iconUrl?: string | null
+  iconPath?: string | null
+}
+
 export interface CheckStatusResponse {
   running: boolean
   done: number
@@ -265,4 +274,24 @@ export const api = {
       qs ? `/api/checks?${qs}` : '/api/checks',
     )
   },
+
+  fetchMeta: (url: string) =>
+    request<MetaResult>('/api/meta', {
+      method: 'POST',
+      ...json({ url }),
+    }),
+
+  uploadLogo: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request<{ logoUrl: string }>('/api/settings/logo', {
+      method: 'POST',
+      body: formData,
+    })
+  },
+
+  removeLogo: () =>
+    request<void>('/api/settings/logo', {
+      method: 'DELETE',
+    }),
 }
