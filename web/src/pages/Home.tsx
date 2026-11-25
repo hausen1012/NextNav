@@ -35,6 +35,7 @@ import {
   AlertTriangle,
   Sparkles,
   Trash2,
+  ExternalLink,
 } from 'lucide-react'
 
 // 搜索引擎配置
@@ -162,6 +163,33 @@ export function HomePage() {
   const [deleteCategoryMode, setDeleteCategoryMode] = useState<'delete' | 'move'>('delete')
   const [moveTargetCatId, setMoveTargetCatId] = useState<number | undefined>(undefined)
   const [isDeletingCat, setIsDeletingCat] = useState(false)
+
+  // 6. 分类一键全部打开确认弹窗
+  const [openAllConfirm, setOpenAllConfirm] = useState<{
+    open: boolean
+    categoryName: string
+    links: LinkDTO[]
+  } | null>(null)
+
+  const handleOpenAll = (categoryName: string, links: LinkDTO[]) => {
+    if (!links || links.length === 0) return
+    setOpenAllConfirm({
+      open: true,
+      categoryName,
+      links,
+    })
+  }
+
+  const confirmOpenAll = () => {
+    if (!openAllConfirm) return
+    const { links } = openAllConfirm
+    setOpenAllConfirm(null)
+    for (const l of links) {
+      if (l.url) {
+        window.open(l.url, '_blank', 'noopener,noreferrer')
+      }
+    }
+  }
 
   // 默认展开所有带子分类的分组
   useEffect(() => {
@@ -976,6 +1004,11 @@ export function HomePage() {
 
               if (!hasGroupContent) return null
 
+              const allGroupLinks = [
+                ...group.links,
+                ...group.categories.flatMap((c) => c.links),
+              ]
+
               return (
                 <div
                   key={group.id}
@@ -1003,17 +1036,30 @@ export function HomePage() {
                       )}
                     </div>
 
-                    {/* 管理员编辑分类按钮（悬浮在分类区块或链接下时显示） */}
-                    {isAdmin && (
-                      <button
-                        type='button'
-                        onClick={() => openEditCategoryModal(group)}
-                        className='opacity-0 group-hover/root:opacity-100 flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 shadow-2xs hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
-                        title='编辑此分类'
-                      >
-                        <SquarePen className='size-3.5' />
-                      </button>
-                    )}
+                    {/* 分类操作按钮组 */}
+                    <div className='flex items-center gap-1.5'>
+                      {allGroupLinks.length > 0 && (
+                        <button
+                          type='button'
+                          onClick={() => handleOpenAll(group.name, allGroupLinks)}
+                          className='flex items-center gap-1 px-2 py-1 text-xs text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition'
+                          title={`一键打开此分类下全部 ${allGroupLinks.length} 个链接`}
+                        >
+                          <ExternalLink className='size-3.5' />
+                          <span className='hidden sm:inline'>打开全部 ({allGroupLinks.length})</span>
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          type='button'
+                          onClick={() => openEditCategoryModal(group)}
+                          className='opacity-0 group-hover/root:opacity-100 flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 shadow-2xs hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
+                          title='编辑此分类'
+                        >
+                          <SquarePen className='size-3.5' />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* 一级分类直属链接网格 */}
@@ -1062,16 +1108,29 @@ export function HomePage() {
                             )}
                           </div>
 
-                          {isAdmin && (
-                            <button
-                              type='button'
-                              onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
-                              className='opacity-0 group-hover/sub:opacity-100 flex size-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
-                              title='编辑子分类'
-                            >
-                              <SquarePen className='size-3' />
-                            </button>
-                          )}
+                          <div className='flex items-center gap-1.5'>
+                            {sub.links.length > 0 && (
+                              <button
+                                type='button'
+                                onClick={() => handleOpenAll(sub.name, sub.links)}
+                                className='flex items-center gap-1 px-1.5 py-0.5 text-xs text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition'
+                                title={`一键打开子分类下全部 ${sub.links.length} 个链接`}
+                              >
+                                <ExternalLink className='size-3' />
+                                <span className='hidden sm:inline'>打开全部 ({sub.links.length})</span>
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                type='button'
+                                onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
+                                className='opacity-0 group-hover/sub:opacity-100 flex size-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
+                                title='编辑子分类'
+                              >
+                                <SquarePen className='size-3' />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* 二级子分类链接卡片网格 */}
@@ -1665,6 +1724,44 @@ export function HomePage() {
                 className='rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50'
               >
                 {isDeletingLink ? '正在删除...' : '删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== 一键全部打开确认 Modal ===================== */}
+      {openAllConfirm && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs'>
+          <div className='w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150'>
+            <div className='flex items-center gap-2.5 pb-2'>
+              <div className='flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400'>
+                <ExternalLink className='size-4' />
+              </div>
+              <h3 className='text-base font-semibold text-zinc-900 dark:text-zinc-100'>
+                批量打开链接
+              </h3>
+            </div>
+            <p className='mt-2 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed'>
+              即将批量在新标签页打开分类 <span className='font-medium text-zinc-800 dark:text-zinc-200'>“{openAllConfirm.categoryName}”</span> 下的 <span className='font-bold text-zinc-900 dark:text-zinc-100'>{openAllConfirm.links.length}</span> 个链接。
+            </p>
+            <p className='mt-1 text-[11px] text-zinc-400 dark:text-zinc-500'>
+              提示：若浏览器提示弹窗拦截，请在地址栏允许弹出窗口。
+            </p>
+            <div className='mt-5 flex justify-end gap-2'>
+              <button
+                type='button'
+                onClick={() => setOpenAllConfirm(null)}
+                className='rounded-xl border border-zinc-200 px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800'
+              >
+                取消
+              </button>
+              <button
+                type='button'
+                onClick={confirmOpenAll}
+                className='rounded-xl bg-zinc-900 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
+              >
+                确认打开
               </button>
             </div>
           </div>
