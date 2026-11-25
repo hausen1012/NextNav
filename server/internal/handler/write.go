@@ -159,28 +159,6 @@ func (a *API) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *API) ReorderLinks(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		CategoryID int64   `json:"categoryId"`
-		OrderedIDs []int64 `json:"orderedIds"`
-	}
-	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
-		return
-	}
-
-	err := a.Service.ReorderLinks(req.CategoryID, req.OrderedIDs)
-	if errors.Is(err, service.ErrInvalidReorder) {
-		httpx.Fail(w, http.StatusBadRequest, "bad_request", "排序列表必须包含该分类下全部链接")
-		return
-	}
-	if err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
 // --- categories ---
 
 func (a *API) CreateCategory(w http.ResponseWriter, r *http.Request) {
@@ -451,21 +429,6 @@ func (a *API) BatchMoveLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]int64{"movedCount": n})
-}
-
-func (a *API) ReorderCategories(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		OrderedIDs []int64 `json:"orderedIds"`
-	}
-	if err := httpx.DecodeJSON(r, &req); err != nil {
-		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
-		return
-	}
-	if err := a.Service.ReorderCategories(req.OrderedIDs); err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", "分类排序保存失败")
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // --- tokens ---

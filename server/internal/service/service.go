@@ -11,7 +11,6 @@ var (
 	ErrInvalidParent        = errors.New("invalid parent category")
 	ErrBadCredentials       = errors.New("bad credentials")
 	ErrLinkExistsInCategory = errors.New("links exist in category")
-	ErrInvalidReorder       = errors.New("invalid reorder list")
 	ErrSubcategoriesExist   = errors.New("subcategories exist")
 	ErrSelfParent           = errors.New("cannot set self as parent")
 	ErrAlreadyRunning       = errors.New("already running")

@@ -37,12 +37,13 @@
 
 ## 2. 范围
 
-**做**：分类树、链接卡片、关键词即时搜索、健康检测、备用链接、私有链接、二维码、拖拽排序、图标抓取与缓存、暗色模式、备份导出/导入、统一 REST API、Docker 部署。
+**做**：分类树、链接卡片、关键词即时搜索、健康检测、备用链接、私有链接、二维码、图标抓取与缓存、暗色模式、备份导出/导入、统一 REST API、Docker 部署。
 
 **不做（Non-goals，明确划线）**：
 - 多用户、注册、邀请码、分类权限
 - 访客投稿 / 审核流程
 - AI 检索 / 拼音检索（检索路径聚焦于标题/域名/描述/分类名纯关键词即时匹配）
+- 拖拽排序（不做拖拽重排交互，采用显式 sort 字段数值排序）
 - 浏览器书签 HTML 导入（不做外部 HTML 导入）
 - 反向代理、HTTPS 证书、编排多服务、运维手册（部署只做 Docker + compose）
 - 主题市场、插件系统、一键在线升级
@@ -78,7 +79,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 
 | ID | 功能 | 优先级 | 说明与验收 |
 |---|---|---|---|
-| A1 | 分类树 | P0 | 一级分类分块展示，二级分类作为块内小节或 tab；分类的排序值落库，刷新后顺序不变（拖拽交互本身在 D3，P1） |
+| A1 | 分类树 | P0 | 一级分类分块展示，二级分类作为块内小节或 tab；分类的排序值落库，刷新后顺序不变 |
 | A2 | 链接卡片 | P0 | 图标 + 名称 +（可选）描述；悬停微动效；点击整卡打开主链接（默认新标签页，可在设置页改为当前页） |
 | A3 | 响应式栅格 | P0 | ≥1280 6 列 / 768–1280 4 列 / 480–768 3 列 / <480 2 列；无横向滚动 |
 | A4 | 暗色模式 | P0 | 跟随系统 + 手动切换，选择存 localStorage；首屏无闪烁：在 `index.html` 里内联一段同步脚本先写 `data-theme`，再接 React 渲染 |
@@ -114,7 +115,6 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 |---|---|---|---|
 | D1 | 备用链接 | P1 | `backup_url` 字段。卡片右键菜单（长按）提供：打开 / 打开备用链接 / 复制 / 二维码 / 编辑 / 删除 |
 | D2 | 二维码 | P1 | 前端生成（不依赖第三方服务），可下载 PNG |
-| D3 | 拖拽排序 | P1 | dnd-kit，卡片与分类都支持；仅编辑模式下可拖 |
 | D4 | 标签 | P2 | 一个链接可挂多个标签，与分类并存，用于跨分类聚合 |
 | D5 | 点击统计 | P2 | click_count / last_clicked_at；编辑模式下按热度排序 |
 
@@ -150,7 +150,6 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 | 迁移 | 内嵌 SQL 迁移文件（如 goose / golang-migrate 的内嵌模式） | 二进制自带 schema 版本，启动自动迁移 |
 | 前端 | Vite + React + TypeScript + Tailwind + shadcn/ui | 构建产物小、无 SSR 运行时；shadcn 组件按需复制进仓库 |
 | 前端状态/数据 | TanStack Query + React Router | 缓存、失效、乐观更新现成；不引入重量级全局 store |
-| 拖拽 | dnd-kit | 轻量、键盘可访问 |
 | 认证 | 统一认证中间件：Bearer token 或 cookie，请求 context 记录认证方式 | 一套路由服务前端与插件；CSRF 只对 cookie 写操作校验，token 天然免疫 |
 | 密码 | argon2id（golang.org/x/crypto/argon2） | 标准库生态内即可实现，无需外部依赖 |
 | 定时任务 | 进程内 goroutine ticker + 数据库锁标记 | 单实例够用；间隔读 `CHECK_INTERVAL` |
@@ -166,7 +165,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 |---|---|---|
 | M0 骨架 | 仓库初始化（Go 服务 + 前端两个目录）、DB schema + 迁移、安装向导、登录、Dockerfile + compose | `npm run dev`（Vite 只代理 `/api` 到 Go）与 `docker compose up`（单一端口全包）都走完安装向导并登录进首页 |
 | M1 可用 | A1–A6 + B1–B2 + C3–C5 + C8（C1/C2 已在 M0 完成） | 完成安装后首页即有预置演示内容；能自行录入 20 个链接，完整浏览、即时搜索，手机可用，未登录可读公开内容 |
-| M2 增强 | D1–D3 + B4 + C6–C7 + F2–F3 | 备用链接/二维码/拖拽/备份导入/API 全部可用 |
+| M2 增强 | D1–D2 + B4 + C6–C7 + F2–F3 | 备用链接/二维码/备份导入/API 全部可用 |
 | M3 健康 | E1–E4 | 检测能正确标红失效站，可筛选可手动重测 |
 | M4 打磨 | F4–F5、E5、性能与动效 | Lighthouse 移动端 ≥ 90，全站交互流畅无卡顿 |
 

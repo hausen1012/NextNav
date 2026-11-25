@@ -231,18 +231,6 @@ export const api = {
       ...json({ ids, categoryId }),
     }),
 
-  reorderCategories: (orderedIds: number[]) =>
-    request<void>('/api/categories/reorder', {
-      method: 'POST',
-      ...json({ orderedIds }),
-    }),
-
-  reorderLinks: (categoryId: number, orderedIds: number[]) =>
-    request<void>('/api/links/reorder', {
-      method: 'POST',
-      ...json({ categoryId, orderedIds }),
-    }),
-
   getToken: () => request<{ token: TokenInfo | null }>('/api/tokens'),
 
   createToken: () => request<{ token: string; info: TokenInfo }>('/api/tokens', { method: 'POST' }),

@@ -130,25 +130,6 @@ func (s *Store) DeleteLink(id int64) error {
 	return err
 }
 
-// ListLinkIDsByCategory returns all link IDs under a category.
-func (s *Store) ListLinkIDsByCategory(categoryID int64) ([]int64, error) {
-	rows, err := s.DB.Query(`SELECT id FROM link WHERE category_id = ?`, categoryID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var ids []int64
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, rows.Err()
-}
-
 // BatchDeleteLinks deletes multiple links by ID.
 func (s *Store) BatchDeleteLinks(ids []int64) (int64, error) {
 	if len(ids) == 0 {
@@ -197,25 +178,6 @@ func (s *Store) BatchMoveLinks(ids []int64, targetCategoryID int64) (int64, erro
 		moved += n
 	}
 	return moved, tx.Commit()
-}
-
-// ReorderLinks atomically updates the sort indices of links under a category.
-func (s *Store) ReorderLinks(categoryID int64, orderedIDs []int64) error {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	for i, id := range orderedIDs {
-		if _, err := tx.Exec(
-			`UPDATE link SET sort = ? WHERE id = ? AND category_id = ?`,
-			int64(i+1)*1000, id, categoryID,
-		); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
 }
 
 // CountLinksByCategories returns the total count of links across given categories.

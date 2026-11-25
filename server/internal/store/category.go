@@ -244,18 +244,3 @@ func recomputeCategorySearchTx(tx *sql.Tx, categoryID int64, categoryName string
 	return nil
 }
 
-// ReorderCategories atomically updates the sort indices of categories.
-func (s *Store) ReorderCategories(orderedIDs []int64) error {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	for i, id := range orderedIDs {
-		if _, err := tx.Exec(`UPDATE category SET sort = ? WHERE id = ?`, int64(i+1)*10, id); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
-}

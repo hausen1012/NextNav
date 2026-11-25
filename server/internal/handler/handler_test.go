@@ -435,19 +435,6 @@ func TestDeleteCategoryRequiresDisposition(t *testing.T) {
 	}
 }
 
-func TestReorderRejectsPartialList(t *testing.T) {
-	api, h := newTestAPI(t)
-	cookie := setupAdmin(t, api, true)
-
-	rec := do(t, h, "POST", "/api/links/reorder", reqOpts{
-		cookie: cookie, fetchSite: "same-origin",
-		body: map[string]any{"categoryId": 2, "orderedIds": []int{1}},
-	})
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("partial list: %d, want 400", rec.Code)
-	}
-}
-
 func TestSPAFallback(t *testing.T) {
 	_, h := newTestAPI(t)
 

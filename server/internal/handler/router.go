@@ -26,7 +26,6 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("POST /api/links", a.RequireAdmin(a.CreateLink))
 	mux.HandleFunc("PATCH /api/links/{id}", a.RequireAdmin(a.UpdateLink))
 	mux.HandleFunc("DELETE /api/links/{id}", a.RequireAdmin(a.DeleteLink))
-	mux.HandleFunc("POST /api/links/reorder", a.RequireAdmin(a.ReorderLinks))
 	mux.HandleFunc("POST /api/links/batch-delete", a.RequireAdmin(a.BatchDeleteLinks))
 	mux.HandleFunc("POST /api/links/batch-move", a.RequireAdmin(a.BatchMoveLinks))
 
@@ -40,7 +39,6 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("POST /api/categories", a.RequireAdmin(a.CreateCategory))
 	mux.HandleFunc("PATCH /api/categories/{id}", a.RequireAdmin(a.UpdateCategory))
 	mux.HandleFunc("DELETE /api/categories/{id}", a.RequireAdmin(a.DeleteCategory))
-	mux.HandleFunc("POST /api/categories/reorder", a.RequireAdmin(a.ReorderCategories))
 
 	// --- tokens ---
 	mux.HandleFunc("GET /api/tokens", a.RequireAdmin(a.GetToken))

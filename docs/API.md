@@ -84,7 +84,6 @@
 | POST | `/api/links` | 管理员 | 新增链接 |
 | PATCH | `/api/links/{id}` | 管理员 | 编辑链接 |
 | DELETE | `/api/links/{id}` | 管理员 | 删除链接 |
-| POST | `/api/links/reorder` | 管理员 | 同分类内链接重排序 |
 | POST | `/api/links/batch-delete` | 管理员 | 批量删除链接 |
 | POST | `/api/links/batch-move` | 管理员 | 批量移动链接到目标分类 |
 | GET | `/api/settings` | 公开 | 站点公开设置 |
@@ -245,14 +244,6 @@
 ### DELETE /api/links/{id}
 
 `204`。同时删除其 `link_check` 记录与图标文件（若不再被引用）。
-
-### POST /api/links/reorder
-
-```json
-{ "categoryId": 3, "orderedIds": [12, 15, 9] }
-```
-
-必须是该分类下**完整**的 id 集合，否则 `400 bad_request`。服务端整体重写 sort 为 1000/2000/…，`204`。
 
 ### POST /api/links/move
 
@@ -528,5 +519,4 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 - TanStack Query 的 key 约定：`['home']`、`['links', params]`、`['categories']`、`['settings']`、`['check-status']`
 - 任意请求收到 `401` → 清本地登录态、跳 `/login`
 - 收到 `403 csrf_failed` → 提示「会话已失效，请重新登录」
-- 拖拽排序：乐观更新本地顺序，`POST reorder` 失败则回滚并 toast
 - 添加链接：先 `POST /api/meta` 预览 → 用户确认 → `POST /api/links`；`meta` 失败不阻塞提交

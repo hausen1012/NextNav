@@ -188,28 +188,6 @@ func (s *Service) DeleteLink(id int64) error {
 	return s.store.DeleteLink(id)
 }
 
-func (s *Service) ReorderLinks(categoryID int64, orderedIDs []int64) error {
-	existing, err := s.store.ListLinkIDsByCategory(categoryID)
-	if err != nil {
-		return err
-	}
-	if len(existing) != len(orderedIDs) {
-		return ErrInvalidReorder
-	}
-
-	seen := map[int64]bool{}
-	for _, id := range orderedIDs {
-		seen[id] = true
-	}
-	for _, id := range existing {
-		if !seen[id] {
-			return ErrInvalidReorder
-		}
-	}
-
-	return s.store.ReorderLinks(categoryID, orderedIDs)
-}
-
 func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 	catName := ""
 	if cat, err := s.store.GetCategory(l.CategoryID); err == nil {

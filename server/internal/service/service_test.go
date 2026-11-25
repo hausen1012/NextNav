@@ -105,11 +105,6 @@ func TestLinkBusinessRules(t *testing.T) {
 		t.Fatalf("expected ErrDuplicateLink, got %v", err)
 	}
 
-	// 3. 排序重组部分缺失报错
-	err = svc.ReorderLinks(catID, []int64{9999})
-	if !errors.Is(err, service.ErrInvalidReorder) {
-		t.Fatalf("expected ErrInvalidReorder, got %v", err)
-	}
 }
 
 func TestDefaultSortAndOrder(t *testing.T) {
