@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '@/lib/api'
-import { Sparkles, Upload, Trash2 } from 'lucide-react'
+import { Sparkles, Upload, Trash2, Globe } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ export interface LinkDialogData {
   description?: string | null
   iconPath?: string | null
   iconUrl?: string | null
+  customIconUrl?: string | null
   sort?: number
   isPrivate?: boolean
 }
@@ -52,7 +53,7 @@ export function LinkDialog({
   const [description, setDescription] = useState('')
   const [backupUrl, setBackupUrl] = useState('')
   const [iconPath, setIconPath] = useState('')
-  const [iconUrl, setIconUrl] = useState<string | null>(null)
+  const [iconLink, setIconLink] = useState('')
   const [sortWeight, setSortWeight] = useState('10')
   const [isPrivate, setIsPrivate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -63,12 +64,7 @@ export function LinkDialog({
 
   // Uploads need an existing link, so new links stage the file until save.
   const [pendingIconFile, setPendingIconFile] = useState<File | null>(null)
-
-  function stageIcon(file: File) {
-    setPendingIconFile(file)
-    setIconUrl(URL.createObjectURL(file))
-    setIconPath('')
-  }
+  const [stagedBlobUrl, setStagedBlobUrl] = useState<string | null>(null)
 
   async function handleIconFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -79,16 +75,22 @@ export function LinkDialog({
       return
     }
     setError(null)
+
+    // 无论新建还是编辑，立即生成本地预览，提供 0 延迟视觉反馈
+    if (stagedBlobUrl) {
+      URL.revokeObjectURL(stagedBlobUrl)
+    }
+    const blobUrl = URL.createObjectURL(file)
+    setStagedBlobUrl(blobUrl)
+
     if (!isEdit || !link?.id) {
-      stageIcon(file)
+      setPendingIconFile(file)
       return
     }
     setUploadingIcon(true)
     try {
       const updated = await api.uploadLinkIcon(link.id, file)
       setIconPath(updated.iconPath || '')
-      setIconUrl(updated.iconUrl)
-      onSuccess()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '图标上传失败')
     } finally {
@@ -96,25 +98,46 @@ export function LinkDialog({
     }
   }
 
-  async function clearIcon() {
+  async function clearUploadedIcon() {
+    if (stagedBlobUrl) {
+      URL.revokeObjectURL(stagedBlobUrl)
+    }
+    setPendingIconFile(null)
+    setStagedBlobUrl(null)
+    setIconPath('')
     if (!isEdit || !link?.id) {
-      setPendingIconFile(null)
-      setIconPath('')
-      setIconUrl(null)
       return
     }
     setUploadingIcon(true)
     try {
-      const updated = await api.clearLinkIcon(link.id)
-      setIconPath('')
-      setIconUrl(updated.iconUrl)
-      onSuccess()
+      await api.clearLinkIcon(link.id)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '清除图标失败')
+      setError(err instanceof Error ? err.message : '删除图标失败')
     } finally {
       setUploadingIcon(false)
     }
   }
+
+  function applyFaviconApi() {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    try {
+      const u = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
+      if (u.hostname) {
+        setIconLink(`/api/favicon/${u.hostname}.png`)
+      }
+    } catch {
+      // 忽略无法解析的 URL
+    }
+  }
+
+  const previewIconUrl = stagedBlobUrl
+    ? stagedBlobUrl
+    : iconPath
+      ? `/${iconPath.replace(/^\//, '')}`
+      : iconLink.trim()
+        ? iconLink.trim()
+        : null
 
   async function handleAutoFetch() {
     const trimmed = url.trim()
@@ -128,7 +151,6 @@ export function LinkDialog({
       if (meta.resolvedUrl && trimmed !== meta.resolvedUrl) setUrl(meta.resolvedUrl)
       if (meta.iconPath) {
         setIconPath(meta.iconPath)
-        setIconUrl(meta.iconUrl ?? `/${meta.iconPath}`)
       }
     } catch {
       // 抓取失败不打断流程
@@ -141,6 +163,10 @@ export function LinkDialog({
     if (open) {
       setError(null)
       setPendingIconFile(null)
+      setStagedBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
       setUploadingIcon(false)
       if (link) {
         setTitle(link.title || '')
@@ -149,7 +175,7 @@ export function LinkDialog({
         setDescription(link.description || '')
         setBackupUrl(link.backupUrl || '')
         setIconPath(link.iconPath || '')
-        setIconUrl(link.iconUrl ?? null)
+        setIconLink(link.customIconUrl || '')
         setSortWeight(String(link.sort ?? 10))
         setIsPrivate(link.isPrivate ?? false)
       } else {
@@ -159,12 +185,20 @@ export function LinkDialog({
         setDescription('')
         setBackupUrl('')
         setIconPath('')
-        setIconUrl(null)
+        setIconLink('')
         setSortWeight('10')
         setIsPrivate(false)
       }
     }
-  }, [open, link, defaultCategoryId, categories])
+  }, [open, link?.id])
+
+  useEffect(() => {
+    return () => {
+      if (stagedBlobUrl) {
+        URL.revokeObjectURL(stagedBlobUrl)
+      }
+    }
+  }, [stagedBlobUrl])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -186,6 +220,7 @@ export function LinkDialog({
           description: description.trim() || null,
           backupUrl: backupUrl.trim() || null,
           iconPath: iconPath || null,
+          iconUrl: iconLink.trim() || null,
           sort: sortWeight.trim() !== '' ? Number(sortWeight) : 10,
           isPrivate,
         })
@@ -197,6 +232,7 @@ export function LinkDialog({
           description: description.trim() || null,
           backupUrl: backupUrl.trim() || null,
           iconPath: iconPath || null,
+          iconUrl: iconLink.trim() || null,
           sort: sortWeight.trim() !== '' ? Number(sortWeight) : 10,
           isPrivate,
         })
@@ -226,16 +262,6 @@ export function LinkDialog({
         <form onSubmit={handleSubmit} className='space-y-4 pt-1'>
           {error && <p className='text-xs text-destructive'>{error}</p>}
 
-          <Field label='链接名称' htmlFor='link-form-title'>
-            <Input
-              id='link-form-title'
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder='例如：Tailwind CSS'
-              required
-            />
-          </Field>
-
           <Field label='网址 (URL)' htmlFor='link-form-url'>
             <div className='flex items-center gap-2'>
               <Input
@@ -243,7 +269,7 @@ export function LinkDialog({
                 type='url'
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder='https://tailwindcss.com'
+                placeholder='请输入有效链接，例如：https://tailwindcss.com'
                 required
                 className='flex-1'
               />
@@ -262,7 +288,96 @@ export function LinkDialog({
             </div>
           </Field>
 
-          <Field label='归属分类' htmlFor='link-form-cat'>
+          <Field label='备用URL' htmlFor='link-form-backup'>
+            <Input
+              id='link-form-backup'
+              type='url'
+              value={backupUrl}
+              onChange={(e) => setBackupUrl(e.target.value)}
+              placeholder='请输入备用链接，如果没有，请留空'
+            />
+          </Field>
+
+          <Field label='图标' htmlFor='link-form-icon-file'>
+            <div className='flex items-center gap-3'>
+              <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted/30'>
+                <SiteIcon name={title || '?'} url={url} iconUrl={previewIconUrl} size={40} />
+              </div>
+              <div className='flex flex-wrap items-center gap-2'>
+                <input
+                  ref={iconInputRef}
+                  type='file'
+                  accept='image/png,image/jpeg,image/webp,image/x-icon'
+                  className='hidden'
+                  id='link-form-icon-file'
+                  onChange={handleIconFileChange}
+                />
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  disabled={uploadingIcon}
+                  onClick={() => iconInputRef.current?.click()}
+                  className='gap-1.5 text-xs'
+                >
+                  <Upload className='size-3.5' />
+                  <span>{uploadingIcon ? '上传中...' : '上传图标'}</span>
+                </Button>
+                {iconPath || pendingIconFile ? (
+                  <Button
+                    type='button'
+                    variant='destructive'
+                    size='sm'
+                    disabled={uploadingIcon}
+                    onClick={clearUploadedIcon}
+                    className='gap-1.5 text-xs'
+                  >
+                    <Trash2 className='size-3.5' />
+                    <span>删除图标</span>
+                  </Button>
+                ) : null}
+                <span className='text-[11px] text-muted-foreground'>
+                  支持 PNG、JPEG、WebP、ICO，不超过 1MB
+                </span>
+              </div>
+            </div>
+          </Field>
+
+          <Field label='图标链接' htmlFor='link-form-icon-link'>
+            <div className='flex items-center gap-2'>
+              <Input
+                id='link-form-icon-link'
+                value={iconLink}
+                onChange={(e) => setIconLink(e.target.value)}
+                placeholder='请输入图标链接，如果没有，请留空（可输入外部https链接）'
+                className='flex-1'
+              />
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                disabled={!url.trim()}
+                onClick={applyFaviconApi}
+                className='shrink-0 gap-1 text-xs'
+                title='自动填入本站 Favicon 抓取接口'
+              >
+                <Globe className='size-3.5' />
+                <span>Favicon</span>
+              </Button>
+            </div>
+          </Field>
+
+          <Field label='链接名称' htmlFor='link-form-title'>
+            <Input
+              id='link-form-title'
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder='请输入链接名称，例如：Tailwind CSS'
+              required
+            />
+          </Field>
+
+          <Field label='所属分类' htmlFor='link-form-cat'>
             <select
               id='link-form-cat'
               value={categoryId}
@@ -277,78 +392,15 @@ export function LinkDialog({
             </select>
           </Field>
 
-          <Field label='描述介绍（可选）' htmlFor='link-form-desc'>
+          <Field label='权重' htmlFor='link-form-sort'>
             <Input
-              id='link-form-desc'
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder='快速实用的原子类 CSS 框架'
+              id='link-form-sort'
+              type='number'
+              value={sortWeight}
+              onChange={(e) => setSortWeight(e.target.value)}
+              placeholder='默认 10'
             />
           </Field>
-
-          <Field label='链接图标（可选）' htmlFor='link-form-icon'>
-            <div className='flex items-center gap-3'>
-              <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted/30'>
-                <SiteIcon name={title || '?'} url={url} iconUrl={iconUrl} size={40} />
-              </div>
-              <div className='flex flex-1 items-center gap-2'>
-                <input
-                  ref={iconInputRef}
-                  type='file'
-                  accept='image/png,image/jpeg,image/webp,image/x-icon'
-                  className='hidden'
-                  id='link-form-icon'
-                  onChange={handleIconFileChange}
-                />
-                <Button
-                  type='button'
-                  variant='outline'
-                  size='sm'
-                  disabled={uploadingIcon}
-                  onClick={() => iconInputRef.current?.click()}
-                  className='gap-1.5 text-xs'
-                >
-                  <Upload className='size-3.5' />
-                  <span>{uploadingIcon ? '上传中...' : '上传图标'}</span>
-                </Button>
-                {iconPath ? (
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='sm'
-                    disabled={uploadingIcon}
-                    onClick={clearIcon}
-                    className='gap-1.5 text-xs text-muted-foreground hover:text-destructive'
-                  >
-                    <Trash2 className='size-3.5' />
-                    <span>移除</span>
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          </Field>
-
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <Field label='备用网址（可选）' htmlFor='link-form-backup'>
-              <Input
-                id='link-form-backup'
-                type='url'
-                value={backupUrl}
-                onChange={(e) => setBackupUrl(e.target.value)}
-                placeholder='备用镜像或备选站点'
-              />
-            </Field>
-
-            <Field label='排序权重' htmlFor='link-form-sort'>
-              <Input
-                id='link-form-sort'
-                type='number'
-                value={sortWeight}
-                onChange={(e) => setSortWeight(e.target.value)}
-                placeholder='默认 10'
-              />
-            </Field>
-          </div>
 
           <div className='flex items-center gap-2 pt-1'>
             <input
@@ -359,9 +411,18 @@ export function LinkDialog({
               className='size-4 rounded border-input text-primary focus:ring-ring'
             />
             <label htmlFor='link-form-private' className='text-sm text-foreground select-none cursor-pointer'>
-              设为私有链接（仅管理员可见）
+              是否私有（私有链接需要登录后才能查看！）
             </label>
           </div>
+
+          <Field label='描述介绍（可选）' htmlFor='link-form-desc'>
+            <Input
+              id='link-form-desc'
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder='快速实用的原子类 CSS 框架'
+            />
+          </Field>
 
           <DialogFooter className='pt-2'>
             <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>

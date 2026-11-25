@@ -117,21 +117,34 @@ func (s *Service) iconFilePath(relPath string) (string, bool) {
 	return full, true
 }
 
+// isURLOrWebPath checks if the given raw icon string is an external URL, data URL or API endpoint.
+func isURLOrWebPath(s string) bool {
+	return strings.HasPrefix(s, "http://") ||
+		strings.HasPrefix(s, "https://") ||
+		strings.HasPrefix(s, "data:") ||
+		strings.HasPrefix(s, "/api/") ||
+		strings.HasPrefix(s, "/")
+}
+
 // resolveStoredIcon validates an incoming icon path. Empty (or nil) clears the
-// icon; otherwise it must be an existing file inside data/icons. It returns the
-// normalized relative path.
+// icon; otherwise it can be an external URL, API path, or an existing file inside data/icons.
+// It returns the normalized path/URL.
 func (s *Service) resolveStoredIcon(raw *string) (*string, error) {
 	if raw == nil || strings.TrimSpace(*raw) == "" {
 		return nil, nil
 	}
-	full, ok := s.iconFilePath(*raw)
+	v := strings.TrimSpace(*raw)
+	if isURLOrWebPath(v) {
+		return &v, nil
+	}
+	full, ok := s.iconFilePath(v)
 	if !ok {
 		return nil, ErrInvalidIconPath
 	}
 	if info, err := os.Stat(full); err != nil || info.IsDir() {
 		return nil, ErrInvalidIconPath
 	}
-	p := filepath.ToSlash(strings.TrimSpace(*raw))
+	p := filepath.ToSlash(v)
 	return &p, nil
 }
 
@@ -187,6 +200,9 @@ func (s *Service) SaveLinkIconUpload(linkID int64, data []byte, filename string)
 // site logo points at it any more.
 func (s *Service) CleanupIconIfUnreferenced(relPath string) {
 	if strings.TrimSpace(relPath) == "" {
+		return
+	}
+	if !strings.HasPrefix(filepath.ToSlash(relPath), "icons/") {
 		return
 	}
 	n, err := s.store.CountIconReferences(relPath)

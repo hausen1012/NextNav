@@ -29,6 +29,7 @@ type linkReq struct {
 	BackupURL   *string `json:"backupUrl"`
 	Description *string `json:"description"`
 	IconPath    *string `json:"iconPath"`
+	IconURL     *string `json:"iconUrl"`
 	Sort        *int64  `json:"sort"`
 	IsPrivate   *bool   `json:"isPrivate"`
 }
@@ -65,6 +66,7 @@ func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 		BackupURL:   req.BackupURL,
 		Description: req.Description,
 		IconPath:    req.IconPath,
+		IconURL:     req.IconURL,
 		Sort:        req.Sort,
 		IsPrivate:   req.IsPrivate,
 	})
@@ -100,6 +102,7 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		BackupURL   *string `json:"backupUrl"`
 		Description *string `json:"description"`
 		IconPath    *string `json:"iconPath"`
+		IconURL     *string `json:"iconUrl"`
 		Sort        *int64  `json:"sort"`
 		IsPrivate   *bool   `json:"isPrivate"`
 	}
@@ -136,6 +139,7 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		BackupURL:   req.BackupURL,
 		Description: req.Description,
 		IconPath:    req.IconPath,
+		IconURL:     req.IconURL,
 		Sort:        req.Sort,
 		IsPrivate:   req.IsPrivate,
 	})

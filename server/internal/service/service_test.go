@@ -267,3 +267,157 @@ func TestSampleSortValuesUnder100(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanDomain(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+		wantErr  bool
+	}{
+		{"www.baidu.com", "www.baidu.com", false},
+		{"https://www.baidu.com/some/path", "www.baidu.com", false},
+		{"http://github.com:8080", "github.com:8080", false},
+		{"sub.domain.org/", "sub.domain.org", false},
+		{"   ", "", true},
+		{"invalid space.com", "", true},
+	}
+
+	for _, c := range cases {
+		got, err := service.CleanDomain(c.input)
+		if c.wantErr && err == nil {
+			t.Errorf("expected error for %q, got %q", c.input, got)
+		} else if !c.wantErr && err != nil {
+			t.Errorf("unexpected error for %q: %v", c.input, err)
+		} else if !c.wantErr && got != c.expected {
+			t.Errorf("CleanDomain(%q) = %q, expected %q", c.input, got, c.expected)
+		}
+	}
+}
+
+func TestLinkWithCustomIconURL(t *testing.T) {
+	svc, st := newTestService(t)
+
+	catID, err := svc.CreateCategory(service.CreateCategoryInput{
+		Name: "分类",
+	})
+	if err != nil {
+		t.Fatalf("create category: %v", err)
+	}
+
+	// 1. 创建带网络图片链接 (iconUrl) 的 Link
+	iconURL := "https://example.com/logo.png"
+	link1, err := svc.CreateLink(service.CreateLinkInput{
+		CategoryID: catID,
+		Title:      "站点1",
+		URL:        "https://example.com/1",
+		IconURL:    &iconURL,
+	})
+	if err != nil {
+		t.Fatalf("create link with url icon: %v", err)
+	}
+	if link1.IconURL == nil || *link1.IconURL != iconURL {
+		t.Errorf("expected iconUrl %q, got %#v", iconURL, link1.IconURL)
+	}
+	if link1.CustomIconURL == nil || *link1.CustomIconURL != iconURL {
+		t.Errorf("expected customIconUrl %q, got %#v", iconURL, link1.CustomIconURL)
+	}
+	if link1.IconPath != nil {
+		t.Errorf("expected nil iconPath, got %#v", link1.IconPath)
+	}
+
+	// 验证首页聚合数据 (GetHome) 能正确携带外部地址 IconURL
+	homeData, err := svc.GetHome(true)
+	if err != nil {
+		t.Fatalf("get home: %v", err)
+	}
+	foundLink := false
+	for _, g := range homeData.Groups {
+		for _, l := range g.Links {
+			if l.ID == link1.ID {
+				foundLink = true
+				if l.IconURL == nil || *l.IconURL != iconURL {
+					t.Errorf("home link IconURL expected %q, got %#v", iconURL, l.IconURL)
+				}
+			}
+		}
+	}
+	if !foundLink {
+		t.Errorf("link1 not found in home groups")
+	}
+
+	// 2. 模拟上传本地图标，此时优先展示本地图标，但 customIconUrl 依然保留
+	uploadedPath, err := svc.SaveIconContent([]byte{
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+		0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+		0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+		0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+		0x42, 0x60, 0x82,
+	}, "test.png")
+	if err != nil {
+		t.Fatalf("save icon content: %v", err)
+	}
+
+	linkWithBoth, err := svc.UpdateLink(link1.ID, service.UpdateLinkInput{
+		IconPath: &uploadedPath,
+	})
+	if err != nil {
+		t.Fatalf("update link with iconPath: %v", err)
+	}
+	expectedLocalURL := "/" + uploadedPath
+	if linkWithBoth.IconURL == nil || *linkWithBoth.IconURL != expectedLocalURL {
+		t.Errorf("expected local icon %q, got %#v", expectedLocalURL, linkWithBoth.IconURL)
+	}
+	if linkWithBoth.CustomIconURL == nil || *linkWithBoth.CustomIconURL != iconURL {
+		t.Errorf("expected customIconUrl preserved %q, got %#v", iconURL, linkWithBoth.CustomIconURL)
+	}
+
+	// 3. 删除本地图标后，自动回退展示 customIconUrl
+	clearedLocal, err := svc.SetLinkIcon(link1.ID, nil)
+	if err != nil {
+		t.Fatalf("clear local icon: %v", err)
+	}
+	if clearedLocal.IconURL == nil || *clearedLocal.IconURL != iconURL {
+		t.Errorf("expected fallback to customIconUrl %q, got %#v", iconURL, clearedLocal.IconURL)
+	}
+	if clearedLocal.IconPath != nil {
+		t.Errorf("expected nil iconPath, got %#v", clearedLocal.IconPath)
+	}
+
+	// 4. 验证删除时不会报错
+	if err := svc.DeleteLink(link1.ID); err != nil {
+		t.Fatalf("delete link: %v", err)
+	}
+
+	_ = st
+}
+
+func TestFaviconCache(t *testing.T) {
+	_, st := newTestService(t)
+
+	// 写入缓存并读取
+	err := st.SetFaviconCache("www.baidu.com", "icons/ab/cd/test.png")
+	if err != nil {
+		t.Fatalf("set favicon cache: %v", err)
+	}
+
+	cached, err := st.GetFaviconCache("www.baidu.com")
+	if err != nil {
+		t.Fatalf("get favicon cache: %v", err)
+	}
+	if cached != "icons/ab/cd/test.png" {
+		t.Errorf("expected 'icons/ab/cd/test.png', got %q", cached)
+	}
+
+	// 检查引用计数
+	count, err := st.CountIconReferences("icons/ab/cd/test.png")
+	if err != nil {
+		t.Fatalf("count icon references: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 reference from favicon_cache, got %d", count)
+	}
+}

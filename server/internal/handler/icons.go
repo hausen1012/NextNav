@@ -112,3 +112,60 @@ func (a *API) ServeIcon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, absFull)
 }
+
+// ServeFavicon fetches or serves cached favicon for the specified domain.
+// Example paths: /api/favicon/www.baidu.com.ico, /api/favicon/github.com.png, /api/favicon/example.com
+func (a *API) ServeFavicon(w http.ResponseWriter, r *http.Request) {
+	raw := strings.TrimPrefix(r.URL.Path, "/api/favicon/")
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		httpx.Fail(w, http.StatusBadRequest, "invalid_domain", "缺少目标域名")
+		return
+	}
+
+	// Strip optional image extension (.ico, .png, .jpg, .jpeg, .webp)
+	lower := strings.ToLower(raw)
+	for _, ext := range []string{".ico", ".png", ".jpg", ".jpeg", ".webp"} {
+		if strings.HasSuffix(lower, ext) {
+			raw = raw[:len(raw)-len(ext)]
+			break
+		}
+	}
+
+	domain, err := service.CleanDomain(raw)
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid_domain", "无效的域名格式")
+		return
+	}
+
+	iconPath, err := a.Service.GetOrFetchFavicon(r.Context(), domain)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	full := filepath.Join(a.Service.DataDir(), filepath.FromSlash(iconPath))
+	info, err := os.Stat(full)
+	if err != nil || info.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(full))
+	contentType := "image/x-icon"
+	switch ext {
+	case ".png":
+		contentType = "image/png"
+	case ".jpg", ".jpeg":
+		contentType = "image/jpeg"
+	case ".webp":
+		contentType = "image/webp"
+	case ".ico":
+		contentType = "image/x-icon"
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	http.ServeFile(w, r, full)
+}

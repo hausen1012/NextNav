@@ -15,6 +15,7 @@ type CreateLinkInput struct {
 	BackupURL   *string
 	Description *string
 	IconPath    *string
+	IconURL     *string
 	Sort        *int64
 	IsPrivate   *bool
 }
@@ -26,8 +27,20 @@ type UpdateLinkInput struct {
 	BackupURL   *string
 	Description *string
 	IconPath    *string
+	IconURL     *string
 	Sort        *int64
 	IsPrivate   *bool
+}
+
+func cleanIconURL(raw *string) *string {
+	if raw == nil {
+		return nil
+	}
+	v := strings.TrimSpace(*raw)
+	if v == "" {
+		return nil
+	}
+	return &v
 }
 
 func (s *Service) GetLinkDTO(id int64) (*LinkDTO, error) {
@@ -93,6 +106,7 @@ func (s *Service) CreateLink(input CreateLinkInput) (*LinkDTO, error) {
 		Description: input.Description,
 		IconPath:    iconPath,
 		IconSource:  iconSource,
+		IconURL:     cleanIconURL(input.IconURL),
 		Sort:        sortVal,
 		IsPrivate:   priv,
 		LastStatus:  "unknown",
@@ -186,6 +200,11 @@ func (s *Service) UpdateLink(id int64, input UpdateLinkInput) (*LinkDTO, error) 
 		}
 	}
 
+	iconURL := cur.IconURL
+	if input.IconURL != nil {
+		iconURL = cleanIconURL(input.IconURL)
+	}
+
 	l := &store.Link{
 		ID:          id,
 		CategoryID:  catID,
@@ -195,6 +214,7 @@ func (s *Service) UpdateLink(id int64, input UpdateLinkInput) (*LinkDTO, error) 
 		Description: desc,
 		IconPath:    iconPath,
 		IconSource:  iconSource,
+		IconURL:     iconURL,
 		Sort:        sortVal,
 		IsPrivate:   priv,
 		TitleNorm:   titleNorm,
@@ -238,9 +258,11 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 		catName = cat.Name
 	}
 
-	iconStr := ""
-	if l.IconPath != nil {
-		iconStr = *l.IconPath
+	var finalIconURL *string
+	if l.IconPath != nil && *l.IconPath != "" {
+		finalIconURL = IconURL(*l.IconPath)
+	} else if l.IconURL != nil && *l.IconURL != "" {
+		finalIconURL = l.IconURL
 	}
 
 	return &LinkDTO{
@@ -249,8 +271,9 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 		URL:           l.URL,
 		BackupURL:     l.BackupURL,
 		Description:   l.Description,
-		IconURL:       IconURL(iconStr),
+		IconURL:       finalIconURL,
 		IconPath:      l.IconPath,
+		CustomIconURL: l.IconURL,
 		CategoryID:    l.CategoryID,
 		CategoryName:  catName,
 		IsPrivate:     l.IsPrivate,

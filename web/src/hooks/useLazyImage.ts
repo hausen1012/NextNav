@@ -14,10 +14,12 @@ export function useLazyImage({
   rootMargin = '80px',
   enabled = true,
 }: UseLazyImageOptions) {
+  const isBlobOrData = Boolean(src?.startsWith('blob:') || src?.startsWith('data:'))
+
   const elementRef = useRef<HTMLDivElement | HTMLImageElement | null>(null)
   const [status, setStatus] = useState<LazyImageStatus>(() => {
     if (!src || !enabled) return 'idle'
-    if (isImageCached(src)) return 'loaded'
+    if (isBlobOrData || isImageCached(src)) return 'loaded'
     return 'idle'
   })
 
@@ -27,8 +29,8 @@ export function useLazyImage({
       return
     }
 
-    // 如果已经在内存缓存中，直接展示，无需重复进入 loading
-    if (isImageCached(src)) {
+    // 本地 blob 或 data URL，或者已在内存缓存中，直接展示，无需重复进入 loading
+    if (isBlobOrData || isImageCached(src)) {
       setStatus('loaded')
       return
     }

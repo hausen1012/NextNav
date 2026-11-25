@@ -60,6 +60,7 @@ func NewRouter(a *API) http.Handler {
 
 	// --- icons & sample data ---
 	mux.HandleFunc("GET /icons/", a.ServeIcon)
+	mux.HandleFunc("GET /api/favicon/", a.ServeFavicon)
 	mux.HandleFunc("POST /api/icons/purge", a.RequireAdmin(a.PurgeOrphanIcons))
 	mux.HandleFunc("POST /api/sample/clear", a.RequireAdmin(a.ClearSample))
 

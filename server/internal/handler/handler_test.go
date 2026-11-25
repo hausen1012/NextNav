@@ -987,20 +987,22 @@ func TestUploadAndRemoveLogoAPI(t *testing.T) {
 	}
 }
 
+var dummyPNG = []byte{
+	0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+	0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+	0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+	0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+	0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+	0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+	0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+	0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+	0x42, 0x60, 0x82,
+}
+
 // uploadIcon posts a PNG as the icon of the given link.
 func uploadIcon(t *testing.T, h http.Handler, cookie *http.Cookie, linkID int) *httptest.ResponseRecorder {
 	t.Helper()
-	pngBytes := []byte{
-		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-		0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
-		0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
-		0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-		0x42, 0x60, 0x82,
-	}
+	pngBytes := dummyPNG
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", "icon.png")
@@ -1173,5 +1175,68 @@ func TestPurgeOrphanIconsAPI(t *testing.T) {
 	}
 	if rec := do(t, h, "GET", iconURL, reqOpts{}); rec.Code != http.StatusNotFound {
 		t.Fatalf("orphan icon should be gone, got %d", rec.Code)
+	}
+}
+
+func TestServeFaviconAPI(t *testing.T) {
+	api, h := newTestAPI(t)
+
+	// 1. 无效域名返回 400
+	rec := do(t, h, "GET", "/api/favicon/", reqOpts{})
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty domain, got %d", rec.Code)
+	}
+
+	// 2. 有效路径请求并命中预设缓存
+	relPath, err := api.Service.SaveIconContent(dummyPNG, "baidu.png")
+	if err != nil {
+		t.Fatalf("save icon content: %v", err)
+	}
+	if err := api.Service.Store().SetFaviconCache("www.baidu.com", relPath); err != nil {
+		t.Fatalf("set favicon cache: %v", err)
+	}
+
+	// 请求 /api/favicon/www.baidu.com.png
+	rec = do(t, h, "GET", "/api/favicon/www.baidu.com.png", reqOpts{})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for cached favicon, got %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "image/png" {
+		t.Errorf("expected image/png content type, got %s", ct)
+	}
+
+	// 请求 /api/favicon/www.baidu.com.ico（同一个缓存）
+	rec = do(t, h, "GET", "/api/favicon/www.baidu.com.ico", reqOpts{})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for cached favicon, got %d", rec.Code)
+	}
+}
+
+func TestCreateLinkWithCustomIconURLAPI(t *testing.T) {
+	api, h := newTestAPI(t)
+	cookie := setupAdmin(t, api, true)
+
+	// 创建带独立图标链接 (iconUrl) 的链接
+	customURL := "https://img.example.com/logo.webp"
+	rec := do(t, h, "POST", "/api/links", reqOpts{
+		cookie:    cookie,
+		origin:    "http://example.com",
+		fetchSite: "same-origin",
+		body: map[string]any{
+			"categoryId": 1,
+			"title":      "测试外链图标",
+			"url":        "https://example.com/custom-icon",
+			"iconUrl":    customURL,
+		},
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 created, got %d: %s", rec.Code, rec.Body)
+	}
+	d := decode[service.LinkDTO](t, rec)
+	if d.IconURL == nil || *d.IconURL != customURL {
+		t.Errorf("expected iconUrl %q, got %#v", customURL, d.IconURL)
+	}
+	if d.CustomIconURL == nil || *d.CustomIconURL != customURL {
+		t.Errorf("expected customIconUrl %q, got %#v", customURL, d.CustomIconURL)
 	}
 }

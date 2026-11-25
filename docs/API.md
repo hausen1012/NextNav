@@ -99,6 +99,7 @@
 | POST | `/api/backup/import` | 管理员 | 导入全站数据（支持 merge / overwrite） |
 | POST | `/api/sample/clear` | 管理员 | 清空预置示例数据 |
 | POST | `/api/icons/purge` | 管理员 | 清理未被引用的图标文件 |
+| GET | `/api/favicon/*` | 公开 | 抓取或返回站点 Favicon 图标缓存 |
 | GET | `/icons/*` | 公开 | 图标静态资源托管 |
 
 ### 1.2 规划中扩展端点
@@ -228,6 +229,7 @@
   "backupUrl": null,
   "description": "代码托管",
   "iconPath": "icons/ab/cd/abcdef0123456789.png",
+  "iconUrl": "https://github.com/fluidicon.png",
   "sort": 1000,
   "isPrivate": false
 }
@@ -236,13 +238,14 @@
 - `categoryId` 与 `url` 为必填项；`url` 必须为 http/https。
 - `title` 为空时服务端使用 host 兜底（最多 128 字符）。
 - `backupUrl`、`description`、`sort`、`isPrivate` 为可选项。
-- `iconPath` 必须是 `/api/meta` 或图标上传接口已写入 `data/icons` 的相对路径（不带前导 `/`），否则 `400 invalid_icon`；不传则使用首字母占位。
+- `iconPath` 为上传落盘的本地图标文件相对路径（如 `icons/ab/cd/...`，不带前导 `/`）。
+- `iconUrl` 为直接配置的图标链接（支持外部 `https://` 链接或站内 `/api/favicon/...` 接口地址）。若同时存在 `iconPath` 与 `iconUrl`，展示时优先使用上传的本地图标；若均未配置则展示首字母占位头像。
 - 同分类下 URL 重复 → `409 duplicate_link`。
-- 响应 `201` + 完整链接对象（含 `iconUrl` 与 `iconPath`）。
+- 响应 `201` + 完整链接对象（含用于渲染的 `iconUrl`、本地文件路径 `iconPath` 与用户配置链接 `customIconUrl`）。
 
 ### PATCH /api/links/{id}
 
-只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `iconPath` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。`iconPath` 传 `null` 表示清除图标。响应 `200` + 完整更新后的链接对象。
+只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `iconPath` / `iconUrl` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。`iconPath` 传 `null` 表示清除上传图标；`iconUrl` 传 `null` 表示清除图标链接。响应 `200` + 完整更新后的链接对象。
 
 ### DELETE /api/links/{id}
 
@@ -497,6 +500,15 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 ```json
 { "removed": 12 }
 ```
+
+### GET /api/favicon/{target}
+
+公开端点。根据给定的域名或地址获取 favicon 图标。支持直接携带图片格式后缀（如 `.ico`、`.png`、`.jpg`、`.webp`），例如：
+- `/api/favicon/www.baidu.com.ico`
+- `/api/favicon/www.baidu.com.png`
+- `/api/favicon/github.com`
+
+抓取成功后自动落盘缓存于 `data/icons` 并在 `favicon_cache` 表记录，后续请求直接命中缓存。返回 `200` 及对应 Content-Type，若目标站点不可达或无可用图标则返回 `404`。
 
 ---
 

@@ -80,18 +80,22 @@ func (s *Service) BuildCategoryTree(admin, withLinks bool) ([]GroupDTO, error) {
 			return nil, err
 		}
 		for _, l := range allLinks {
-			iconStr := ""
-			if l.IconPath != nil {
-				iconStr = *l.IconPath
+			var displayIconURL *string
+			if l.IconPath != nil && *l.IconPath != "" {
+				displayIconURL = IconURL(*l.IconPath)
+			} else if l.IconURL != nil && *l.IconURL != "" {
+				displayIconURL = l.IconURL
 			}
+
 			linksByCat[l.CategoryID] = append(linksByCat[l.CategoryID], LinkDTO{
 				ID:            l.ID,
 				Title:         l.Title,
 				URL:           l.URL,
 				BackupURL:     l.BackupURL,
 				Description:   l.Description,
-				IconURL:       IconURL(iconStr),
+				IconURL:       displayIconURL,
 				IconPath:      l.IconPath,
+				CustomIconURL: l.IconURL,
 				CategoryID:    l.CategoryID,
 				IsPrivate:     l.IsPrivate,
 				Status:        l.LastStatus,

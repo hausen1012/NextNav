@@ -8,6 +8,7 @@ type LinkDTO struct {
 	Description   *string `json:"description"`
 	IconURL       *string `json:"iconUrl"`
 	IconPath      *string `json:"iconPath"`
+	CustomIconURL *string `json:"customIconUrl,omitempty"`
 	CategoryID    int64   `json:"categoryId"`
 	CategoryName  string  `json:"categoryName,omitempty"`
 	IsPrivate     bool    `json:"isPrivate"`

@@ -38,6 +38,7 @@ import {
   Trash2,
   ExternalLink,
   Upload,
+  Globe,
 } from 'lucide-react'
 
 // 搜索引擎配置
@@ -101,6 +102,7 @@ export function HomePage() {
     description: string
     iconPath: string
     iconUrl: string | null
+    customIconUrl: string
     isPrivate: boolean
     sort: number
   }>({
@@ -113,6 +115,7 @@ export function HomePage() {
     description: '',
     iconPath: '',
     iconUrl: null,
+    customIconUrl: '',
     isPrivate: false,
     sort: 10,
   })
@@ -154,13 +157,16 @@ export function HomePage() {
       return
     }
     setLinkFormError(null)
+
+    // 即时生成本地预览 blob
+    const blobUrl = URL.createObjectURL(file)
+    setLinkModal((prev) => ({
+      ...prev,
+      iconUrl: blobUrl,
+    }))
+
     if (linkModal.mode !== 'edit' || !linkModal.id) {
       setLinkIconFile(file)
-      setLinkModal((prev) => ({
-        ...prev,
-        iconPath: '',
-        iconUrl: URL.createObjectURL(file),
-      }))
       return
     }
     setLinkUploadingIcon(true)
@@ -169,9 +175,8 @@ export function HomePage() {
       setLinkModal((prev) => ({
         ...prev,
         iconPath: updated.iconPath || '',
-        iconUrl: updated.iconUrl,
+        iconUrl: blobUrl,
       }))
-      await invalidate()
     } catch (err) {
       setLinkFormError(err instanceof Error ? err.message : '图标上传失败')
     } finally {
@@ -189,7 +194,6 @@ export function HomePage() {
     try {
       await api.clearLinkIcon(linkModal.id)
       setLinkModal((prev) => ({ ...prev, iconPath: '', iconUrl: null }))
-      await invalidate()
     } catch (err) {
       setLinkFormError(err instanceof Error ? err.message : '清除图标失败')
     } finally {
@@ -474,6 +478,7 @@ export function HomePage() {
       description: '',
       iconPath: '',
       iconUrl: null,
+      customIconUrl: '',
       isPrivate: false,
       sort: 10,
     })
@@ -493,6 +498,7 @@ export function HomePage() {
       description: link.description || '',
       iconPath: link.iconPath || '',
       iconUrl: link.iconUrl,
+      customIconUrl: link.customIconUrl || '',
       isPrivate: link.isPrivate,
       sort: link.sort ?? 10,
     })
@@ -523,6 +529,7 @@ export function HomePage() {
         categoryId: Number(linkModal.categoryId),
         description: linkModal.description.trim() || null,
         iconPath: linkModal.iconPath || null,
+        iconUrl: linkModal.customIconUrl.trim() || null,
         isPrivate: linkModal.isPrivate,
         sort: Number(linkModal.sort) || 10,
       }
@@ -1445,14 +1452,22 @@ export function HomePage() {
               {/* 图标 */}
               <div>
                 <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                  链接图标
+                  图标
                 </label>
                 <div className='flex items-center gap-3'>
                   <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full'>
                     <SiteIcon
                       name={linkModal.title || '?'}
                       url={linkModal.url}
-                      iconUrl={linkModal.iconUrl}
+                      iconUrl={
+                        linkModal.iconUrl
+                          ? linkModal.iconUrl
+                          : linkModal.iconPath
+                            ? `/${linkModal.iconPath.replace(/^\//, '')}`
+                            : linkModal.customIconUrl.trim()
+                              ? linkModal.customIconUrl.trim()
+                              : null
+                      }
                       size={40}
                     />
                   </div>
@@ -1472,7 +1487,7 @@ export function HomePage() {
                     <Upload className='size-3.5' />
                     <span>{linkUploadingIcon ? '上传中...' : '上传图标'}</span>
                   </button>
-                  {linkModal.iconUrl ? (
+                  {linkModal.iconPath || linkIconFile ? (
                     <button
                       type='button'
                       disabled={linkUploadingIcon}
@@ -1480,12 +1495,49 @@ export function HomePage() {
                       className='flex items-center gap-1 rounded-xl px-2 py-2 text-xs text-zinc-500 hover:text-red-600 disabled:opacity-40 dark:text-zinc-400 dark:hover:text-red-400 transition'
                     >
                       <Trash2 className='size-3.5' />
-                      <span>移除</span>
+                      <span>删除图标</span>
                     </button>
                   ) : null}
                   <span className='text-[11px] text-zinc-400 dark:text-zinc-500'>
-                    不设置时使用抓取图标或首字母
+                    支持 PNG、JPEG、WebP、ICO，不超过 1MB
                   </span>
+                </div>
+              </div>
+
+              {/* 图标链接 */}
+              <div>
+                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
+                  图标链接
+                </label>
+                <div className='flex items-center gap-2'>
+                  <input
+                    type='text'
+                    value={linkModal.customIconUrl}
+                    onChange={(e) => setLinkModal({ ...linkModal, customIconUrl: e.target.value })}
+                    placeholder='请输入图标链接，如果没有，请留空（可输入外部https链接）'
+                    className='flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
+                  />
+                  <button
+                    type='button'
+                    disabled={!linkModal.url.trim()}
+                    onClick={() => {
+                      const trimmed = linkModal.url.trim()
+                      if (!trimmed) return
+                      try {
+                        const u = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
+                        if (u.hostname) {
+                          setLinkModal((prev) => ({ ...prev, customIconUrl: `/api/favicon/${u.hostname}.png` }))
+                        }
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    className='shrink-0 flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer'
+                    title='自动填入本站 Favicon 抓取接口'
+                  >
+                    <Globe className='size-3.5' />
+                    <span>Favicon</span>
+                  </button>
                 </div>
               </div>
 

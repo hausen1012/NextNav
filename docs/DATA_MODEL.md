@@ -117,6 +117,7 @@ CREATE TABLE link (
   description     TEXT,
   icon_path       TEXT,
   icon_source     TEXT CHECK (icon_source IN ('upload','fetched','placeholder')),
+  icon_url        TEXT,
   sort            INTEGER NOT NULL DEFAULT 10,
   is_private      INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
   is_sample       INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
@@ -141,7 +142,7 @@ CREATE INDEX idx_link_status        ON link(last_status);
 
 - **`url` 不做唯一约束**。同一个站点在不同分类下重复收录是合理需求；新增时检测到「同分类 + 同 URL」返回 409 由前端提示，但不强制。
 - `icon_source = 'upload'` 时 `icon_path` 必填；`'placeholder'` 表示走前端首字母渲染。
-- `icon_path` 只允许指向 `data/icons` 下已存在的文件；写入接口校验失败返回 `400 invalid_icon`。
+- `icon_path` 存相对 `data/` 的本地上传图标路径（如 `icons/ab/cd/...`）；`icon_url` 存直接配置的外部图标链接或站内 Favicon 抓取接口（如 `/api/favicon/...`）。若同时配置优先展示本地图标。
 - `last_status` 是缓存值，权威数据在 `link_check`。
 
 ### 1.6 link_check
@@ -268,5 +269,10 @@ data/
 |---|---|
 | 0001_init | 上述全部表、索引、`PRAGMA user_version = 1` |
 | 0002_category_description | `category` 表新增 `description TEXT` 字段，`PRAGMA user_version = 2` |
+| 0003_link_unique_url | 同分类同 URL 软校验处理，`PRAGMA user_version = 3` |
+| 0004_drop_pinyin | 移除拼音辅助字段，`PRAGMA user_version = 4` |
+| 0005_drop_clicks | 移除点击统计字段，`PRAGMA user_version = 5` |
+| 0006_favicon_cache | 新增 `favicon_cache` 缓存表，`PRAGMA user_version = 6` |
+| 0007_link_icon_url | `link` 表新增独立 `icon_url TEXT` 图标链接字段，`PRAGMA user_version = 7` |
 
 后续变更一律新增 `000N_*.sql`，不改历史文件。启动时在事务内逐版本执行，失败则回滚并拒绝启动（打印到 stderr）。

@@ -10,6 +10,7 @@ export interface LinkDTO {
   description: string | null
   iconUrl: string | null
   iconPath?: string | null
+  customIconUrl?: string | null
   categoryId: number
   categoryName?: string
   isPrivate: boolean
@@ -178,6 +179,7 @@ export const api = {
     backupUrl?: string | null
     description?: string | null
     iconPath?: string | null
+    iconUrl?: string | null
     sort?: number
     isPrivate?: boolean
   }) => request<LinkDTO>('/api/links', { method: 'POST', ...json(body) }),

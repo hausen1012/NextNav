@@ -35,6 +35,7 @@ type Link struct {
 	Description   *string
 	IconPath      *string
 	IconSource    *string
+	IconURL       *string
 	Sort          int64
 	IsPrivate     bool
 	IsSample      bool

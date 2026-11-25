@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useLazyImage } from '@/hooks/useLazyImage'
 import { hashHue, initialOf } from '@/lib/utils'
 
@@ -11,16 +12,25 @@ type Props = {
 
 export function SiteIcon({ name, url = '', iconUrl, size = 40, className = '' }: Props) {
   const { ref, status } = useLazyImage({ src: iconUrl })
+  const [hasError, setHasError] = useState(false)
 
-  // 1. 如果已加载成功，展示目标图标
-  if (iconUrl && status === 'loaded') {
+  // 当 iconUrl 改变时重置错误状态
+  useEffect(() => {
+    setHasError(false)
+  }, [iconUrl])
+
+  // 1. 如果已加载成功且无错误，展示目标图标
+  if (iconUrl && !hasError && status === 'loaded') {
     return (
       <img
+        ref={ref as React.RefObject<HTMLImageElement>}
         src={iconUrl}
         alt=''
         width={size}
         height={size}
         decoding='async'
+        referrerPolicy='no-referrer'
+        onError={() => setHasError(true)}
         className={`shrink-0 rounded-full object-contain ${className}`}
         style={{ width: size, height: size }}
       />
@@ -28,7 +38,7 @@ export function SiteIcon({ name, url = '', iconUrl, size = 40, className = '' }:
   }
 
   // 2. 如果滑动到可视区且正在下载，展示 loading 图片
-  if (iconUrl && status === 'loading') {
+  if (iconUrl && !hasError && status === 'loading') {
     const loadingIconSize = Math.max(16, Math.round(size * 0.6))
     return (
       <div
@@ -49,7 +59,7 @@ export function SiteIcon({ name, url = '', iconUrl, size = 40, className = '' }:
   }
 
   // 3. 如果尚未滑动到可视区，保持轻量占位，绝不发送网络请求
-  if (iconUrl && status === 'idle') {
+  if (iconUrl && !hasError && status === 'idle') {
     return (
       <div
         ref={ref as React.RefObject<HTMLDivElement>}
@@ -60,10 +70,11 @@ export function SiteIcon({ name, url = '', iconUrl, size = 40, className = '' }:
     )
   }
 
-  // 4. 无图标或加载失败 (status === 'error')，展示基于名称确定的彩色文字头像
+  // 4. 无图标或加载失败，展示基于名称确定的彩色文字头像
   const hue = hashHue(url || name)
   return (
     <span
+      ref={ref as React.RefObject<HTMLSpanElement>}
       aria-hidden='true'
       className={`flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none ${className}`}
       style={{

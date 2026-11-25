@@ -35,6 +35,7 @@ export function LazyImage({
         width={width}
         height={height}
         decoding='async'
+        referrerPolicy='no-referrer'
         className={className}
         style={style}
         {...props}

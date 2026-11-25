@@ -45,6 +45,7 @@ export function preloadImage(url: string): Promise<string> {
 
     const img = new Image()
     img.decoding = 'async'
+    img.referrerPolicy = 'no-referrer'
     img.onload = () => {
       loadedImageUrls.add(url)
       resolve(url)
