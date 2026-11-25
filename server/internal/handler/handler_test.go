@@ -15,7 +15,7 @@ import (
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
 	"nextnav/internal/store"
-	"nextnav/internal/webembed"
+	"testing/fstest"
 )
 
 // newTestAPI creates an isolated install with a fresh SQLite file per test.
@@ -29,7 +29,10 @@ func newTestAPI(t *testing.T) (*API, http.Handler) {
 	t.Cleanup(func() { _ = st.Close() })
 
 	svc := service.New(st)
-	api := NewAPI(svc, false, webembed.FS())
+	mockFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<!doctype html><html><body>ok</body></html>")},
+	}
+	api := NewAPI(svc, false, mockFS)
 	return api, NewRouter(api)
 }
 

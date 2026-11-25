@@ -5,7 +5,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 src="$root/web/dist"
-dst="$root/server/internal/webembed/dist"
+dst="$root/server/cmd/nextnav/web"
 
 if [ ! -f "$src/index.html" ]; then
   echo "web/dist missing — run 'npm run build' in web/ first" >&2
@@ -16,4 +16,4 @@ rm -rf "$dst"
 mkdir -p "$dst"
 cp -R "$src"/. "$dst"/
 
-echo "embedded $(find "$dst" -type f | wc -l) files into server/internal/webembed/dist"
+echo "embedded $(find "$dst" -type f | wc -l) files into server/cmd/nextnav/web"

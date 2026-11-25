@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"embed"
 	"errors"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -15,8 +17,18 @@ import (
 	"nextnav/internal/service"
 	"nextnav/internal/slogx"
 	"nextnav/internal/store"
-	"nextnav/internal/webembed"
 )
+
+//go:embed all:web
+var staticFS embed.FS
+
+func getStaticFS() fs.FS {
+	sub, err := fs.Sub(staticFS, "web")
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}
 
 func main() {
 	slogx.Setup(os.Getenv("DEBUG") == "1")
@@ -39,7 +51,7 @@ func main() {
 	defer appCancel()
 	svc.StartPeriodicChecker(appCtx, cfg.CheckInterval)
 
-	api := handler.NewAPI(svc, cfg.SecureCookie, webembed.FS())
+	api := handler.NewAPI(svc, cfg.SecureCookie, getStaticFS())
 
 	addr := ":" + cfg.Port
 	if cfg.Host != "" {

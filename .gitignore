@@ -2,8 +2,8 @@
 node_modules/
 web/dist/
 web/dev-dist/
-server/internal/webembed/dist/*
-!server/internal/webembed/dist/.gitkeep
+server/cmd/nextnav/web/*
+!server/cmd/nextnav/web/.gitkeep
 bin/
 nextnav.exe
 *.tsbuildinfo

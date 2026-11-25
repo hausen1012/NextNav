@@ -18,7 +18,7 @@ RUN go mod download
 
 COPY server/ ./
 # Replace the placeholder bundle with the real build.
-COPY --from=web /app/web/dist ./internal/webembed/dist
+COPY --from=web /app/web/dist ./cmd/nextnav/web
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/nextnav ./cmd/nextnav
 
 # --- stage 3: runtime ---
