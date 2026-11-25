@@ -11,7 +11,7 @@ type Props = {
 
 // Icon with a deterministic letter fallback: no network request is required
 // when a favicon is missing (docs/FEATURES.md A6).
-export function SiteIcon({ name, url = '', iconUrl, size = 36, className = '' }: Props) {
+export function SiteIcon({ name, url = '', iconUrl, size = 40, className = '' }: Props) {
   const [failed, setFailed] = useState(false)
 
   if (iconUrl && !failed) {
