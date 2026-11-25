@@ -865,7 +865,7 @@ export function HomePage() {
           {/* 顶部搜索区 (经典胶囊搜索框 - 黑白灰风格) */}
           <div className='max-w-3xl mx-auto w-full'>
             <form onSubmit={handleSearchSubmit} className='relative w-full'>
-              <div className='relative flex items-center rounded-full border border-zinc-200 bg-white shadow-xs transition-all focus-within:border-zinc-400 focus-within:shadow-md dark:border-zinc-700 dark:bg-[#1a1d24]'>
+              <div className='relative flex items-center rounded-full border border-black/[0.06] bg-white shadow-xs transition-all focus-within:border-black/20 focus-within:shadow-md dark:border-white/[0.08] dark:bg-[#181a1f] dark:focus-within:border-white/20'>
                 {/* 搜索引擎下拉选择 */}
                 <div ref={engineDropdownRef} className='relative shrink-0'>
                   <button
@@ -878,7 +878,7 @@ export function HomePage() {
                   </button>
 
                   {showEngineDropdown && (
-                    <div className='absolute left-2 top-full mt-1.5 z-40 w-28 rounded-xl border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-[#1c1f26] text-xs'>
+                    <div className='absolute left-2 top-full mt-1.5 z-40 w-28 rounded-xl border border-black/[0.06] bg-white p-1 shadow-lg dark:border-white/[0.08] dark:bg-[#1c1f26] text-xs'>
                       {SEARCH_ENGINES.map((eng, idx) => (
                         <button
                           key={eng.id}
@@ -903,7 +903,7 @@ export function HomePage() {
                 </div>
 
                 {/* 垂直分割线 */}
-                <div className='h-4 w-px bg-zinc-200 dark:bg-zinc-700' />
+                <div className='h-4 w-px bg-black/[0.08] dark:bg-white/[0.1]' />
 
                 {/* 搜索输入框 */}
                 <input
@@ -1053,7 +1053,7 @@ export function HomePage() {
                         <button
                           type='button'
                           onClick={() => openEditCategoryModal(group)}
-                          className='opacity-0 group-hover/root:opacity-100 flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 shadow-2xs hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
+                          className='opacity-0 group-hover/root:opacity-100 flex size-7 items-center justify-center rounded-lg border border-black/[0.06] bg-white text-zinc-400 shadow-2xs hover:border-black/20 hover:text-zinc-900 dark:border-white/[0.08] dark:bg-zinc-800/80 dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20 transition'
                           title='编辑此分类'
                         >
                           <SquarePen className='size-3.5' />
@@ -1124,7 +1124,7 @@ export function HomePage() {
                               <button
                                 type='button'
                                 onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
-                                className='opacity-0 group-hover/sub:opacity-100 flex size-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-800 dark:hover:text-white dark:hover:border-zinc-600 transition-opacity'
+                                className='opacity-0 group-hover/sub:opacity-100 flex size-6 items-center justify-center rounded-md border border-black/[0.06] bg-white text-zinc-400 hover:border-black/20 hover:text-zinc-900 dark:border-white/[0.08] dark:bg-zinc-800/80 dark:hover:text-white dark:hover:border-white/20 transition'
                                 title='编辑子分类'
                               >
                                 <SquarePen className='size-3' />
@@ -1167,7 +1167,7 @@ export function HomePage() {
 
       {/* ===================== 右下角悬浮工具条 (统一添加链接 & 控制) ===================== */}
       <div className='fixed right-6 bottom-6 z-40 flex flex-col items-center gap-2 select-none'>
-        <div className='flex flex-col items-center gap-1.5 rounded-2xl border border-zinc-200/80 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-zinc-800 dark:bg-[#1a1d24]/95'>
+        <div className='flex flex-col items-center gap-1.5 rounded-2xl border border-black/[0.06] bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-white/[0.08] dark:bg-[#181a1f]/95'>
           {/* 统一添加链接快捷入口 (黑白灰配色) */}
           {isAdmin && (
             <button

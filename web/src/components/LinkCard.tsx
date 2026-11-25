@@ -85,12 +85,12 @@ export function LinkCard({
         target={newTab ? '_blank' : undefined}
         rel={newTab ? 'noopener noreferrer' : undefined}
         onContextMenu={handleContextMenu}
-        className='group relative flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white p-3.5 shadow-2xs transition-colors duration-150 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-xs dark:border-zinc-800/90 dark:bg-[#181a1f] dark:hover:border-zinc-700/80 dark:hover:bg-[#1c1f26] select-none'
+        className='group relative flex items-center gap-3 rounded-2xl border border-transparent bg-white p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-black/[0.04] dark:border-transparent dark:bg-[#181a1f] dark:hover:bg-[#20232a] dark:hover:border-white/[0.06] select-none'
       >
         <StatusDot status={link.status} />
 
         {/* 网站图标容器 */}
-        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-100/90 dark:bg-zinc-800/70 border border-zinc-200/60 dark:border-zinc-700/50'>
+        <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-100/80 dark:bg-zinc-800/60'>
           <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={24} />
         </div>
 
