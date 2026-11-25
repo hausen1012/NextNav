@@ -43,10 +43,12 @@ export function LoginPage() {
     setError(null)
     setBusy(true)
     try {
-      await api.login(username.trim(), password)
+      const res = await api.login(username.trim(), password)
       await clearHomeCache()
+      // 同步将管理员身份写入 React Query 缓存，避免跳转至 /admin 时命中旧的 guest 缓存导致二次拦截重定向
+      qc.setQueryData(['me'], { auth: 'admin', username: res.user.username })
       await Promise.all([
-        qc.invalidateQueries({ queryKey: ['me'] }),
+        qc.refetchQueries({ queryKey: ['me'] }),
         qc.invalidateQueries({ queryKey: ['home'] }),
       ])
       navigate(redirectTo, { replace: true })

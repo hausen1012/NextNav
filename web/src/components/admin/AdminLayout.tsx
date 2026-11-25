@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useHome, useMe } from '@/lib/query'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
@@ -7,7 +7,6 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
-import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function AdminLayout() {
@@ -30,29 +29,10 @@ export function AdminLayout() {
 
   if (me?.auth !== 'admin') {
     return (
-      <div className='flex min-h-screen items-center justify-center p-4 bg-muted/30'>
-        <Card className='max-w-md w-full shadow-lg'>
-          <CardContent className='pt-6 text-center space-y-4'>
-            <div className='mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive text-xl font-bold'>
-              !
-            </div>
-            <div>
-              <h2 className='text-lg font-semibold'>需要管理员权限</h2>
-              <p className='mt-1 text-sm text-muted-foreground'>
-                请先以管理员账号登录后再访问管理后台。
-              </p>
-            </div>
-            <div className='pt-2'>
-              <Link
-                to={`/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-                className='inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90'
-              >
-                前往登录
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Navigate
+        to={`/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`}
+        replace
+      />
     )
   }
 
