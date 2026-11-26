@@ -1,9 +1,7 @@
-import { Link } from 'react-router-dom'
-import { ExternalLink, LogOut, User } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -46,21 +44,6 @@ export function UserNav({ me: propMe }: UserNavProps) {
             <p className='text-xs leading-none text-muted-foreground'>系统管理员</p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to='/admin/account' className='cursor-pointer'>
-              <User className='mr-2 size-4' />
-              <span>账户设置</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to='/' target='_blank' rel='noopener noreferrer' className='cursor-pointer'>
-              <ExternalLink className='mr-2 size-4' />
-              <span>访问前台</span>
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className='cursor-pointer text-destructive focus:text-destructive'

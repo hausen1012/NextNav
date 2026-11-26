@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Moon, Sun, ExternalLink } from 'lucide-react'
+import { Moon, Sun, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
@@ -52,8 +52,8 @@ export function Header({ className, fixed = true, me, ...props }: HeaderProps) {
         {/* Right: Actions */}
         <div className='flex items-center gap-2'>
           <Button variant='outline' size='sm' className='h-8 gap-1.5 text-xs' asChild>
-            <Link to='/' target='_blank' rel='noopener noreferrer'>
-              <ExternalLink className='size-3.5' />
+            <Link to='/'>
+              <Eye className='size-3.5' />
               <span className='hidden sm:inline'>预览前台</span>
             </Link>
           </Button>

@@ -1,10 +1,4 @@
-import { Link } from 'react-router-dom'
-import {
-  ChevronsUpDown,
-  ExternalLink,
-  LogOut,
-  User,
-} from 'lucide-react'
+import { ChevronsUpDown, LogOut } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,19 +67,6 @@ export function NavUser({ me }: NavUserProps) {
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link to='/admin/account' className='cursor-pointer'>
-                <User className='mr-2 size-4' />
-                <span>账户设置</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to='/' target='_blank' rel='noopener noreferrer' className='cursor-pointer'>
-                <ExternalLink className='mr-2 size-4' />
-                <span>访问前台</span>
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className='cursor-pointer text-destructive focus:text-destructive'
