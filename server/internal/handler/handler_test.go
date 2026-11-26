@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -40,7 +41,7 @@ func newTestAPIWithFaviconDomains(t *testing.T, faviconAllowedDomains string) (*
 	mockFS := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<!doctype html><html><body>ok</body></html>")},
 	}
-	api := NewAPI(svc, false, mockFS, faviconAllowedDomains)
+	api := NewAPI(svc, mockFS, faviconAllowedDomains)
 	return api, NewRouter(api)
 }
 
@@ -92,6 +93,55 @@ func sessionCookie(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
 	}
 	t.Fatalf("no session cookie in response")
 	return nil
+}
+
+func TestSessionCookieSecureFollowsRequest(t *testing.T) {
+	cases := []struct {
+		name       string
+		forwarded  string
+		tls        bool
+		wantSecure bool
+	}{
+		{name: "http"},
+		{name: "https via proxy", forwarded: "https", wantSecure: true},
+		{name: "proxy chain", forwarded: "https,http", wantSecure: true},
+		{name: "http via proxy", forwarded: "http"},
+		{name: "direct https", tls: true, wantSecure: true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			api, h := newTestAPI(t)
+			if err := api.Service.InitAdmin("admin", "nextnav123", false); err != nil {
+				t.Fatalf("init admin: %v", err)
+			}
+			req := httptest.NewRequest("POST", "/api/login",
+				bytes.NewBufferString(`{"username":"admin","password":"nextnav123"}`))
+			req.Header.Set("Content-Type", "application/json")
+			if c.forwarded != "" {
+				req.Header.Set("X-Forwarded-Proto", c.forwarded)
+			}
+			if c.tls {
+				req.TLS = &tls.ConnectionState{}
+			}
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("login: %d %s", rec.Code, rec.Body)
+			}
+			found := false
+			for _, cookie := range rec.Result().Cookies() {
+				if cookie.Name == sessionCookieName {
+					found = true
+					if cookie.Secure != c.wantSecure {
+						t.Fatalf("Secure = %v, want %v", cookie.Secure, c.wantSecure)
+					}
+				}
+			}
+			if !found {
+				t.Fatal("no session cookie in response")
+			}
+		})
+	}
 }
 
 func setupAdmin(t *testing.T, api *API, seedSample bool) *http.Cookie {

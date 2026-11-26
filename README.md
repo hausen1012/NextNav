@@ -77,7 +77,6 @@ docker run -d \
 | `PORT` | `8787`（容器内 `3000`） | 监听端口 |
 | `DATA_DIR` | `./data` | 数据目录 |
 | `CHECK_INTERVAL` | `1d` | 链接检测频率，支持 `6h` / `1d` / `off` |
-| `COOKIE_SECURE` | `false` | HTTPS 部署时设为 `true` |
 | `ADMIN_USERNAME` | `admin` | 首次启动初始化的管理员用户名（1–32 字符） |
 | `ADMIN_PASSWORD` | `admin123` | 首次启动初始化的管理员密码（至少 8 位） |
 | `IMPORT_SAMPLE_DATA` | `false` | 首次启动是否导入示例数据，设为 `true` 开启 |

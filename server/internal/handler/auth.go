@@ -133,14 +133,27 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.limiter.reset(ip)
-	expiresAt := a.issueSession(w)
+	expiresAt := a.issueSession(w, r)
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"user":      map[string]string{"username": storedUser},
 		"expiresAt": expiresAt,
 	})
 }
 
-func (a *API) issueSession(w http.ResponseWriter) int64 {
+// requestIsSecure reports whether the request arrived over HTTPS, either
+// directly or through a reverse proxy that sets X-Forwarded-Proto.
+func requestIsSecure(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	proto := r.Header.Get("X-Forwarded-Proto")
+	if proto == "" {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(strings.Split(proto, ",")[0]), "https")
+}
+
+func (a *API) issueSession(w http.ResponseWriter, r *http.Request) int64 {
 	expiresAt := time.Now().Add(sessionTTL).Truncate(time.Second)
 	value := auth.SignSession(a.cookieKey(), expiresAt, "admin")
 	http.SetCookie(w, &http.Cookie{
@@ -149,7 +162,7 @@ func (a *API) issueSession(w http.ResponseWriter) int64 {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   a.Secure,
+		Secure:   requestIsSecure(r),
 		MaxAge:   int(sessionTTL / time.Second),
 	})
 	return expiresAt.UnixMilli()
@@ -162,7 +175,7 @@ func (a *API) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   a.Secure,
+		Secure:   requestIsSecure(r),
 		MaxAge:   -1,
 	})
 	w.WriteHeader(http.StatusNoContent)

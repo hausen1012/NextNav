@@ -394,7 +394,7 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	response := map[string]any{"username": user}
 	if req.NewPassword != "" {
-		response["expiresAt"] = a.issueSession(w)
+		response["expiresAt"] = a.issueSession(w, r)
 	}
 	httpx.JSON(w, http.StatusOK, response)
 }
