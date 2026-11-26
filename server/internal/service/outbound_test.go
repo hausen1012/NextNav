@@ -103,6 +103,51 @@ func TestSafeHTTPClientSkipsPrivateDNSResults(t *testing.T) {
 	}
 }
 
+func TestSafeHTTPClientDialsDNSProxyFakeIP(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	var dialed []string
+	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
+		dialed = append(dialed, address)
+		return (&net.Dialer{}).DialContext(ctx, network, ts.Listener.Addr().String())
+	}
+	resolver := fakeOutboundResolver{"public.test": {net.ParseIP("198.18.1.245")}}
+	client := newSafeHTTPClientWith(time.Second, resolver, dial)
+
+	resp, err := client.Get("http://public.test/")
+	if err != nil {
+		t.Fatalf("get fake-ip target: %v", err)
+	}
+	_ = resp.Body.Close()
+	if len(dialed) != 1 || dialed[0] != "198.18.1.245:80" {
+		t.Fatalf("expected dial to fake-ip address, got %v", dialed)
+	}
+}
+
+func TestSafeHTTPClientBlocksFakeIPLiteral(t *testing.T) {
+	var dialed []string
+	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
+		dialed = append(dialed, address)
+		return (&net.Dialer{}).DialContext(ctx, network, address)
+	}
+	resolver := fakeOutboundResolver{"198.18.1.245": {net.ParseIP("198.18.1.245")}}
+	client := newSafeHTTPClientWith(time.Second, resolver, dial)
+
+	resp, err := client.Get("http://198.18.1.245/")
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	if !errors.Is(err, errBlockedOutboundAddress) {
+		t.Fatalf("expected blocked fake-ip literal, got %v", err)
+	}
+	if len(dialed) != 0 {
+		t.Fatalf("expected no dial to fake-ip literal, got %v", dialed)
+	}
+}
+
 func TestSafeHTTPClientRejectsPrivateRedirect(t *testing.T) {
 	var privateHits atomic.Int32
 	var ts *httptest.Server

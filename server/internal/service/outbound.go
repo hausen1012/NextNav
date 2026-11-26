@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-var errBlockedOutboundAddress = errors.New("outbound address is not public")
+var (
+	errBlockedOutboundAddress = errors.New("outbound address is not public")
+	dnsProxyFakeIPPrefix      = netip.MustParsePrefix("198.18.0.0/15")
+)
 
 var blockedOutboundPrefixes = []netip.Prefix{
 	netip.MustParsePrefix("0.0.0.0/8"),
@@ -109,7 +112,7 @@ func safeOutboundDialContext(resolver outboundResolver, dial outboundDialFunc) f
 
 		var lastErr error
 		for _, ipAddr := range ips {
-			if !isPublicOutboundIP(ipAddr.IP) {
+			if !isAllowedOutboundIP(host, ipAddr.IP) {
 				continue
 			}
 			conn, dialErr := dial(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
@@ -123,6 +126,23 @@ func safeOutboundDialContext(resolver outboundResolver, dial outboundDialFunc) f
 		}
 		return nil, errBlockedOutboundAddress
 	}
+}
+
+func isAllowedOutboundIP(host string, ip net.IP) bool {
+	if isPublicOutboundIP(ip) {
+		return true
+	}
+	// 本地代理软件常用 198.18.0.0/15 作为域名 fake-ip，拨号由代理接管；
+	// 仅允许域名解析结果，不允许 URL 直接写死该地址。
+	return net.ParseIP(host) == nil && isFakeOutboundIP(ip)
+}
+
+func isFakeOutboundIP(ip net.IP) bool {
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	return dnsProxyFakeIPPrefix.Contains(addr.Unmap())
 }
 
 func isPublicOutboundIP(ip net.IP) bool {
