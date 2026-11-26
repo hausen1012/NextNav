@@ -27,7 +27,6 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         username: res.user.username,
         expiresAt: res.expiresAt,
       })
-      await qc.invalidateQueries({ queryKey: ['home'] })
       onSuccess()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '登录失败，请检查账号与密码')

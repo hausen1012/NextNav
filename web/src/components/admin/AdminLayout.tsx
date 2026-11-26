@@ -1,5 +1,6 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useHome, useMe } from '@/lib/query'
+import { type MeResponse } from '@/lib/api'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
 import { LayoutProvider } from '@/context/layout-provider'
@@ -12,8 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 export function AdminLayout() {
   const location = useLocation()
   const { data: me, isLoading: meLoading } = useMe()
-  const { data: home } = useHome()
-  const defaultOpen = getCookie('sidebar_state') !== 'false'
 
   if (meLoading) {
     return (
@@ -35,6 +34,13 @@ export function AdminLayout() {
       />
     )
   }
+
+  return <AdminShell me={me} />
+}
+
+function AdminShell({ me }: { me: MeResponse }) {
+  const { data: home } = useHome()
+  const defaultOpen = getCookie('sidebar_state') !== 'false'
 
   return (
     <LayoutProvider>
