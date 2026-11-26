@@ -1122,25 +1122,25 @@ export function HomePage() {
 
                     {/* 分类操作按钮组 */}
                     <div className='flex items-center gap-1.5'>
-                      {allGroupLinks.length > 0 && (
-                        <button
-                          type='button'
-                          onClick={() => handleOpenAll(group.name, allGroupLinks)}
-                          className='flex items-center gap-1 px-2 py-1 text-xs text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition'
-                          title={`一键打开此分类下全部 ${allGroupLinks.length} 个链接`}
-                        >
-                          <ExternalLink className='size-3.5' />
-                          <span className='hidden sm:inline'>打开全部 ({allGroupLinks.length})</span>
-                        </button>
-                      )}
                       {isAdmin && (
                         <button
                           type='button'
                           onClick={() => openEditCategoryModal(group)}
-                          className='opacity-0 group-hover/root:opacity-100 flex size-7 items-center justify-center rounded-lg border border-black/[0.06] bg-white text-zinc-400 shadow-2xs hover:border-black/20 hover:text-zinc-900 dark:border-white/[0.08] dark:bg-zinc-800/80 dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20 transition'
+                          className='opacity-0 group-hover/root:opacity-100 focus-visible:opacity-100 flex size-7 items-center justify-center rounded-lg border border-black/[0.06] bg-white text-zinc-400 shadow-2xs hover:border-black/20 hover:text-zinc-900 dark:border-white/[0.08] dark:bg-zinc-800/80 dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20 transition'
                           title='编辑此分类'
                         >
                           <SquarePen className='size-3.5' />
+                        </button>
+                      )}
+                      {allGroupLinks.length > 0 && (
+                        <button
+                          type='button'
+                          onClick={() => handleOpenAll(group.name, allGroupLinks)}
+                          className='opacity-0 group-hover/root:opacity-100 focus-visible:opacity-100 flex size-7 items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition'
+                          title={`一键打开此分类下全部 ${allGroupLinks.length} 个链接`}
+                          aria-label={`一键打开此分类下全部 ${allGroupLinks.length} 个链接`}
+                        >
+                          <ExternalLink className='size-3.5' />
                         </button>
                       )}
                     </div>
@@ -1193,25 +1193,25 @@ export function HomePage() {
                           </div>
 
                           <div className='flex items-center gap-1.5'>
-                            {sub.links.length > 0 && (
-                              <button
-                                type='button'
-                                onClick={() => handleOpenAll(sub.name, sub.links)}
-                                className='flex items-center gap-1 px-1.5 py-0.5 text-xs text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition'
-                                title={`一键打开子分类下全部 ${sub.links.length} 个链接`}
-                              >
-                                <ExternalLink className='size-3' />
-                                <span className='hidden sm:inline'>打开全部 ({sub.links.length})</span>
-                              </button>
-                            )}
                             {isAdmin && (
                               <button
                                 type='button'
                                 onClick={() => openEditCategoryModal({ ...sub, parentId: group.id })}
-                                className='opacity-0 group-hover/sub:opacity-100 flex size-6 items-center justify-center rounded-md border border-black/[0.06] bg-white text-zinc-400 hover:border-black/20 hover:text-zinc-900 dark:border-white/[0.08] dark:bg-zinc-800/80 dark:hover:text-white dark:hover:border-white/20 transition'
+                                className='opacity-0 group-hover/sub:opacity-100 focus-visible:opacity-100 flex size-6 items-center justify-center rounded-md border border-black/[0.06] bg-white text-zinc-400 hover:border-black/20 hover:text-zinc-900 dark:border-white/[0.08] dark:bg-zinc-800/80 dark:hover:text-white dark:hover:border-white/20 transition'
                                 title='编辑子分类'
                               >
                                 <SquarePen className='size-3' />
+                              </button>
+                            )}
+                            {sub.links.length > 0 && (
+                              <button
+                                type='button'
+                                onClick={() => handleOpenAll(sub.name, sub.links)}
+                                className='opacity-0 group-hover/sub:opacity-100 focus-visible:opacity-100 flex size-6 items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition'
+                                title={`一键打开子分类下全部 ${sub.links.length} 个链接`}
+                                aria-label={`一键打开子分类下全部 ${sub.links.length} 个链接`}
+                              >
+                                <ExternalLink className='size-3' />
                               </button>
                             )}
                           </div>
