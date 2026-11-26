@@ -22,6 +22,10 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("GET /api/settings", a.GetSettings)
 	mux.HandleFunc("GET /api/categories", a.ListCategories)
 
+	// --- admin: management reads ---
+	mux.HandleFunc("GET /api/admin/categories", a.RequireAdmin(a.ListAdminCategories))
+	mux.HandleFunc("GET /api/admin/links", a.RequireAdmin(a.ListAdminLinks))
+
 	// --- write: links ---
 	mux.HandleFunc("POST /api/links", a.RequireAdmin(a.CreateLink))
 	mux.HandleFunc("PATCH /api/links/{id}", a.RequireAdmin(a.UpdateLink))

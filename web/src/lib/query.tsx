@@ -78,6 +78,30 @@ export function useHome() {
   })
 }
 
+export function useSettings() {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: api.settings,
+    refetchOnWindowFocus: 'always',
+  })
+}
+
+export function useAdminCategories() {
+  return useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: api.adminCategories,
+    refetchOnWindowFocus: 'always',
+  })
+}
+
+export function useAdminLinks() {
+  return useQuery({
+    queryKey: ['admin-links'],
+    queryFn: api.adminLinks,
+    refetchOnWindowFocus: 'always',
+  })
+}
+
 export function useCheckStatus(polling = false) {
   return useQuery({
     queryKey: ['check-status'],
@@ -92,9 +116,12 @@ export async function clearSessionCache() {
   await resetPwaCache('public', 0, false)
 }
 
+const ADMIN_QUERY_KEYS = [['settings'], ['admin-categories'], ['admin-links']] as const
+
 export function useInvalidateHome() {
   const qc = useQueryClient()
   return () => {
+    ADMIN_QUERY_KEYS.forEach((queryKey) => void qc.invalidateQueries({ queryKey }))
     void qc.cancelQueries({ queryKey: ['home'] })
     void qc.cancelQueries({ queryKey: ['me'] })
     void invalidatePwaData(false).then(() => {

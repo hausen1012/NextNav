@@ -170,6 +170,10 @@ export const api = {
 
   settings: () => request<{ site: SiteDTO }>('/api/settings'),
 
+  adminCategories: () => request<{ groups: GroupDTO[] }>('/api/admin/categories'),
+
+  adminLinks: () => request<{ items: LinkDTO[] }>('/api/admin/links'),
+
   updateSettings: (patch: Partial<{
     name: string
     description: string

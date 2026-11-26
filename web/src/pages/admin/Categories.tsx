@@ -9,7 +9,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
 } from 'lucide-react'
-import { useHome, useInvalidateHome } from '@/lib/query'
+import { useAdminCategories, useInvalidateHome } from '@/lib/query'
 import { api, type GroupDTO, type CategoryDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,7 +51,7 @@ export interface FlatCategory {
 }
 
 export function AdminCategoriesPage() {
-  const { data: home, isLoading } = useHome()
+  const { data, isLoading } = useAdminCategories()
   const invalidate = useInvalidateHome()
 
   // Filter & Search
@@ -80,7 +80,7 @@ export function AdminCategoriesPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const groups: GroupDTO[] = home?.groups || []
+  const groups: GroupDTO[] = data?.groups || []
 
   // Flatten categories list for parent selection in dialogs
   const { flatCategories, rootGroups } = useMemo(() => {

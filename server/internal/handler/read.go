@@ -40,6 +40,26 @@ func (a *API) ListCategories(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"groups": groups})
 }
 
+// --- /api/admin ---
+
+func (a *API) ListAdminCategories(w http.ResponseWriter, r *http.Request) {
+	groups, err := a.Service.ListAdminCategories()
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载分类失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"groups": groups})
+}
+
+func (a *API) ListAdminLinks(w http.ResponseWriter, r *http.Request) {
+	links, err := a.Service.ListAdminLinks()
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载链接失败")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": links})
+}
+
 // --- /api/settings ---
 
 func (a *API) GetSettings(w http.ResponseWriter, r *http.Request) {

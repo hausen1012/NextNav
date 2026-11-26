@@ -1,5 +1,5 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
-import { useHome, useMe } from '@/lib/query'
+import { useMe, useSettings } from '@/lib/query'
 import { type MeResponse } from '@/lib/api'
 import { getCookie } from '@/lib/cookies'
 import { cn } from '@/lib/utils'
@@ -39,13 +39,13 @@ export function AdminLayout() {
 }
 
 function AdminShell({ me }: { me: MeResponse }) {
-  const { data: home } = useHome()
+  const { data: settings } = useSettings()
   const defaultOpen = getCookie('sidebar_state') !== 'false'
 
   return (
     <LayoutProvider>
       <SidebarProvider defaultOpen={defaultOpen}>
-        <AppSidebar siteName={home?.site.name ?? 'NextNav'} me={me} />
+        <AppSidebar siteName={settings?.site.name ?? 'NextNav'} me={me} />
         <SidebarInset
           className={cn(
             '@container/content',

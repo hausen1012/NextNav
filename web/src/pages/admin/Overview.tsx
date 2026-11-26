@@ -11,7 +11,7 @@ import {
   Sparkles,
   SlidersHorizontal,
 } from 'lucide-react'
-import { useHome, useInvalidateHome } from '@/lib/query'
+import { useAdminCategories, useAdminLinks, useInvalidateHome } from '@/lib/query'
 import type { LinkDTO } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,9 @@ import { CategoryDialog } from '@/components/admin/CategoryDialog'
 import { LinkDialog } from '@/components/admin/LinkDialog'
 
 export function AdminOverviewPage() {
-  const { data: home, isLoading } = useHome()
+  const { data: categoryData, isLoading: categoriesLoading } = useAdminCategories()
+  const { data: linkData, isLoading: linksLoading } = useAdminLinks()
+  const isLoading = categoriesLoading || linksLoading
   const invalidate = useInvalidateHome()
 
   // Quick dialog states
@@ -32,19 +34,14 @@ export function AdminOverviewPage() {
   const allCategories: { id: number; name: string; isGroup: boolean }[] = []
   const allLinks: (LinkDTO & { categoryName?: string })[] = []
 
-  if (home?.groups) {
-    for (const group of home.groups) {
-      allCategories.push({ id: group.id, name: group.name, isGroup: true })
-      for (const link of group.links) {
-        allLinks.push({ ...link, categoryName: group.name })
-      }
-      for (const cat of group.categories) {
-        allCategories.push({ id: cat.id, name: `${group.name} / ${cat.name}`, isGroup: false })
-        for (const link of cat.links) {
-          allLinks.push({ ...link, categoryName: cat.name })
-        }
-      }
+  for (const group of categoryData?.groups || []) {
+    allCategories.push({ id: group.id, name: group.name, isGroup: true })
+    for (const cat of group.categories) {
+      allCategories.push({ id: cat.id, name: `${group.name} / ${cat.name}`, isGroup: false })
     }
+  }
+  for (const link of linkData?.items || []) {
+    allLinks.push({ ...link, categoryName: link.categoryName })
   }
 
   const deadOrWarnLinks = allLinks.filter((l) => l.status === 'dead' || l.status === 'warn')
@@ -105,7 +102,7 @@ export function AdminOverviewPage() {
           <CardContent>
             <div className='text-2xl font-bold'>{isLoading ? '...' : allCategories.length}</div>
             <p className='text-xs text-muted-foreground mt-1'>
-              一级分类 {home?.groups?.length ?? 0} 个
+              一级分类 {categoryData?.groups.length ?? 0} 个
             </p>
           </CardContent>
         </Card>

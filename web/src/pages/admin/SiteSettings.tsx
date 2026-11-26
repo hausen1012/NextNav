@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '@/lib/api'
-import { useHome, useInvalidateHome } from '@/lib/query'
+import { useInvalidateHome, useSettings } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -9,7 +9,7 @@ import { Check, Trash2, Upload } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 
 export function AdminSiteSettingsPage() {
-  const { data: home } = useHome()
+  const { data: settings } = useSettings()
   const invalidate = useInvalidateHome()
 
   const [name, setName] = useState('')
@@ -25,14 +25,14 @@ export function AdminSiteSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (home) {
-      setName(home.site.name)
-      setDescription(home.site.description)
-      setBackground(home.site.background)
-      setFaviconServiceUrl(home.site.faviconServiceUrl || '')
-      setOpenInNewTab(home.site.openInNewTab ?? true)
+    if (settings) {
+      setName(settings.site.name)
+      setDescription(settings.site.description)
+      setBackground(settings.site.background)
+      setFaviconServiceUrl(settings.site.faviconServiceUrl || '')
+      setOpenInNewTab(settings.site.openInNewTab ?? true)
     }
-  }, [home])
+  }, [settings])
 
   async function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -110,7 +110,7 @@ export function AdminSiteSettingsPage() {
             <Field label='站点图标 / Logo' htmlFor='site-logo'>
               <div className='flex items-center gap-4 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 p-4'>
                 <div className='flex size-14 shrink-0 items-center justify-center rounded-xl border bg-muted/30 shadow-2xs overflow-hidden'>
-                  <Logo src={home?.site.logoUrl} className='size-10' />
+                  <Logo src={settings?.site.logoUrl} className='size-10' />
                 </div>
                 <div className='space-y-1.5 flex-1'>
                   <div className='flex items-center gap-2'>
@@ -133,7 +133,7 @@ export function AdminSiteSettingsPage() {
                       <Upload className='size-3.5' />
                       <span>{uploadingLogo ? '上传中...' : '上传新 Logo'}</span>
                     </Button>
-                    {home?.site.logoUrl && (
+                    {settings?.site.logoUrl && (
                       <Button
                         type='button'
                         variant='ghost'

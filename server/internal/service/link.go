@@ -257,17 +257,17 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 	if cat, err := s.store.GetCategory(l.CategoryID); err == nil {
 		catName = cat.Name
 	}
+	return s.toLinkDTOWith(l, catName, s.store.GetSetting("site.favicon_service_url", "")), nil
+}
 
-	faviconService := s.store.GetSetting("site.favicon_service_url", "")
-	finalIconURL := s.resolveDisplayIconURL(l.IconPath, l.IconURL, l.URL, faviconService)
-
+func (s *Service) toLinkDTOWith(l *store.Link, catName, faviconService string) *LinkDTO {
 	return &LinkDTO{
 		ID:            l.ID,
 		Title:         l.Title,
 		URL:           l.URL,
 		BackupURL:     l.BackupURL,
 		Description:   l.Description,
-		IconURL:       finalIconURL,
+		IconURL:       s.resolveDisplayIconURL(l.IconPath, l.IconURL, l.URL, faviconService),
 		IconPath:      l.IconPath,
 		CustomIconURL: l.IconURL,
 		CategoryID:    l.CategoryID,
@@ -276,7 +276,29 @@ func (s *Service) toLinkDTO(l *store.Link) (*LinkDTO, error) {
 		Status:        l.LastStatus,
 		Sort:          l.Sort,
 		LastCheckedAt: l.LastCheckedAt,
-	}, nil
+	}
+}
+
+// ListAdminLinks returns all links for management views with category names.
+func (s *Service) ListAdminLinks() ([]LinkDTO, error) {
+	allLinks, err := s.store.ListLinks(true)
+	if err != nil {
+		return nil, err
+	}
+	cats, err := s.store.ListCategories()
+	if err != nil {
+		return nil, err
+	}
+	names := make(map[int64]string, len(cats))
+	for _, c := range cats {
+		names[c.ID] = c.Name
+	}
+	faviconService := s.store.GetSetting("site.favicon_service_url", "")
+	out := make([]LinkDTO, 0, len(allLinks))
+	for i := range allLinks {
+		out = append(out, *s.toLinkDTOWith(&allLinks[i], names[allLinks[i].CategoryID], faviconService))
+	}
+	return out, nil
 }
 
 func (s *Service) BatchDeleteLinks(ids []int64) (int64, error) {

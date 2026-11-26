@@ -16,7 +16,7 @@ import {
   Activity,
   RefreshCw,
 } from 'lucide-react'
-import { useHome, useInvalidateHome, useCheckStatus } from '@/lib/query'
+import { useAdminCategories, useAdminLinks, useInvalidateHome, useCheckStatus } from '@/lib/query'
 import { api, type LinkDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,7 +49,8 @@ export interface LinkWithMeta extends LinkDTO {
 }
 
 export function AdminLinksPage() {
-  const { data: home, isLoading } = useHome()
+  const { data: linkData, isLoading } = useAdminLinks()
+  const { data: categoryData } = useAdminCategories()
   const invalidate = useInvalidateHome()
 
   // Filter & Search states
@@ -125,24 +126,18 @@ export function AdminLinksPage() {
   // Flatten links and category options
   const { flatCategories, flatLinks } = useMemo(() => {
     const categories: { id: number; name: string }[] = []
-    const links: LinkWithMeta[] = []
-
-    if (home?.groups) {
-      for (const group of home.groups) {
-        categories.push({ id: group.id, name: group.name })
-        for (const link of group.links) {
-          links.push({ ...link, categoryName: group.name })
-        }
-        for (const cat of group.categories || []) {
-          categories.push({ id: cat.id, name: `${group.name} / ${cat.name}` })
-          for (const link of cat.links) {
-            links.push({ ...link, categoryName: cat.name })
-          }
-        }
+    for (const group of categoryData?.groups || []) {
+      categories.push({ id: group.id, name: group.name })
+      for (const cat of group.categories || []) {
+        categories.push({ id: cat.id, name: `${group.name} / ${cat.name}` })
       }
     }
+    const links: LinkWithMeta[] = (linkData?.items || []).map((link) => ({
+      ...link,
+      categoryName: link.categoryName || '',
+    }))
     return { flatCategories: categories, flatLinks: links }
-  }, [home])
+  }, [categoryData, linkData])
 
   // Filter & Sort
   const filteredLinks = useMemo(() => {

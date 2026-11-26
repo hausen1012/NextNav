@@ -78,6 +78,11 @@ func (s *Service) GetHome(admin bool) (HomeDTO, error) {
 	}, nil
 }
 
+// ListAdminCategories returns the full category tree with links for management views.
+func (s *Service) ListAdminCategories() ([]GroupDTO, error) {
+	return s.BuildCategoryTree(true, true)
+}
+
 // BuildCategoryTree constructs a two-level category tree with optional links.
 func (s *Service) BuildCategoryTree(admin, withLinks bool) ([]GroupDTO, error) {
 	cats, err := s.store.ListCategories()

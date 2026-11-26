@@ -89,6 +89,8 @@
 | POST | `/api/links/batch-move` | 管理员 | 批量移动链接到目标分类 |
 | POST | `/api/links/{id}/icon` | 管理员 | 上传自定义图标（multipart） |
 | DELETE | `/api/links/{id}/icon` | 管理员 | 移除自定义图标 |
+| GET | `/api/admin/categories` | 管理员 | 管理端分类树（含全部私有数据与链接） |
+| GET | `/api/admin/links` | 管理员 | 管理端扁平链接列表（含分类名） |
 | GET | `/api/settings` | 公开 | 站点公开设置 |
 | PATCH | `/api/settings` | 管理员 | 修改站点设置 |
 | POST | `/api/settings/account` | 管理员 | 修改管理员用户名与密码 |
@@ -325,6 +327,14 @@
 ---
 
 ## 5. 分类
+
+### GET /api/admin/categories
+
+仅管理员可用。返回完整两级树，含私有分类与全部链接（结构同 `/api/home` 的 `groups`）。后台分类管理、链接管理、概览统计共用此数据。
+
+### GET /api/admin/links
+
+仅管理员可用。返回扁平链接列表，每条含 `categoryName`（分类自身名称，不含父级前缀）。响应 `{ "items": LinkDTO[] }`。后台链接管理与概览统计使用。
 
 ### GET /api/categories
 
