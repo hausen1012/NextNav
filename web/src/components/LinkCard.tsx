@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { LinkDTO } from '@/lib/api'
+import { useLongPress } from '@/hooks/useLongPress'
 import { SiteIcon } from '@/components/SiteIcon'
 import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check, Lock, Activity } from 'lucide-react'
 
@@ -54,26 +55,33 @@ export function LinkCard({
     setMenuPos(null)
   }
 
+  const openMenuAt = useCallback((x: number, y: number) => {
+    setMenuPos({
+      x: Math.min(x, window.innerWidth - 180),
+      y: Math.min(y, window.innerHeight - 220),
+    })
+  }, [])
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    const x = Math.min(e.clientX, window.innerWidth - 180)
-    const y = Math.min(e.clientY, window.innerHeight - 220)
-    setMenuPos({ x, y })
+    openMenuAt(e.clientX, e.clientY)
   }
+
+  const { consumeLongPress, ...longPressHandlers } = useLongPress(({ x, y }) => openMenuAt(x, y))
 
   useEffect(() => {
     if (!menuPos) return
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: PointerEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuPos(null)
       }
     }
     const handleScroll = () => setMenuPos(null)
-    window.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('pointerdown', handleClickOutside)
     window.addEventListener('scroll', handleScroll, true)
     return () => {
-      window.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('pointerdown', handleClickOutside)
       window.removeEventListener('scroll', handleScroll, true)
     }
   }, [menuPos])
@@ -85,6 +93,11 @@ export function LinkCard({
         target={newTab ? '_blank' : undefined}
         rel={newTab ? 'noopener noreferrer' : undefined}
         onContextMenu={handleContextMenu}
+        onClick={(e) => {
+          if (consumeLongPress()) e.preventDefault()
+        }}
+        {...longPressHandlers}
+        style={{ WebkitTouchCallout: 'none' }}
         className='group relative flex items-center gap-3 rounded-2xl border border-transparent bg-white p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-black/[0.04] dark:border-transparent dark:bg-[#181a1f] dark:hover:bg-[#20232a] dark:hover:border-white/[0.06] select-none'
       >
         <StatusDot status={link.status} />
