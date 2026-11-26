@@ -70,33 +70,33 @@ func SignSession(key []byte, expires time.Time, subject string) string {
 		base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-// VerifySession validates the signature and expiry, returning the subject.
-func VerifySession(key []byte, token string) (string, bool) {
+// VerifySession 校验签名与有效期，返回主体和到期时间。
+func VerifySession(key []byte, token string) (string, time.Time, bool) {
 	i := strings.LastIndex(token, ".")
 	if i <= 0 || i == len(token)-1 {
-		return "", false
+		return "", time.Time{}, false
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(token[:i])
 	if err != nil {
-		return "", false
+		return "", time.Time{}, false
 	}
 	sig, err := base64.RawURLEncoding.DecodeString(token[i+1:])
 	if err != nil {
-		return "", false
+		return "", time.Time{}, false
 	}
 	mac := hmac.New(sha256.New, key)
 	mac.Write(raw)
 	if !hmac.Equal(mac.Sum(nil), sig) {
-		return "", false
+		return "", time.Time{}, false
 	}
 
 	parts := strings.Split(string(raw), "|")
 	if len(parts) != 3 || parts[0] != "v1" {
-		return "", false
+		return "", time.Time{}, false
 	}
 	exp, err := strconv.ParseInt(parts[2], 10, 64)
 	if err != nil || time.Now().Unix() > exp {
-		return "", false
+		return "", time.Time{}, false
 	}
-	return parts[1], true
+	return parts[1], time.Unix(exp, 0), true
 }

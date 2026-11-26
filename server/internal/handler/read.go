@@ -16,6 +16,15 @@ func (a *API) Home(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载首页失败")
 		return
 	}
+	scope := "public"
+	identity := httpx.IdentityFrom(r.Context())
+	if admin {
+		scope = "private"
+		if identity.IsCookieAuth() && identity.SessionExpiry > 0 {
+			w.Header().Set("X-NextNav-Session-Expires-At", strconv.FormatInt(identity.SessionExpiry, 10))
+		}
+	}
+	setCacheScope(w, scope)
 	httpx.JSON(w, http.StatusOK, data)
 }
 

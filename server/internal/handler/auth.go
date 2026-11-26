@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,8 +31,8 @@ func (a *API) Auth(next http.Handler) http.Handler {
 				id = httpx.Identity{Admin: true, Method: httpx.AuthToken}
 			}
 		} else if c, err := r.Cookie(sessionCookieName); err == nil && c.Value != "" {
-			if _, ok := auth.VerifySession(a.cookieKey(), c.Value); ok {
-				id = httpx.Identity{Admin: true, Method: httpx.AuthCookie}
+			if _, expiresAt, ok := auth.VerifySession(a.cookieKey(), c.Value); ok {
+				id = httpx.Identity{Admin: true, Method: httpx.AuthCookie, SessionExpiry: expiresAt.UnixMilli()}
 			}
 		}
 
@@ -132,14 +133,16 @@ func (a *API) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.limiter.reset(ip)
-	a.issueSession(w, r)
+	expiresAt := a.issueSession(w)
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"user": map[string]string{"username": storedUser},
+		"user":      map[string]string{"username": storedUser},
+		"expiresAt": expiresAt,
 	})
 }
 
-func (a *API) issueSession(w http.ResponseWriter, r *http.Request) {
-	value := auth.SignSession(a.cookieKey(), time.Now().Add(sessionTTL), "admin")
+func (a *API) issueSession(w http.ResponseWriter) int64 {
+	expiresAt := time.Now().Add(sessionTTL).Truncate(time.Second)
+	value := auth.SignSession(a.cookieKey(), expiresAt, "admin")
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    value,
@@ -149,6 +152,7 @@ func (a *API) issueSession(w http.ResponseWriter, r *http.Request) {
 		Secure:   a.Secure,
 		MaxAge:   int(sessionTTL / time.Second),
 	})
+	return expiresAt.UnixMilli()
 }
 
 func (a *API) Logout(w http.ResponseWriter, r *http.Request) {
@@ -167,15 +171,29 @@ func (a *API) Logout(w http.ResponseWriter, r *http.Request) {
 func (a *API) Me(w http.ResponseWriter, r *http.Request) {
 	id := httpx.IdentityFrom(r.Context())
 	if !id.IsAdmin() {
+		setCacheScope(w, "public")
 		httpx.JSON(w, http.StatusOK, map[string]string{"auth": "guest"})
 		return
 	}
-	username := a.Service.GetAdminUsername()
-	httpx.JSON(w, http.StatusOK, map[string]string{
+	scope := "public"
+	response := map[string]any{
 		"auth":       "admin",
 		"authMethod": id.Method,
-		"username":   username,
-	})
+		"username":   a.Service.GetAdminUsername(),
+	}
+	if id.IsCookieAuth() && id.SessionExpiry > 0 {
+		scope = "private"
+		response["expiresAt"] = id.SessionExpiry
+		w.Header().Set("X-NextNav-Session-Expires-At", strconv.FormatInt(id.SessionExpiry, 10))
+	}
+	setCacheScope(w, scope)
+	httpx.JSON(w, http.StatusOK, response)
+}
+
+func setCacheScope(w http.ResponseWriter, scope string) {
+	w.Header().Set("X-NextNav-Data-Scope", scope)
+	w.Header().Set("Cache-Control", "private, no-cache")
+	w.Header().Add("Vary", "Cookie")
 }
 
 func isPrivateOrLocalIP(ipStr string) bool {

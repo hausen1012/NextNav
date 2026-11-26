@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import QRCode from 'qrcode'
-import { useHome, useMe, useInvalidateHome, clearHomeCache } from '@/lib/query'
+import { useHome, useMe, useInvalidateHome, clearSessionCache } from '@/lib/query'
 import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -448,7 +448,6 @@ export function HomePage() {
     if (refreshing) return
     setRefreshing(true)
     try {
-      await clearHomeCache()
       await invalidate()
     } finally {
       setRefreshing(false)
@@ -1312,7 +1311,7 @@ export function HomePage() {
               type='button'
               onClick={async () => {
                 await api.logout()
-                await clearHomeCache()
+                await clearSessionCache()
                 window.location.reload()
               }}
               className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-red-50 hover:text-red-600 dark:text-zinc-300 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition'

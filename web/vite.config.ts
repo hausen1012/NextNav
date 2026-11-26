@@ -17,6 +17,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions: {
         enabled: true,
+        type: 'module',
+        navigateFallback: '/index.html',
       },
       manifest: {
         name: 'NextNav',
@@ -45,60 +47,11 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/icons\//],
-        runtimeCaching: [
-          {
-            // 导航主数据：采用 CacheFirst 策略，1 小时内完全走本地缓存，不向后端发网络请求
-            urlPattern: ({ url }) => url.pathname === '/api/home' && !url.searchParams.has('nocache'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'api-home-cache',
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              expiration: {
-                maxEntries: 1,
-                maxAgeSeconds: 60 * 60, // 1 小时内免请求
-              },
-            },
-          },
-          {
-            // 身份状态：采用 CacheFirst 策略，1 小时内完全走本地缓存
-            urlPattern: ({ url }) => url.pathname === '/api/me' && !url.searchParams.has('nocache'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'api-me-cache',
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              expiration: {
-                maxEntries: 1,
-                maxAgeSeconds: 60 * 60, // 1 小时内免请求
-              },
-            },
-          },
-          {
-            // 站点图标：采用 CacheFirst 策略，30 天内直接使用本地缓存，避免打开新标签页重复请求图标
-            urlPattern: ({ url }) => url.pathname.startsWith('/icons/'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'site-icons-cache',
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 天
-              },
-            },
-          },
-        ],
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,svg,ico,png,woff2}'],
       },
     }),
   ],

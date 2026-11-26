@@ -20,8 +20,9 @@ const (
 
 // Identity is the resolved caller for a request.
 type Identity struct {
-	Admin  bool
-	Method string // AuthNone | AuthCookie | AuthToken
+	Admin         bool
+	Method        string // AuthNone | AuthCookie | AuthToken
+	SessionExpiry int64
 }
 
 func (i Identity) IsAdmin() bool      { return i.Admin }

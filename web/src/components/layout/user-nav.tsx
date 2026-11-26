@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { api, type MeResponse } from '@/lib/api'
-import { clearHomeCache, useMe } from '@/lib/query'
+import { clearSessionCache, useMe } from '@/lib/query'
 
 interface UserNavProps {
   me?: MeResponse
@@ -24,7 +24,7 @@ export function UserNav({ me: propMe }: UserNavProps) {
 
   const handleLogout = async () => {
     await api.logout()
-    await clearHomeCache()
+    await clearSessionCache()
     window.location.href = '/'
   }
 

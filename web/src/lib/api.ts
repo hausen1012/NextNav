@@ -1,5 +1,7 @@
 // Typed client for the single /api namespace (docs/API.md).
 
+import { getCacheRequestHeaders } from './pwa-cache'
+
 export type AuthState = 'guest' | 'admin'
 
 export interface LinkDTO {
@@ -61,6 +63,7 @@ export interface MeResponse {
   auth: AuthState
   authMethod?: string
   username?: string
+  expiresAt?: number
 }
 
 export interface TokenInfo {
@@ -153,17 +156,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) })
 
 export const api = {
-  me: () => request<MeResponse>('/api/me'),
+  me: () => request<MeResponse>('/api/me', { headers: getCacheRequestHeaders() }),
 
   login: (username: string, password: string) =>
-    request<{ user: { username: string } }>('/api/login', {
+    request<{ user: { username: string }; expiresAt: number }>('/api/login', {
       method: 'POST',
       ...json({ username, password }),
     }),
 
   logout: () => request<void>('/api/logout', { method: 'POST' }),
 
-  home: () => request<HomeResponse>('/api/home'),
+  home: () => request<HomeResponse>('/api/home', { headers: getCacheRequestHeaders() }),
 
   settings: () => request<{ site: SiteDTO }>('/api/settings'),
 
@@ -236,7 +239,7 @@ export const api = {
     currentPassword: string
     username?: string
     newPassword?: string
-  }) => request<{ username: string }>('/api/settings/account', { method: 'POST', ...json(body) }),
+  }) => request<{ username: string; expiresAt?: number }>('/api/settings/account', { method: 'POST', ...json(body) }),
 
   batchDeleteLinks: (ids: number[]) =>
     request<{ deletedCount: number }>('/api/links/batch-delete', {

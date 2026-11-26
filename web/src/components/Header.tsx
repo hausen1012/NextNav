@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { useMe, clearHomeCache } from '@/lib/query'
+import { useMe, clearSessionCache } from '@/lib/query'
+import { invalidatePwaData } from '@/lib/pwa-cache'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { Button } from '@/components/ui/button'
 import { Logo } from '@/components/Logo'
@@ -19,7 +20,7 @@ export function Header({ siteName }: { siteName: string }) {
     if (refreshing) return
     setRefreshing(true)
     try {
-      await clearHomeCache()
+      await invalidatePwaData()
       await Promise.all([
         qc.refetchQueries({ queryKey: ['home'] }),
         qc.refetchQueries({ queryKey: ['me'] }),
@@ -78,7 +79,7 @@ export function Header({ siteName }: { siteName: string }) {
               size='sm'
               onClick={async () => {
                 await api.logout()
-                await clearHomeCache()
+                await clearSessionCache()
                 window.location.href = '/'
               }}
               title='退出登录'

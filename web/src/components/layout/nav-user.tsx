@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { api, type MeResponse } from '@/lib/api'
-import { clearHomeCache } from '@/lib/query'
+import { clearSessionCache } from '@/lib/query'
 
 interface NavUserProps {
   me?: MeResponse
@@ -33,7 +33,7 @@ export function NavUser({ me }: NavUserProps) {
 
   const handleLogout = async () => {
     await api.logout()
-    await clearHomeCache()
+    await clearSessionCache()
     window.location.href = '/'
   }
 

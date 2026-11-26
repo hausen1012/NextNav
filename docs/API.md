@@ -127,6 +127,7 @@
 ```
 
 - 成功：`200` + `Set-Cookie: nn_session=...; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`（HTTPS 下加 `Secure`）
+- 响应包含会话到期时间 `expiresAt`（Unix 毫秒），用于本地缓存到期管理
 - 失败：`401 bad_credentials`
 - 限流：同一 IP 10 次失败 / 10 分钟 → `429 rate_limited`
 
@@ -137,10 +138,13 @@
 ### GET /api/me
 
 ```json
-{ "auth": "admin", "authMethod": "cookie", "username": "admin" }
+{ "auth": "admin", "authMethod": "cookie", "username": "admin", "expiresAt": 1764000000000 }
 // 游客
 { "auth": "guest" }
 ```
+
+- Cookie 管理员的 `expiresAt` 为 Unix 毫秒；token 管理员与游客不返回该字段。
+- 私有响应同时返回 `X-NextNav-Session-Expires-At`，供 Service Worker 校验缓存有效期。
 
 ---
 
@@ -187,6 +191,15 @@
 - `status` 取值 `ok | warn | dead | unknown`，`unknown` = 从未检测。
 - 游客请求中，私有分类整块不出现；私有链接不出现在任何 `links` 数组里。
 - 前端用 TanStack Query 缓存此响应，写操作后 `invalidateQueries(['home'])`。
+
+`/api/home` 与 `/api/me` 的响应缓存契约：
+
+| 响应头 | 说明 |
+|---|---|
+| `X-NextNav-Data-Scope` | `public` 或 `private` |
+| `Cache-Control` | 始终为 `private, no-cache`，由 Service Worker 管理浏览器缓存 |
+| `Vary` | 包含 `Cookie` |
+| `X-NextNav-Session-Expires-At` | 仅 Cookie 管理员私有响应返回，Unix 毫秒 |
 
 ### GET /api/links
 
@@ -452,8 +465,10 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 
 响应 `200`：
 ```json
-{ "username": "newname" }
+{ "username": "newname", "expiresAt": 1764000000000 }
 ```
+
+仅修改用户名时省略 `expiresAt`；修改密码时返回新会话的到期时间（Unix 毫秒）。
 
 ### GET /api/settings/token
 

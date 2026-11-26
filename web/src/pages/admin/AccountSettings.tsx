@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, type TokenInfo } from '@/lib/api'
 import { useMe } from '@/lib/query'
+import { startPrivateSession } from '@/lib/pwa-cache'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,6 +18,7 @@ import {
 import { ShieldCheck, Key, Copy, Check, Trash2, Plus } from 'lucide-react'
 
 export function AdminAccountSettingsPage() {
+  const qc = useQueryClient()
   const { data: me } = useMe()
 
   const [username, setUsername] = useState('')
@@ -63,11 +66,15 @@ export function AdminAccountSettingsPage() {
 
     setSaving(true)
     try {
-      await api.updateAccount({
+      const res = await api.updateAccount({
         currentPassword,
         username: username.trim() || undefined,
         newPassword: newPassword || undefined,
       })
+      if (res.expiresAt) await startPrivateSession(res.expiresAt)
+      qc.setQueryData(['me'], (current: typeof me) => current
+        ? { ...current, username: res.username, expiresAt: res.expiresAt ?? current.expiresAt }
+        : current)
       setNotice('账户与密码已成功更新')
       setCurrentPassword('')
       setNewPassword('')
