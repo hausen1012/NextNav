@@ -111,7 +111,7 @@ function handleWorkerMessage(event: MessageEvent) {
   if (message.type === CACHE_MESSAGES.invalidated) {
     const state = message.state as CacheState | undefined
     if (!state || state.epoch < currentState.epoch) return
-    if (state.epoch === currentState.epoch && state.updatedAt < currentState.updatedAt) return
+    if (state.epoch === currentState.epoch && state.updatedAt <= currentState.updatedAt) return
     void applyState(state)
   }
 }
