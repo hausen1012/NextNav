@@ -194,14 +194,14 @@ async function createResetState(scope: CacheScope, expiresAt: number, mode: Rese
   }
 }
 
-export async function resetPwaCache(scope: CacheScope = 'public', expiresAt = 0) {
+export async function resetPwaCache(scope: CacheScope = 'public', expiresAt = 0, notify = true) {
   const reset = await createResetState(scope, expiresAt, 'session')
   await applyState(reset.state, false)
   await clearLocalPrivateData()
   clearImageCache()
   broadcastState(reset.state)
   postToWorker({ type: CACHE_MESSAGES.reset, ...reset })
-  dispatchStateChange()
+  if (notify) dispatchStateChange()
 }
 
 export async function startPrivateSession(expiresAt: number) {

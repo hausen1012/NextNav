@@ -89,7 +89,7 @@ export function useCheckStatus(polling = false) {
 }
 
 export async function clearSessionCache() {
-  await resetPwaCache('public')
+  await resetPwaCache('public', 0, false)
 }
 
 export function useInvalidateHome() {
