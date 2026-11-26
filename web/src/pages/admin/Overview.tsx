@@ -8,8 +8,6 @@ import {
   Plus,
   ExternalLink,
   ArrowUpRight,
-  Sparkles,
-  SlidersHorizontal,
 } from 'lucide-react'
 import { useAdminCategories, useAdminLinks, useInvalidateHome } from '@/lib/query'
 import type { LinkDTO } from '@/lib/api'
@@ -147,127 +145,64 @@ export function AdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Quick shortcuts & Recent Links */}
-      <div className='grid gap-6 md:grid-cols-7'>
-        {/* Recent Links Table */}
-        <Card className='md:col-span-4 shadow-xs'>
-          <CardHeader className='flex flex-row items-center justify-between pb-3'>
-            <div>
-              <CardTitle className='text-base'>最近链接</CardTitle>
-              <CardDescription>当前站点收录的最新链接列表</CardDescription>
-            </div>
-            <Button variant='ghost' size='sm' className='gap-1 text-xs' asChild>
-              <Link to='/admin/links'>
-                <span>查看全部</span>
-                <ArrowUpRight className='size-3.5' />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className='space-y-3'>
-              {allLinks.length === 0 ? (
-                <div className='py-8 text-center text-sm text-muted-foreground'>
-                  暂无链接，点击右上角快速添加
-                </div>
-              ) : (
-                allLinks.slice(0, 6).map((link) => (
-                  <div
-                    key={link.id}
-                    className='flex items-center justify-between gap-3 rounded-md border p-2.5 hover:bg-muted/40 transition-colors'
-                  >
-                    <div className='flex items-center gap-2.5 min-w-0'>
-                      <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} />
-                      <div className='min-w-0'>
-                        <div className='flex items-center gap-1.5'>
-                          <span className='truncate text-sm font-medium'>{link.title}</span>
-                          {link.isPrivate && (
-                            <Badge variant='outline' className='text-[10px] px-1 py-0'>
-                              私有
-                            </Badge>
-                          )}
-                        </div>
-                        <p className='truncate text-xs text-muted-foreground'>{link.url}</p>
+      {/* Recent Links Table */}
+      <Card className='gap-3 py-4 shadow-xs'>
+        <CardHeader className='flex flex-row items-center justify-between pb-2'>
+          <div>
+            <CardTitle className='text-base'>最近链接</CardTitle>
+            <CardDescription>当前站点收录的最新链接列表</CardDescription>
+          </div>
+          <Button variant='ghost' size='sm' className='gap-1 text-xs' asChild>
+            <Link to='/admin/links'>
+              <span>查看全部</span>
+              <ArrowUpRight className='size-3.5' />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className='grid gap-2 md:grid-cols-2'>
+            {allLinks.length === 0 ? (
+              <div className='col-span-full py-6 text-center text-sm text-muted-foreground'>
+                暂无链接，点击右上角快速添加
+              </div>
+            ) : (
+              allLinks.slice(0, 6).map((link) => (
+                <div
+                  key={link.id}
+                  className='flex items-center justify-between gap-3 rounded-md border px-2.5 py-1.5 hover:bg-muted/40 transition-colors'
+                >
+                  <div className='flex items-center gap-2.5 min-w-0'>
+                    <SiteIcon name={link.title} url={link.url} iconUrl={link.iconUrl} size={32} />
+                    <div className='min-w-0'>
+                      <div className='flex items-center gap-1.5'>
+                        <span className='truncate text-sm font-medium'>{link.title}</span>
+                        {link.isPrivate && (
+                          <Badge variant='outline' className='text-[10px] px-1 py-0'>
+                            私有
+                          </Badge>
+                        )}
                       </div>
-                    </div>
-                    <div className='flex items-center gap-2 shrink-0'>
-                      {link.categoryName && (
-                        <Badge variant='secondary' className='text-xs hidden sm:inline-flex'>
-                          {link.categoryName}
-                        </Badge>
-                      )}
-                      <Button variant='ghost' size='icon' className='size-7' asChild>
-                        <a href={link.url} target='_blank' rel='noopener noreferrer'>
-                          <ExternalLink className='size-3.5' />
-                        </a>
-                      </Button>
+                      <p className='truncate text-xs text-muted-foreground'>{link.url}</p>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Operations and Tips */}
-        <Card className='md:col-span-3 shadow-xs'>
-          <CardHeader>
-            <CardTitle className='text-base flex items-center gap-2'>
-              <Sparkles className='size-4 text-primary' />
-              <span>快捷入口</span>
-            </CardTitle>
-            <CardDescription>进入核心业务与系统维护</CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-2.5'>
-            <Link
-              to='/admin/categories'
-              className='flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors'
-            >
-              <div className='flex items-center gap-3'>
-                <div className='p-2 rounded-md bg-primary/10 text-primary'>
-                  <FolderTree className='size-4' />
+                  <div className='flex items-center gap-2 shrink-0'>
+                    {link.categoryName && (
+                      <Badge variant='secondary' className='text-xs hidden sm:inline-flex'>
+                        {link.categoryName}
+                      </Badge>
+                    )}
+                    <Button variant='ghost' size='icon' className='size-6' asChild>
+                      <a href={link.url} target='_blank' rel='noopener noreferrer'>
+                        <ExternalLink className='size-3.5' />
+                      </a>
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <div className='text-sm font-medium'>分类架构管理</div>
-                  <div className='text-xs text-muted-foreground'>调整分类层级与排序</div>
-                </div>
-              </div>
-              <ArrowUpRight className='size-4 text-muted-foreground' />
-            </Link>
-
-            <Link
-              to='/admin/settings'
-              className='flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors'
-            >
-              <div className='flex items-center gap-3'>
-                <div className='p-2 rounded-md bg-primary/10 text-primary'>
-                  <SlidersHorizontal className='size-4' />
-                </div>
-                <div>
-                  <div className='text-sm font-medium'>站点基础设置</div>
-                  <div className='text-xs text-muted-foreground'>修改站点名称、副标题及背景</div>
-                </div>
-              </div>
-              <ArrowUpRight className='size-4 text-muted-foreground' />
-            </Link>
-
-            <Link
-              to='/admin/system'
-              className='flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors'
-            >
-              <div className='flex items-center gap-3'>
-                <div className='p-2 rounded-md bg-destructive/10 text-destructive'>
-                  <AlertTriangle className='size-4' />
-                </div>
-                <div>
-                  <div className='text-sm font-medium'>示例数据清理</div>
-                  <div className='text-xs text-muted-foreground'>一键删除初始化生成的示例链接</div>
-                </div>
-              </div>
-              <ArrowUpRight className='size-4 text-muted-foreground' />
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Shared Modals */}
       <LinkDialog
