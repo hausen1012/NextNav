@@ -7,6 +7,7 @@ import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { SiteIcon } from '@/components/SiteIcon'
 import { Logo } from '@/components/Logo'
+import { LoginDialog } from '@/components/login-dialog'
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -77,6 +78,9 @@ export function HomePage() {
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   // ==================== 模态弹窗状态 ====================
+  // 登录弹窗
+  const [loginOpen, setLoginOpen] = useState(false)
+
   // 1. 二维码弹窗
   const [qrModal, setQrModal] = useState<{ open: boolean; url: string; title: string }>({
     open: false,
@@ -1296,13 +1300,15 @@ export function HomePage() {
               <Settings className='size-4' />
             </Link>
           ) : (
-            <Link
-              to='/login'
+            <button
+              type='button'
+              onClick={() => setLoginOpen(true)}
               className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition'
               title='登录'
+              aria-label='登录'
             >
               <User className='size-4' />
-            </Link>
+            </button>
           )}
 
           {/* 退出登录 (仅管理员) */}
@@ -1334,6 +1340,8 @@ export function HomePage() {
           </button>
         )}
       </div>
+
+      <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
 
       {/* ===================== 前台原生链接编辑/新建 Modal (纯净黑白灰) ===================== */}
       {linkModal.open && (
