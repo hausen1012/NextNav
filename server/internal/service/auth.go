@@ -16,24 +16,28 @@ import (
 )
 
 func (s *Service) CookieKey() []byte {
-	return s.cookieKey
+	s.cookieKeyMu.RLock()
+	defer s.cookieKeyMu.RUnlock()
+	key := make([]byte, len(s.cookieKey))
+	copy(key, s.cookieKey)
+	return key
 }
 
-func (s *Service) initCookieKey(customSecret string) {
-	if sec := strings.TrimSpace(customSecret); sec != "" {
-		if raw, err := hex.DecodeString(sec); err == nil && len(raw) == 32 {
-			s.cookieKey = raw
-			return
-		}
-		sum := sha256.Sum256([]byte(sec))
-		s.cookieKey = sum[:]
-		return
-	}
+func (s *Service) setCookieKey(key []byte) {
+	s.cookieKeyMu.Lock()
+	defer s.cookieKeyMu.Unlock()
+	s.cookieKey = key
+}
 
-	keyFile := filepath.Join(s.store.DataDir, ".cookie_key")
+func (s *Service) cookieKeyPath() string {
+	return filepath.Join(s.store.DataDir, ".cookie_key")
+}
+
+func (s *Service) initCookieKey() {
+	keyFile := s.cookieKeyPath()
 	if data, err := os.ReadFile(keyFile); err == nil {
 		if raw, err := hex.DecodeString(strings.TrimSpace(string(data))); err == nil && len(raw) == 32 {
-			s.cookieKey = raw
+			s.setCookieKey(raw)
 			return
 		}
 	}
@@ -41,22 +45,62 @@ func (s *Service) initCookieKey(customSecret string) {
 	// 历史兼容：如果旧数据库 setting 中留有密钥，迁移至独立受保护文件并从数据库中抹除
 	if old := s.store.GetSetting("secret.cookie_key", ""); old != "" {
 		if raw, err := hex.DecodeString(old); err == nil && len(raw) == 32 {
-			s.cookieKey = raw
-			_ = os.WriteFile(keyFile, []byte(old), 0o600)
+			s.setCookieKey(raw)
+			if err := writeCookieKeyFile(keyFile, raw); err != nil {
+				slog.Error("migrate cookie key failed", "err", err)
+				return
+			}
 			_ = s.store.DeleteSetting("secret.cookie_key")
 			return
 		}
 	}
 
-	// 全新生成 32 字节高强度随机数，存储在数据目录下的受保护文件中（0600 权限）
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
-		slog.Error("generate cookie key failed", "err", err)
-		s.cookieKey = []byte("nextnav-cookie-fallback-key-32b!")
-		return
+		panic(fmt.Errorf("generate cookie key: %w", err))
 	}
-	s.cookieKey = buf
-	_ = os.WriteFile(keyFile, []byte(hex.EncodeToString(buf)), 0o600)
+	if err := writeCookieKeyFile(keyFile, buf); err != nil {
+		panic(fmt.Errorf("persist cookie key: %w", err))
+	}
+	s.setCookieKey(buf)
+}
+
+func (s *Service) rotateCookieKey() error {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return fmt.Errorf("generate cookie key: %w", err)
+	}
+	if err := writeCookieKeyFile(s.cookieKeyPath(), key); err != nil {
+		return fmt.Errorf("persist cookie key: %w", err)
+	}
+	s.setCookieKey(key)
+	return nil
+}
+
+func writeCookieKeyFile(path string, key []byte) error {
+	file, err := os.CreateTemp(filepath.Dir(path), ".cookie_key-*")
+	if err != nil {
+		return err
+	}
+	tempPath := file.Name()
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(tempPath)
+	}()
+
+	if err := file.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := file.WriteString(hex.EncodeToString(key)); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tempPath, path)
 }
 
 func (s *Service) InitAdmin(username, password string, seedSample bool) error {
@@ -174,7 +218,22 @@ func (s *Service) UpdateAccount(currentPassword, newUsername, newPassword string
 		hash = h
 	}
 
+	var previousKey []byte
+	if newPassword != "" {
+		previousKey = s.CookieKey()
+		if err := s.rotateCookieKey(); err != nil {
+			return "", err
+		}
+	}
+
 	if err := s.store.UpdateAdmin(user, hash); err != nil {
+		if newPassword != "" {
+			if restoreErr := writeCookieKeyFile(s.cookieKeyPath(), previousKey); restoreErr != nil {
+				slog.Error("restore cookie key failed", "err", restoreErr)
+			} else {
+				s.setCookieKey(previousKey)
+			}
+		}
 		return "", err
 	}
 	return user, nil

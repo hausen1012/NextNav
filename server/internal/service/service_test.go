@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -29,6 +30,50 @@ func newTestService(t *testing.T) (*service.Service, *store.Store) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	return service.New(st), st
+}
+
+func TestCookieKeyPersistsAndRotates(t *testing.T) {
+	svc, st := newTestService(t)
+	if err := svc.InitAdmin("admin", "oldpass123", false); err != nil {
+		t.Fatalf("init admin: %v", err)
+	}
+
+	originalKey := svc.CookieKey()
+	restarted := service.New(st)
+	if !bytes.Equal(originalKey, restarted.CookieKey()) {
+		t.Fatal("cookie key should survive restart")
+	}
+
+	user, err := svc.UpdateAccount("oldpass123", "", "newpass123")
+	if err != nil {
+		t.Fatalf("change password: %v", err)
+	}
+	if user != "admin" {
+		t.Fatalf("expected admin username, got %q", user)
+	}
+	rotatedKey := svc.CookieKey()
+	if bytes.Equal(originalKey, rotatedKey) {
+		t.Fatal("cookie key should rotate after password change")
+	}
+
+	restarted = service.New(st)
+	if !bytes.Equal(rotatedKey, restarted.CookieKey()) {
+		t.Fatal("rotated cookie key should survive restart")
+	}
+	if _, ok := svc.Authenticate("admin", "oldpass123"); ok {
+		t.Fatal("old password should no longer authenticate")
+	}
+	if _, ok := svc.Authenticate("admin", "newpass123"); !ok {
+		t.Fatal("new password should authenticate")
+	}
+
+	beforeRename := svc.CookieKey()
+	if _, err := svc.UpdateAccount("newpass123", "newname", ""); err != nil {
+		t.Fatalf("change username: %v", err)
+	}
+	if !bytes.Equal(beforeRename, svc.CookieKey()) {
+		t.Fatal("username-only change should not rotate cookie key")
+	}
 }
 
 func TestCategoryBusinessRules(t *testing.T) {

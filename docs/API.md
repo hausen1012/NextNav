@@ -448,7 +448,7 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 { "currentPassword": "...", "username": "newname", "newPassword": "..." }
 ```
 
-`username` / `newPassword` 可省略其一。改密码成功后**作废现有会话**（换 cookie 密钥会导致所有已登录设备下线，属于预期行为）。
+`username` / `newPassword` 可省略其一。改密码成功后轮换数据目录下的 `.cookie_key`，**所有旧会话失效**，当前设备通过响应中的新 Cookie 保持登录。
 
 响应 `200`：
 ```json

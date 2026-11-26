@@ -175,6 +175,79 @@ func TestInitAdminRejectsShortPassword(t *testing.T) {
 	}
 }
 
+func TestPasswordChangeRevokesOtherSessions(t *testing.T) {
+	api, h := newTestAPI(t)
+	firstCookie := setupAdmin(t, api, false)
+
+	rec := do(t, h, "POST", "/api/login", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("second login: %d %s", rec.Code, rec.Body)
+	}
+	secondCookie := sessionCookie(t, rec)
+
+	rec = do(t, h, "POST", "/api/settings/account", reqOpts{
+		cookie:    firstCookie,
+		origin:    "http://example.com",
+		fetchSite: "same-origin",
+		body: map[string]string{
+			"currentPassword": "nextnav123",
+			"newPassword":     "changedpass123",
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("change password: %d %s", rec.Code, rec.Body)
+	}
+	currentCookie := sessionCookie(t, rec)
+
+	for _, oldCookie := range []*http.Cookie{firstCookie, secondCookie} {
+		rec = do(t, h, "GET", "/api/me", reqOpts{cookie: oldCookie})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("old session me: %d %s", rec.Code, rec.Body)
+		}
+		if got := decode[map[string]any](t, rec)["auth"]; got != "guest" {
+			t.Fatalf("expected old session to be revoked, got %v", got)
+		}
+	}
+
+	rec = do(t, h, "GET", "/api/me", reqOpts{cookie: currentCookie})
+	if got := decode[map[string]any](t, rec)["auth"]; got != "admin" {
+		t.Fatalf("expected current session to remain valid, got %v", got)
+	}
+
+	rec = do(t, h, "POST", "/api/login", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("old password login: %d %s", rec.Code, rec.Body)
+	}
+	rec = do(t, h, "POST", "/api/login", reqOpts{
+		body: map[string]string{"username": "admin", "password": "changedpass123"},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("new password login: %d %s", rec.Code, rec.Body)
+	}
+
+	rec = do(t, h, "POST", "/api/settings/account", reqOpts{
+		cookie:    currentCookie,
+		origin:    "http://example.com",
+		fetchSite: "same-origin",
+		body: map[string]string{
+			"currentPassword": "changedpass123",
+			"username":        "newname",
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("change username: %d %s", rec.Code, rec.Body)
+	}
+	rec = do(t, h, "GET", "/api/me", reqOpts{cookie: currentCookie})
+	me := decode[map[string]any](t, rec)
+	if me["auth"] != "admin" || me["username"] != "newname" {
+		t.Fatalf("username-only change should keep session valid, got %v", me)
+	}
+}
+
 func TestSeedDataIsPublicAndComplete(t *testing.T) {
 	api, h := newTestAPI(t)
 	if err := api.Service.InitAdmin("admin", "nextnav123", true); err != nil {

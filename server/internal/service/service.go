@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 
 	"nextnav/internal/store"
@@ -22,20 +23,17 @@ var (
 
 type Service struct {
 	store       *store.Store
+	cookieKeyMu sync.RWMutex
 	cookieKey   []byte
 	fetchClient *http.Client
 }
 
-func New(st *store.Store, cookieSecret ...string) *Service {
+func New(st *store.Store) *Service {
 	svc := &Service{
 		store:       st,
 		fetchClient: newSafeHTTPClient(4 * time.Second),
 	}
-	sec := ""
-	if len(cookieSecret) > 0 {
-		sec = cookieSecret[0]
-	}
-	svc.initCookieKey(sec)
+	svc.initCookieKey()
 	return svc
 }
 

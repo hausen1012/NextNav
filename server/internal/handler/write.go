@@ -392,6 +392,9 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
+	if req.NewPassword != "" {
+		a.issueSession(w, r)
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"username": user})
 }
 

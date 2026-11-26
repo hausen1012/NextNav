@@ -41,7 +41,7 @@ func main() {
 	}
 	defer st.Close()
 
-	svc := service.New(st, cfg.CookieSecret)
+	svc := service.New(st)
 	if err := svc.InitAdmin(cfg.AdminUsername, cfg.AdminPassword, cfg.SeedSample); err != nil {
 		slogx.Error("init admin", "err", err)
 		os.Exit(1)
