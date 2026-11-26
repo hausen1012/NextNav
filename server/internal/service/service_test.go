@@ -129,6 +129,56 @@ func TestCategoryBusinessRules(t *testing.T) {
 	}
 }
 
+func TestRootCategoryPrivacy(t *testing.T) {
+	svc, _ := newTestService(t)
+
+	publicID, err := svc.CreateCategory(service.CreateCategoryInput{Name: "公开分类"})
+	if err != nil {
+		t.Fatalf("create public category: %v", err)
+	}
+	privateID, err := svc.CreateCategory(service.CreateCategoryInput{
+		Name:      "私有分类",
+		IsPrivate: true,
+	})
+	if err != nil {
+		t.Fatalf("create private category: %v", err)
+	}
+	if _, err := svc.CreateCategory(service.CreateCategoryInput{
+		Name:     "私有子分类",
+		ParentID: &privateID,
+	}); err != nil {
+		t.Fatalf("create private child category: %v", err)
+	}
+
+	adminHome, err := svc.GetHome(true)
+	if err != nil {
+		t.Fatalf("get admin home: %v", err)
+	}
+	groups := make(map[int64]service.GroupDTO, len(adminHome.Groups))
+	for _, group := range adminHome.Groups {
+		groups[group.ID] = group
+	}
+	if group, ok := groups[privateID]; !ok || !group.IsPrivate {
+		t.Fatalf("expected private root category flag for admin, got %#v", group)
+	}
+	if group, ok := groups[publicID]; !ok || group.IsPrivate {
+		t.Fatalf("expected public root category flag for admin, got %#v", group)
+	}
+
+	guestHome, err := svc.GetHome(false)
+	if err != nil {
+		t.Fatalf("get guest home: %v", err)
+	}
+	for _, group := range guestHome.Groups {
+		if group.ID == privateID {
+			t.Fatal("private root category should not be visible to guests")
+		}
+		if group.ID == publicID && group.IsPrivate {
+			t.Fatal("public root category should remain public")
+		}
+	}
+}
+
 func TestLinkBusinessRules(t *testing.T) {
 	svc, _ := newTestService(t)
 

@@ -96,7 +96,7 @@ export function AdminCategoriesPage() {
         iconUrl: g.iconUrl,
         sort: g.sort,
         description: g.description,
-        isPrivate: false,
+        isPrivate: g.isPrivate,
         linkCount: g.links?.length ?? 0,
         isRoot: true,
       })
@@ -179,10 +179,15 @@ export function AdminCategoriesPage() {
 
     const filtered = groups
       .map((g) => {
+        const rootVisible =
+          selectedPrivacy === 'all' ||
+          (selectedPrivacy === 'private' && g.isPrivate) ||
+          (selectedPrivacy === 'public' && !g.isPrivate)
         const rootMatch =
-          !q ||
-          g.name.toLowerCase().includes(q) ||
-          (g.description && g.description.toLowerCase().includes(q))
+          rootVisible &&
+          (!q ||
+            g.name.toLowerCase().includes(q) ||
+            (g.description && g.description.toLowerCase().includes(q)))
 
         const matchedChildren = (g.categories || []).filter((c) => {
           if (selectedPrivacy === 'private' && !c.isPrivate) return false
@@ -196,10 +201,6 @@ export function AdminCategoriesPage() {
 
         const hasContent = rootMatch || matchedChildren.length > 0
         if (!hasContent) return null
-
-        if (selectedPrivacy === 'private' && !matchedChildren.some((c) => c.isPrivate)) {
-          return null
-        }
 
         // 子分类同样按 sort 排序
         const sortedChildren = [...matchedChildren].sort((a, b) => {
@@ -392,7 +393,7 @@ export function AdminCategoriesPage() {
                   iconUrl: g.iconUrl,
                   sort: g.sort,
                   description: g.description,
-                  isPrivate: false,
+                  isPrivate: g.isPrivate,
                   linkCount: g.links?.length ?? 0,
                   isRoot: true,
                 }
@@ -457,7 +458,14 @@ export function AdminCategoriesPage() {
                       </TableCell>
 
                       <TableCell className='text-center'>
-                        <span className='text-xs text-muted-foreground'>公开</span>
+                        {rootCat.isPrivate ? (
+                          <span className='inline-flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400'>
+                            <Shield className='size-3' />
+                            私有
+                          </span>
+                        ) : (
+                          <span className='text-xs text-muted-foreground'>公开</span>
+                        )}
                       </TableCell>
 
                       {/* Root Row Actions */}

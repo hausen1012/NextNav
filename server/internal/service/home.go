@@ -143,6 +143,7 @@ func (s *Service) BuildCategoryTree(admin, withLinks bool) ([]GroupDTO, error) {
 			Icon:        g.IconPath,
 			Description: g.Description,
 			Sort:        g.Sort,
+			IsPrivate:   g.IsPrivate,
 			Links:       append([]LinkDTO{}, linksByCat[g.ID]...),
 			Categories:  []CategoryDTO{},
 		}

@@ -38,6 +38,7 @@ export interface GroupDTO {
   icon?: string | null
   description?: string | null
   sort: number
+  isPrivate: boolean
   links: LinkDTO[]
   categories: CategoryDTO[]
 }

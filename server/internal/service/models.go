@@ -37,6 +37,7 @@ type GroupDTO struct {
 	Icon        *string       `json:"icon,omitempty"`
 	Description *string       `json:"description,omitempty"`
 	Sort        int64         `json:"sort"`
+	IsPrivate   bool          `json:"isPrivate"`
 	Links       []LinkDTO     `json:"links"`
 	Categories  []CategoryDTO `json:"categories"`
 }
