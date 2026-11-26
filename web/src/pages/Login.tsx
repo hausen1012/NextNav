@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Sun, Moon, ArrowLeft } from 'lucide-react'
-import { useHome } from '@/lib/query'
+import { type HomeResponse } from '@/lib/api'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
 import { LoginForm } from '@/components/login-form'
 import { Logo } from '@/components/Logo'
@@ -18,7 +19,8 @@ import {
 export function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { data: homeData } = useHome()
+  const qc = useQueryClient()
+  const homeData = qc.getQueryData<HomeResponse>(['home'])
 
   const [theme, setThemeState] = useState<Theme>(getTheme())
 
