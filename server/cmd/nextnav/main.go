@@ -51,7 +51,7 @@ func main() {
 	defer appCancel()
 	svc.StartPeriodicChecker(appCtx, cfg.CheckInterval)
 
-	api := handler.NewAPI(svc, cfg.SecureCookie, getStaticFS())
+	api := handler.NewAPI(svc, cfg.SecureCookie, getStaticFS(), cfg.FaviconAllowedDomains)
 
 	addr := ":" + cfg.Port
 	if cfg.Host != "" {

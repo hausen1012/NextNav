@@ -8,8 +8,9 @@ import (
 
 // API holds every dependency a handler needs.
 type API struct {
-	Service    *service.Service
-	Secure     bool
-	limiter    *ipLimiter
-	spaHandler http.Handler
+	Service       *service.Service
+	Secure        bool
+	limiter       *ipLimiter
+	spaHandler    http.Handler
+	faviconPolicy faviconAccessPolicy
 }

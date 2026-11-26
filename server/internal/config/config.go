@@ -7,28 +7,30 @@ import (
 
 // Config holds runtime configuration read from environment variables.
 type Config struct {
-	Host          string
-	Port          string
-	DataDir       string
-	CheckInterval string
-	SecureCookie  bool
-	CookieSecret  string
-	AdminUsername string
-	AdminPassword string
-	SeedSample    bool
+	Host                  string
+	Port                  string
+	DataDir               string
+	CheckInterval         string
+	SecureCookie          bool
+	CookieSecret          string
+	AdminUsername         string
+	AdminPassword         string
+	SeedSample            bool
+	FaviconAllowedDomains string
 }
 
 func Load() Config {
 	return Config{
-		Host:          env("HOST", ""),
-		Port:          env("PORT", "8787"),
-		DataDir:       env("DATA_DIR", "./data"),
-		CheckInterval: env("CHECK_INTERVAL", "1d"),
-		SecureCookie:  envBool("COOKIE_SECURE", false),
-		CookieSecret:  env("COOKIE_SECRET", ""),
-		AdminUsername: env("ADMIN_USERNAME", "admin"),
-		AdminPassword: env("ADMIN_PASSWORD", "admin123"),
-		SeedSample:    envBool("SEED_SAMPLE", false),
+		Host:                  env("HOST", ""),
+		Port:                  env("PORT", "8787"),
+		DataDir:               env("DATA_DIR", "./data"),
+		CheckInterval:         env("CHECK_INTERVAL", "1d"),
+		SecureCookie:          envBool("COOKIE_SECURE", false),
+		CookieSecret:          env("COOKIE_SECRET", ""),
+		AdminUsername:         env("ADMIN_USERNAME", "admin"),
+		AdminPassword:         env("ADMIN_PASSWORD", "admin123"),
+		SeedSample:            envBool("SEED_SAMPLE", false),
+		FaviconAllowedDomains: env("FAVICON_ALLOWED_DOMAINS", ""),
 	}
 }
 

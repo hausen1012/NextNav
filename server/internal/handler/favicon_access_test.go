@@ -1,0 +1,154 @@
+package handler
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestFaviconAccessPolicyMatchesDomains(t *testing.T) {
+	policy := newFaviconAccessPolicy(" Nav.Example.com, *.Example.org, *, invalid.example/path ")
+	if !policy.allowsHost("nav.example.com") {
+		t.Fatal("exact domain should match")
+	}
+	if !policy.allowsHost("www.example.org") || !policy.allowsHost("example.org") {
+		t.Fatal("wildcard domain should match apex and subdomains")
+	}
+	if !policy.allowsHost("any.example.net") {
+		t.Fatal("wildcard * should match any domain")
+	}
+}
+
+func TestFaviconAccessPolicyWithoutWildcard(t *testing.T) {
+	policy := newFaviconAccessPolicy("example.com,*.example.org")
+	if !policy.allowsHost("EXAMPLE.COM.") {
+		t.Fatal("domain matching should ignore case and trailing dot")
+	}
+	if policy.allowsHost("sub.example.com") {
+		t.Fatal("exact domain should not match subdomains")
+	}
+	if policy.allowsHost("example.com.evil.com") {
+		t.Fatal("lookalike domain should not match")
+	}
+	if !policy.allowsHost("sub.example.org") {
+		t.Fatal("wildcard domain should match subdomains")
+	}
+}
+
+func TestFaviconAccessMiddleware(t *testing.T) {
+	tests := []struct {
+		name      string
+		remote    string
+		referer   string
+		origin    string
+		fetchSite string
+		xff       string
+		want      int
+	}{
+		{name: "private ipv4", remote: "192.168.1.20:1234", want: http.StatusNoContent},
+		{name: "private 172", remote: "172.16.0.20:1234", want: http.StatusNoContent},
+		{name: "loopback", remote: "127.0.0.1:1234", want: http.StatusNoContent},
+		{name: "link local", remote: "169.254.1.20:1234", want: http.StatusNoContent},
+		{name: "public 172 is not private", remote: "172.32.0.20:1234", want: http.StatusForbidden},
+		{name: "allowed referer", remote: "203.0.113.10:1234", referer: "https://nav.example.com/page", want: http.StatusNoContent},
+		{name: "allowed referer with port", remote: "203.0.113.10:1234", referer: "http://nav.example.com:8080/page", want: http.StatusNoContent},
+		{name: "allowed wildcard subdomain", remote: "203.0.113.10:1234", referer: "https://app.example.org/page", want: http.StatusNoContent},
+		{name: "allowed origin", remote: "203.0.113.10:1234", origin: "https://nav.example.com", want: http.StatusNoContent},
+		{name: "same origin without referer", remote: "203.0.113.10:1234", fetchSite: "same-origin", want: http.StatusNoContent},
+		{name: "disallowed referer", remote: "203.0.113.10:1234", referer: "https://evil.example/page", want: http.StatusForbidden},
+		{name: "lookalike referer", remote: "203.0.113.10:1234", referer: "https://nav.example.com.evil.example/page", want: http.StatusForbidden},
+		{name: "missing source", remote: "203.0.113.10:1234", want: http.StatusForbidden},
+		{name: "cross site without referer", remote: "203.0.113.10:1234", fetchSite: "cross-site", want: http.StatusForbidden},
+		{name: "malformed referer", remote: "203.0.113.10:1234", referer: "://bad", want: http.StatusForbidden},
+		{name: "public client cannot spoof forwarded private ip", remote: "203.0.113.10:1234", xff: "192.168.1.20", want: http.StatusForbidden},
+		{name: "proxy forwarded public client", remote: "10.0.0.2:1234", xff: "203.0.113.10", want: http.StatusForbidden},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			api := &API{faviconPolicy: newFaviconAccessPolicy("nav.example.com,*.example.org")}
+			called := false
+			h := api.faviconAccess(func(w http.ResponseWriter, _ *http.Request) {
+				called = true
+				w.WriteHeader(http.StatusNoContent)
+			})
+			req := httptest.NewRequest(http.MethodGet, "/api/favicon/example.com.png", nil)
+			req.RemoteAddr = tt.remote
+			if tt.referer != "" {
+				req.Header.Set("Referer", tt.referer)
+			}
+			if tt.origin != "" {
+				req.Header.Set("Origin", tt.origin)
+			}
+			if tt.fetchSite != "" {
+				req.Header.Set("Sec-Fetch-Site", tt.fetchSite)
+			}
+			if tt.xff != "" {
+				req.Header.Set("X-Forwarded-For", tt.xff)
+			}
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			if rec.Code != tt.want {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.want)
+			}
+			if called != (tt.want == http.StatusNoContent) {
+				t.Fatalf("next called = %v", called)
+			}
+		})
+	}
+}
+
+func TestFaviconAccessWildcardAllowsMissingSource(t *testing.T) {
+	api := &API{faviconPolicy: newFaviconAccessPolicy("*")}
+	h := api.faviconAccess(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/favicon/example.com.png", nil)
+	req.RemoteAddr = "203.0.113.10:1234"
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+}
+
+func TestFaviconRouteEnforcesAccess(t *testing.T) {
+	api, h := newTestAPIWithFaviconDomains(t, "nav.example.com")
+	relPath, err := api.Service.SaveIconContent(dummyPNG, "example.png")
+	if err != nil {
+		t.Fatalf("save icon: %v", err)
+	}
+	if err := api.Service.Store().SetFaviconCache("example.com", relPath); err != nil {
+		t.Fatalf("cache favicon: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/favicon/example.com.png", nil)
+	req.RemoteAddr = "203.0.113.10:1234"
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("public request without source: status = %d, want 403", rec.Code)
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("denied response should not be cached")
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/favicon/example.com.png", nil)
+	req.RemoteAddr = "203.0.113.10:1234"
+	req.Header.Set("Referer", "https://nav.example.com/")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("allowed request: status = %d, want 200", rec.Code)
+	}
+	if rec.Header().Get("Cache-Control") != "private, max-age=86400" {
+		t.Fatalf("favicon response should use private caching")
+	}
+	vary := strings.Join(rec.Header().Values("Vary"), ",")
+	for _, header := range []string{"Referer", "Origin", "Sec-Fetch-Site"} {
+		if !strings.Contains(vary, header) {
+			t.Fatalf("Vary should include %s, got %q", header, vary)
+		}
+	}
+}

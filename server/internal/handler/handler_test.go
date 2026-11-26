@@ -23,6 +23,11 @@ import (
 // newTestAPI creates an isolated install with a fresh SQLite file per test.
 func newTestAPI(t *testing.T) (*API, http.Handler) {
 	t.Helper()
+	return newTestAPIWithFaviconDomains(t, "*")
+}
+
+func newTestAPIWithFaviconDomains(t *testing.T, faviconAllowedDomains string) (*API, http.Handler) {
+	t.Helper()
 	dir := t.TempDir()
 	st, err := store.Open(dir)
 	if err != nil {
@@ -34,7 +39,7 @@ func newTestAPI(t *testing.T) (*API, http.Handler) {
 	mockFS := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<!doctype html><html><body>ok</body></html>")},
 	}
-	api := NewAPI(svc, false, mockFS)
+	api := NewAPI(svc, false, mockFS, faviconAllowedDomains)
 	return api, NewRouter(api)
 }
 

@@ -99,7 +99,7 @@
 | POST | `/api/backup/import` | 管理员 | 导入全站数据（支持 merge / overwrite） |
 | POST | `/api/sample/clear` | 管理员 | 清空预置示例数据 |
 | POST | `/api/icons/purge` | 管理员 | 清理未被引用的图标文件 |
-| GET | `/api/favicon/*` | 公开 | 抓取或返回站点 Favicon 图标缓存 |
+| GET | `/api/favicon/*` | 公开（防盗链） | 抓取或返回站点 Favicon 图标缓存 |
 | GET | `/icons/*` | 公开 | 图标静态资源托管 |
 
 ### 1.2 规划中扩展端点
@@ -503,7 +503,9 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 
 ### GET /api/favicon/{target}
 
-公开端点。根据给定的域名或地址获取 favicon 图标。支持直接携带图片格式后缀（如 `.ico`、`.png`、`.jpg`、`.webp`），例如：
+公开端点，但默认启用防盗链。内网、回环及链路本地 IP 始终允许；公网请求需 `Referer` 或 `Origin` 命中 `FAVICON_ALLOWED_DOMAINS`。无来源头时仅放行 `Sec-Fetch-Site: same-origin`，配置为 `*` 时允许任意来源。不匹配返回 `403`。该配置用于防盗链，Referer 可伪造，不作为身份认证。
+
+根据给定的域名或地址获取 favicon 图标。支持直接携带图片格式后缀（如 `.ico`、`.png`、`.jpg`、`.webp`），例如：
 - `/api/favicon/www.baidu.com.ico`
 - `/api/favicon/www.baidu.com.png`
 - `/api/favicon/github.com`
