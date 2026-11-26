@@ -78,11 +78,12 @@ export function useHome() {
   })
 }
 
-export function useSettings() {
+export function useSettings(enabled = true) {
   return useQuery({
     queryKey: ['settings'],
     queryFn: api.settings,
-    refetchOnWindowFocus: 'always',
+    enabled,
+    refetchOnWindowFocus: enabled,
   })
 }
 

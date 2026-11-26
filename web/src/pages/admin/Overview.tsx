@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SiteIcon } from '@/components/SiteIcon'
 import { CategoryDialog } from '@/components/admin/CategoryDialog'
-import { LinkDialog } from '@/components/admin/LinkDialog'
+import { LinkDialog } from '@/components/LinkDialog'
 
 export function AdminOverviewPage() {
   const { data: categoryData, isLoading: categoriesLoading } = useAdminCategories()

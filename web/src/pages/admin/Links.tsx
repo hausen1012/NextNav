@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/dialog'
 import { SiteIcon } from '@/components/SiteIcon'
 import { TablePagination } from '@/components/admin/TablePagination'
-import { LinkDialog } from '@/components/admin/LinkDialog'
+import { LinkDialog } from '@/components/LinkDialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/admin/DataTableColumnHeader'
 import { DataTableFloatingBar } from '@/components/admin/DataTableFloatingBar'

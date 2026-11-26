@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Field } from '@/components/Field'
+import { Field, FieldHint } from '@/components/Field'
 import { SiteIcon } from '@/components/SiteIcon'
 
 export interface LinkDialogData {
@@ -36,6 +36,7 @@ interface LinkDialogProps {
   link?: LinkDialogData | null
   defaultCategoryId?: number
   categories: { id: number; name: string }[]
+  faviconServiceUrl?: string | null
   onSuccess: () => void
 }
 
@@ -45,9 +46,10 @@ export function LinkDialog({
   link,
   defaultCategoryId,
   categories,
+  faviconServiceUrl,
   onSuccess,
 }: LinkDialogProps) {
-  const { data: settings } = useSettings()
+  const { data: settings } = useSettings(faviconServiceUrl === undefined)
   const isEdit = Boolean(link?.id)
 
   const [title, setTitle] = useState('')
@@ -121,11 +123,13 @@ export function LinkDialog({
     }
   }
 
+  const effectiveFaviconServiceUrl = faviconServiceUrl ?? settings?.site.faviconServiceUrl
+
   function applyFaviconApi() {
     const trimmed = url.trim()
     if (!trimmed) return
-    if (settings?.site.faviconServiceUrl) {
-      const generated = formatFaviconUrl(settings.site.faviconServiceUrl, trimmed)
+    if (effectiveFaviconServiceUrl) {
+      const generated = formatFaviconUrl(effectiveFaviconServiceUrl, trimmed)
       if (generated) {
         setIconLink(generated)
         return
@@ -141,7 +145,7 @@ export function LinkDialog({
     }
   }
 
-  const globalFaviconUrl = formatFaviconUrl(settings?.site.faviconServiceUrl, url)
+  const globalFaviconUrl = formatFaviconUrl(effectiveFaviconServiceUrl, url)
 
   const previewIconUrl = stagedBlobUrl
     ? stagedBlobUrl
@@ -149,7 +153,9 @@ export function LinkDialog({
       ? `/${iconPath.replace(/^\//, '')}`
       : iconLink.trim()
         ? iconLink.trim()
-        : globalFaviconUrl
+        : link?.iconUrl
+          ? link.iconUrl
+          : globalFaviconUrl
 
   async function handleAutoFetch() {
     const trimmed = url.trim()
@@ -264,7 +270,7 @@ export function LinkDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent className='sm:max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>{isEdit ? '编辑链接' : '新建链接'}</DialogTitle>
           <DialogDescription>
@@ -274,14 +280,24 @@ export function LinkDialog({
         <form onSubmit={handleSubmit} className='space-y-4 pt-1'>
           {error && <p className='text-xs text-destructive'>{error}</p>}
 
-          <Field label='网址 (URL)' htmlFor='link-form-url'>
+          <Field label='链接名称' htmlFor='link-form-title'>
+            <Input
+              id='link-form-title'
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder='例如：GitHub'
+              required
+            />
+          </Field>
+
+          <Field label='网址 URL' htmlFor='link-form-url'>
             <div className='flex items-center gap-2'>
               <Input
                 id='link-form-url'
                 type='url'
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder='请输入有效链接，例如：https://tailwindcss.com'
+                placeholder='https://...'
                 required
                 className='flex-1'
               />
@@ -292,7 +308,7 @@ export function LinkDialog({
                 disabled={isFetchingMeta || !url.trim()}
                 onClick={handleAutoFetch}
                 className='shrink-0 gap-1 text-xs'
-                title='自动抓取网页标题与描述'
+                title='自动获取网站标题与描述'
               >
                 <Sparkles className='size-3.5' />
                 <span>{isFetchingMeta ? '抓取中...' : '自动获取'}</span>
@@ -300,17 +316,41 @@ export function LinkDialog({
             </div>
           </Field>
 
-          <Field label='备用URL' htmlFor='link-form-backup'>
-            <Input
-              id='link-form-backup'
-              type='url'
-              value={backupUrl}
-              onChange={(e) => setBackupUrl(e.target.value)}
-              placeholder='请输入备用链接，如果没有，请留空'
+          <Field label='所属分类' htmlFor='link-form-cat'>
+            <select
+              id='link-form-cat'
+              value={categoryId}
+              onChange={(e) => setCategoryId(Number(e.target.value))}
+              className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+            >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label='描述' htmlFor='link-form-desc'>
+            <textarea
+              id='link-form-desc'
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder='简短的功能介绍或备注信息'
+              rows={2}
+              className='flex min-h-16 w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30'
             />
           </Field>
 
-          <Field label='图标' htmlFor='link-form-icon-file'>
+          <Field
+            label={
+              <>
+                图标
+                <FieldHint>支持 PNG、JPEG、WebP、ICO，不超过 1MB</FieldHint>
+              </>
+            }
+            htmlFor='link-form-icon-file'
+          >
             <div className='flex items-center gap-3'>
               <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted/30'>
                 <SiteIcon name={title || '?'} url={url} iconUrl={previewIconUrl} size={40} />
@@ -348,20 +388,25 @@ export function LinkDialog({
                     <span>删除图标</span>
                   </Button>
                 ) : null}
-                <span className='text-[11px] text-muted-foreground'>
-                  支持 PNG、JPEG、WebP、ICO，不超过 1MB
-                </span>
               </div>
             </div>
           </Field>
 
-          <Field label='图标链接' htmlFor='link-form-icon-link'>
+          <Field
+            label={
+              <>
+                图标链接
+                <FieldHint>可留空，支持外部 https 链接</FieldHint>
+              </>
+            }
+            htmlFor='link-form-icon-link'
+          >
             <div className='flex items-center gap-2'>
               <Input
                 id='link-form-icon-link'
                 value={iconLink}
                 onChange={(e) => setIconLink(e.target.value)}
-                placeholder='请输入图标链接，如果没有，请留空（可输入外部https链接）'
+                placeholder='https://...'
                 className='flex-1'
               />
               <Button
@@ -379,42 +424,29 @@ export function LinkDialog({
             </div>
           </Field>
 
-          <Field label='链接名称' htmlFor='link-form-title'>
-            <Input
-              id='link-form-title'
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder='请输入链接名称，例如：Tailwind CSS'
-              required
-            />
-          </Field>
+          <div className='grid grid-cols-1 gap-3 sm:grid-cols-[7rem_1fr]'>
+            <Field label='排序' htmlFor='link-form-sort'>
+              <Input
+                id='link-form-sort'
+                type='number'
+                value={sortWeight}
+                onChange={(e) => setSortWeight(e.target.value)}
+                placeholder='默认 10'
+              />
+            </Field>
 
-          <Field label='所属分类' htmlFor='link-form-cat'>
-            <select
-              id='link-form-cat'
-              value={categoryId}
-              onChange={(e) => setCategoryId(Number(e.target.value))}
-              className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <Field label='备用网址' htmlFor='link-form-backup'>
+              <Input
+                id='link-form-backup'
+                type='url'
+                value={backupUrl}
+                onChange={(e) => setBackupUrl(e.target.value)}
+                placeholder='可选镜像或内网地址'
+              />
+            </Field>
+          </div>
 
-          <Field label='权重' htmlFor='link-form-sort'>
-            <Input
-              id='link-form-sort'
-              type='number'
-              value={sortWeight}
-              onChange={(e) => setSortWeight(e.target.value)}
-              placeholder='默认 10'
-            />
-          </Field>
-
-          <div className='flex items-center gap-2 pt-1'>
+          <label htmlFor='link-form-private' className='flex cursor-pointer items-center gap-2 text-sm select-none'>
             <input
               type='checkbox'
               id='link-form-private'
@@ -422,26 +454,15 @@ export function LinkDialog({
               onChange={(e) => setIsPrivate(e.target.checked)}
               className='size-4 rounded border-input text-primary focus:ring-ring'
             />
-            <label htmlFor='link-form-private' className='text-sm text-foreground select-none cursor-pointer'>
-              是否私有（私有链接需要登录后才能查看！）
-            </label>
-          </div>
-
-          <Field label='描述介绍（可选）' htmlFor='link-form-desc'>
-            <Input
-              id='link-form-desc'
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder='快速实用的原子类 CSS 框架'
-            />
-          </Field>
+            设为私有
+          </label>
 
           <DialogFooter className='pt-2'>
             <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
               取消
             </Button>
             <Button type='submit' disabled={isSubmitting}>
-              {isSubmitting ? '保存中...' : isEdit ? '保存更改' : '确认创建'}
+              {isSubmitting ? '保存中...' : '保存'}
             </Button>
           </DialogFooter>
         </form>

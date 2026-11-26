@@ -6,11 +6,11 @@ import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
 import { CategoryContextMenu } from '@/components/CategoryContextMenu'
-import { SiteIcon } from '@/components/SiteIcon'
 import { Logo } from '@/components/Logo'
 import { LoginDialog } from '@/components/login-dialog'
+import { LinkDialog } from '@/components/LinkDialog'
 import { getTheme, toggleTheme, type Theme } from '@/lib/theme'
-import { hostOf, formatFaviconUrl } from '@/lib/utils'
+import { hostOf } from '@/lib/utils'
 import {
   Search,
   X,
@@ -30,11 +30,8 @@ import {
   Copy,
   Check,
   AlertTriangle,
-  Sparkles,
   Trash2,
   ExternalLink,
-  Upload,
-  Globe,
 } from 'lucide-react'
 
 // 搜索引擎配置
@@ -90,115 +87,11 @@ export function HomePage() {
   const [isDeletingLink, setIsDeletingLink] = useState(false)
 
   // 3. 链接表单弹窗 (新建 / 编辑)
-  const [linkModal, setLinkModal] = useState<{
+  const [linkDialog, setLinkDialog] = useState<{
     open: boolean
-    mode: 'create' | 'edit'
-    id?: number
-    title: string
-    url: string
-    backupUrl: string
-    categoryId: number
-    description: string
-    iconPath: string
-    iconUrl: string | null
-    customIconUrl: string
-    isPrivate: boolean
-    sort: number
-  }>({
-    open: false,
-    mode: 'create',
-    title: '',
-    url: '',
-    backupUrl: '',
-    categoryId: 0,
-    description: '',
-    iconPath: '',
-    iconUrl: null,
-    customIconUrl: '',
-    isPrivate: false,
-    sort: 10,
-  })
-  const [linkSubmitting, setLinkSubmitting] = useState(false)
-  const [linkFetchingMeta, setLinkFetchingMeta] = useState(false)
-  const [linkUploadingIcon, setLinkUploadingIcon] = useState(false)
-  const [linkFormError, setLinkFormError] = useState<string | null>(null)
-  const [linkIconFile, setLinkIconFile] = useState<File | null>(null)
-  const linkIconInputRef = useRef<HTMLInputElement>(null)
-
-  const handleAutoFetchMeta = async () => {
-    const trimmed = linkModal.url.trim()
-    if (!trimmed) return
-    setLinkFetchingMeta(true)
-    setLinkFormError(null)
-    try {
-      const meta = await api.fetchMeta(trimmed)
-      setLinkModal((prev) => ({
-        ...prev,
-        title: prev.title || meta.title || '',
-        description: prev.description || meta.description || '',
-        url: meta.resolvedUrl || prev.url,
-        iconPath: prev.iconPath || meta.iconPath || '',
-        iconUrl: prev.iconUrl || meta.iconUrl || null,
-      }))
-    } catch {
-      // 抓取失败不中断流程
-    } finally {
-      setLinkFetchingMeta(false)
-    }
-  }
-
-  const handleLinkIconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    if (file.size > 1024 * 1024) {
-      setLinkFormError('图标文件不能超过 1MB')
-      return
-    }
-    setLinkFormError(null)
-
-    // 即时生成本地预览 blob
-    const blobUrl = URL.createObjectURL(file)
-    setLinkModal((prev) => ({
-      ...prev,
-      iconUrl: blobUrl,
-    }))
-
-    if (linkModal.mode !== 'edit' || !linkModal.id) {
-      setLinkIconFile(file)
-      return
-    }
-    setLinkUploadingIcon(true)
-    try {
-      const updated = await api.uploadLinkIcon(linkModal.id, file)
-      setLinkModal((prev) => ({
-        ...prev,
-        iconPath: updated.iconPath || '',
-        iconUrl: blobUrl,
-      }))
-    } catch (err) {
-      setLinkFormError(err instanceof Error ? err.message : '图标上传失败')
-    } finally {
-      setLinkUploadingIcon(false)
-    }
-  }
-
-  const handleClearLinkIcon = async () => {
-    setLinkIconFile(null)
-    if (linkModal.mode !== 'edit' || !linkModal.id) {
-      setLinkModal((prev) => ({ ...prev, iconPath: '', iconUrl: null }))
-      return
-    }
-    setLinkUploadingIcon(true)
-    try {
-      await api.clearLinkIcon(linkModal.id)
-      setLinkModal((prev) => ({ ...prev, iconPath: '', iconUrl: null }))
-    } catch (err) {
-      setLinkFormError(err instanceof Error ? err.message : '清除图标失败')
-    } finally {
-      setLinkUploadingIcon(false)
-    }
-  }
+    link?: LinkDTO | null
+    defaultCategoryId?: number
+  }>({ open: false })
 
   // 4. 分类表单弹窗 (新建 / 编辑)
   const [categoryModal, setCategoryModal] = useState<{
@@ -463,92 +356,15 @@ export function HomePage() {
 
   // ==================== 链接操作逻辑 ====================
   const openCreateLinkModal = (defaultCatId?: number) => {
-    const firstCatId = defaultCatId || flatCategoryOptions[0]?.id || 0
-    setLinkFormError(null)
-    setLinkIconFile(null)
-    setLinkModal({
+    setLinkDialog({
       open: true,
-      mode: 'create',
-      title: '',
-      url: '',
-      backupUrl: '',
-      categoryId: firstCatId,
-      description: '',
-      iconPath: '',
-      iconUrl: null,
-      customIconUrl: '',
-      isPrivate: false,
-      sort: 10,
+      link: null,
+      defaultCategoryId: defaultCatId || flatCategoryOptions[0]?.id,
     })
   }
 
   const openEditLinkModal = (link: LinkDTO) => {
-    setLinkFormError(null)
-    setLinkIconFile(null)
-    setLinkModal({
-      open: true,
-      mode: 'edit',
-      id: link.id,
-      title: link.title,
-      url: link.url,
-      backupUrl: link.backupUrl || '',
-      categoryId: link.categoryId,
-      description: link.description || '',
-      iconPath: link.iconPath || '',
-      iconUrl: link.iconUrl,
-      customIconUrl: link.customIconUrl || '',
-      isPrivate: link.isPrivate,
-      sort: link.sort ?? 10,
-    })
-  }
-
-  const handleSaveLink = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!linkModal.title.trim()) {
-      setLinkFormError('请输入链接标题')
-      return
-    }
-    if (!linkModal.url.trim()) {
-      setLinkFormError('请输入链接地址')
-      return
-    }
-    if (!linkModal.categoryId) {
-      setLinkFormError('请选择所属分类')
-      return
-    }
-
-    setLinkSubmitting(true)
-    setLinkFormError(null)
-    try {
-      const payload = {
-        title: linkModal.title.trim(),
-        url: linkModal.url.trim(),
-        backupUrl: linkModal.backupUrl.trim() || null,
-        categoryId: Number(linkModal.categoryId),
-        description: linkModal.description.trim() || null,
-        iconPath: linkModal.iconPath || null,
-        iconUrl: linkModal.customIconUrl.trim() || null,
-        isPrivate: linkModal.isPrivate,
-        sort: Number(linkModal.sort) || 10,
-      }
-
-      if (linkModal.mode === 'create') {
-        const created = await api.createLink(payload)
-        if (linkIconFile) {
-          await api.uploadLinkIcon(created.id, linkIconFile)
-        }
-      } else if (linkModal.id) {
-        await api.updateLink(linkModal.id, payload)
-      }
-
-      setLinkIconFile(null)
-      await invalidate()
-      setLinkModal((prev) => ({ ...prev, open: false }))
-    } catch (err) {
-      setLinkFormError(err instanceof Error ? err.message : '保存链接失败')
-    } finally {
-      setLinkSubmitting(false)
-    }
+    setLinkDialog({ open: true, link })
   }
 
   const handleDeleteLink = async () => {
@@ -1309,262 +1125,15 @@ export function HomePage() {
 
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
 
-      {/* ===================== 前台原生链接编辑/新建 Modal (纯净黑白灰) ===================== */}
-      {linkModal.open && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs overflow-y-auto'>
-          <div className='w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1d24] animate-in fade-in zoom-in-95 duration-150 my-8'>
-            <div className='flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800'>
-              <h3 className='text-base font-bold text-zinc-900 dark:text-zinc-100'>
-                {linkModal.mode === 'create' ? '添加链接' : '编辑链接'}
-              </h3>
-              <button
-                type='button'
-                onClick={() => setLinkModal((prev) => ({ ...prev, open: false }))}
-                className='rounded-md p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
-              >
-                <X className='size-4' />
-              </button>
-            </div>
-
-            {linkFormError && (
-              <div className='mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400'>
-                {linkFormError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveLink} className='mt-4 space-y-4 text-xs'>
-              {/* 标题 */}
-              <div>
-                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                  链接标题 <span className='text-red-500'>*</span>
-                </label>
-                <input
-                  type='text'
-                  value={linkModal.title}
-                  onChange={(e) => setLinkModal({ ...linkModal, title: e.target.value })}
-                  placeholder='例如：GitHub'
-                  required
-                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
-                />
-              </div>
-
-              {/* 网址 URL */}
-              <div>
-                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                  网址 URL <span className='text-red-500'>*</span>
-                </label>
-                <div className='flex items-center gap-2'>
-                  <input
-                    type='url'
-                    value={linkModal.url}
-                    onChange={(e) => setLinkModal({ ...linkModal, url: e.target.value })}
-                    placeholder='https://...'
-                    required
-                    className='flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
-                  />
-                  <button
-                    type='button'
-                    disabled={linkFetchingMeta || !linkModal.url.trim()}
-                    onClick={handleAutoFetchMeta}
-                    className='shrink-0 flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer'
-                    title='自动获取网站标题与描述'
-                  >
-                    <Sparkles className='size-3.5' />
-                    <span>{linkFetchingMeta ? '抓取中...' : '自动获取'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 所属分类与备用网址 (两列) */}
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                <div>
-                  <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                    所属分类 <span className='text-red-500'>*</span>
-                  </label>
-                  <select
-                    value={linkModal.categoryId}
-                    onChange={(e) => setLinkModal({ ...linkModal, categoryId: Number(e.target.value) })}
-                    className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
-                  >
-                    {flatCategoryOptions.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                    备用网址
-                  </label>
-                  <input
-                    type='url'
-                    value={linkModal.backupUrl}
-                    onChange={(e) => setLinkModal({ ...linkModal, backupUrl: e.target.value })}
-                    placeholder='可选镜像或内网地址'
-                    className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
-                  />
-                </div>
-              </div>
-
-              {/* 描述 */}
-              <div>
-                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                  网站描述
-                </label>
-                <textarea
-                  value={linkModal.description}
-                  onChange={(e) => setLinkModal({ ...linkModal, description: e.target.value })}
-                  placeholder='简短的功能介绍或备注信息'
-                  rows={2}
-                  className='w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 resize-none'
-                />
-              </div>
-
-              {/* 图标 */}
-              <div>
-                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                  图标
-                </label>
-                <div className='flex items-center gap-3'>
-                  <div className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full'>
-                    <SiteIcon
-                      name={linkModal.title || '?'}
-                      url={linkModal.url}
-                      iconUrl={
-                        linkModal.iconUrl
-                          ? linkModal.iconUrl
-                          : linkModal.iconPath
-                            ? `/${linkModal.iconPath.replace(/^\//, '')}`
-                            : linkModal.customIconUrl.trim()
-                              ? linkModal.customIconUrl.trim()
-                              : formatFaviconUrl(data?.site.faviconServiceUrl, linkModal.url)
-                      }
-                      size={40}
-                    />
-                  </div>
-                  <input
-                    ref={linkIconInputRef}
-                    type='file'
-                    accept='image/png,image/jpeg,image/webp,image/x-icon'
-                    className='hidden'
-                    onChange={handleLinkIconChange}
-                  />
-                  <button
-                    type='button'
-                    disabled={linkUploadingIcon}
-                    onClick={() => linkIconInputRef.current?.click()}
-                    className='flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition'
-                  >
-                    <Upload className='size-3.5' />
-                    <span>{linkUploadingIcon ? '上传中...' : '上传图标'}</span>
-                  </button>
-                  {linkModal.iconPath || linkIconFile ? (
-                    <button
-                      type='button'
-                      disabled={linkUploadingIcon}
-                      onClick={handleClearLinkIcon}
-                      className='flex items-center gap-1 rounded-xl px-2 py-2 text-xs text-zinc-500 hover:text-red-600 disabled:opacity-40 dark:text-zinc-400 dark:hover:text-red-400 transition'
-                    >
-                      <Trash2 className='size-3.5' />
-                      <span>删除图标</span>
-                    </button>
-                  ) : null}
-                  <span className='text-[11px] text-zinc-400 dark:text-zinc-500'>
-                    支持 PNG、JPEG、WebP、ICO，不超过 1MB
-                  </span>
-                </div>
-              </div>
-
-              {/* 图标链接 */}
-              <div>
-                <label className='block font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
-                  图标链接
-                </label>
-                <div className='flex items-center gap-2'>
-                  <input
-                    type='text'
-                    value={linkModal.customIconUrl}
-                    onChange={(e) => setLinkModal({ ...linkModal, customIconUrl: e.target.value })}
-                    placeholder='请输入图标链接，如果没有，请留空（可输入外部https链接）'
-                    className='flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm text-zinc-800 outline-hidden focus:border-zinc-500 focus:bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400'
-                  />
-                  <button
-                    type='button'
-                    disabled={!linkModal.url.trim()}
-                    onClick={() => {
-                      const trimmed = linkModal.url.trim()
-                      if (!trimmed) return
-                      if (data?.site.faviconServiceUrl) {
-                        const generated = formatFaviconUrl(data.site.faviconServiceUrl, trimmed)
-                        if (generated) {
-                          setLinkModal((prev) => ({ ...prev, customIconUrl: generated }))
-                          return
-                        }
-                      }
-                      try {
-                        const u = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
-                        if (u.hostname) {
-                          setLinkModal((prev) => ({ ...prev, customIconUrl: `/api/favicon/${u.hostname}.png` }))
-                        }
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                    className='shrink-0 flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition cursor-pointer'
-                    title='自动填入本站 Favicon 抓取接口'
-                  >
-                    <Globe className='size-3.5' />
-                    <span>Favicon</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 排序与私有状态 */}
-              <div className='flex items-center justify-between pt-1'>
-                <div className='flex items-center gap-2'>
-                  <label className='font-medium text-zinc-700 dark:text-zinc-300'>排序:</label>
-                  <input
-                    type='number'
-                    value={linkModal.sort}
-                    onChange={(e) => setLinkModal({ ...linkModal, sort: Number(e.target.value) })}
-                    className='w-20 rounded-lg border border-zinc-200 bg-zinc-50/50 px-2 py-1 text-xs text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100'
-                  />
-                </div>
-
-                <label className='flex items-center gap-2 cursor-pointer font-medium text-zinc-700 dark:text-zinc-300'>
-                  <input
-                    type='checkbox'
-                    checked={linkModal.isPrivate}
-                    onChange={(e) => setLinkModal({ ...linkModal, isPrivate: e.target.checked })}
-                    className='size-4 rounded accent-zinc-900 dark:accent-zinc-100'
-                  />
-                  <span>设为私有 (仅自己可见)</span>
-                </label>
-              </div>
-
-              {/* 底部操作按钮 */}
-              <div className='mt-6 flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800'>
-                <button
-                  type='button'
-                  onClick={() => setLinkModal((prev) => ({ ...prev, open: false }))}
-                  className='rounded-xl border border-zinc-200 px-4 py-2 font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 transition'
-                >
-                  取消
-                </button>
-                <button
-                  type='submit'
-                  disabled={linkSubmitting}
-                  className='rounded-xl bg-zinc-900 px-5 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 transition'
-                >
-                  {linkSubmitting ? '正在保存...' : '保存'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <LinkDialog
+        open={linkDialog.open}
+        onOpenChange={(open) => setLinkDialog((prev) => ({ ...prev, open }))}
+        link={linkDialog.link}
+        defaultCategoryId={linkDialog.defaultCategoryId}
+        categories={flatCategoryOptions}
+        faviconServiceUrl={data.site.faviconServiceUrl}
+        onSuccess={invalidate}
+      />
 
       {/* ===================== 前台原生分类编辑/新建 Modal (纯净黑白灰) ===================== */}
       {categoryModal.open && (
