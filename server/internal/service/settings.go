@@ -32,7 +32,3 @@ func (s *Service) UpdateSettings(input UpdateSettingsInput) PublicSiteDTO {
 	}
 	return s.GetPublicSite()
 }
-
-func (s *Service) ClearSample() (map[string]int, error) {
-	return s.store.ClearSample()
-}

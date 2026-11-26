@@ -454,52 +454,6 @@ func TestDuplicateLinkScopedToCategory(t *testing.T) {
 	}
 }
 
-func TestEditClearsSampleFlag(t *testing.T) {
-	api, h := newTestAPI(t)
-	cookie := setupAdmin(t, api, true)
-
-	rec := do(t, h, "PATCH", "/api/links/1", reqOpts{
-		cookie: cookie, fetchSite: "same-origin",
-		body: map[string]any{"title": "我的 Google"},
-	})
-	if rec.Code != http.StatusOK {
-		t.Fatalf("patch: %d %s", rec.Code, rec.Body)
-	}
-
-	var isSample int
-	if err := api.Service.Store().DB.QueryRow(`SELECT is_sample FROM link WHERE id = 1`).Scan(&isSample); err != nil {
-		t.Fatal(err)
-	}
-	if isSample != 0 {
-		t.Fatalf("is_sample still 1 after edit")
-	}
-
-	rec = do(t, h, "POST", "/api/sample/clear", reqOpts{cookie: cookie, fetchSite: "same-origin"})
-	if rec.Code != http.StatusOK {
-		t.Fatalf("clear: %d", rec.Code)
-	}
-
-	var n int
-	if err := api.Service.Store().DB.QueryRow(`SELECT COUNT(*) FROM link`).Scan(&n); err != nil {
-		t.Fatal(err)
-	}
-	if n != 1 {
-		t.Fatalf("after clear: %d links, want 1 (the edited one)", n)
-	}
-
-	// The surviving link must have been moved out of the deleted sample
-	// category rather than cascaded away.
-	var movedName string
-	if err := api.Service.Store().DB.QueryRow(
-		`SELECT c.name FROM link l JOIN category c ON c.id = l.category_id WHERE l.id = 1`,
-	).Scan(&movedName); err != nil {
-		t.Fatal(err)
-	}
-	if movedName != "未分类" {
-		t.Fatalf("edited link moved to %q, want 未分类", movedName)
-	}
-}
-
 func TestDeleteCategoryRequiresDisposition(t *testing.T) {
 	api, h := newTestAPI(t)
 	cookie := setupAdmin(t, api, true)

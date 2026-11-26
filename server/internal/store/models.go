@@ -19,7 +19,6 @@ type Category struct {
 	ParentID    *int64
 	Sort        int64
 	IsPrivate   bool
-	IsSample    bool
 	Description *string
 	CreatedAt   int64
 	UpdatedAt   int64
@@ -38,7 +37,6 @@ type Link struct {
 	IconURL       *string
 	Sort          int64
 	IsPrivate     bool
-	IsSample      bool
 	LastStatus    string
 	LastCheckedAt *int64
 	TitleNorm     string

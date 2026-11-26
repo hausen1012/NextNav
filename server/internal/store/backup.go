@@ -168,8 +168,8 @@ func (s *Store) ImportData(data *BackupData, mode string) (*ImportResult, error)
 		}
 
 		insertRes, err := tx.Exec(
-			`INSERT INTO category(name, icon_path, parent_id, sort, is_private, is_sample, description, created_at, updated_at)
-			 VALUES(?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+			`INSERT INTO category(name, icon_path, parent_id, sort, is_private, description, created_at, updated_at)
+			 VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
 			c.Name, nullableString(c.IconPath), parentID, c.Sort, priv, nullableString(c.Description), now, now,
 		)
 		if err != nil {
@@ -229,8 +229,8 @@ func (s *Store) ImportData(data *BackupData, mode string) (*ImportResult, error)
 
 		if _, err := tx.Exec(
 			`INSERT INTO link(category_id, title, url, backup_url, description, sort,
-			                  is_private, is_sample, last_status, title_norm, host, search_text, created_at, updated_at)
-			 VALUES(?, ?, ?, ?, ?, ?, ?, 0, 'unknown', ?, ?, ?, ?, ?)`,
+			                  is_private, last_status, title_norm, host, search_text, created_at, updated_at)
+			 VALUES(?, ?, ?, ?, ?, ?, ?, 'unknown', ?, ?, ?, ?, ?)`,
 			mappedCatID, l.Title, l.URL, nullableString(l.BackupURL), nullableString(l.Description),
 			l.Sort, priv, titleNorm, host, searchText, now, now,
 		); err != nil {

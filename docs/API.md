@@ -99,7 +99,6 @@
 | DELETE | `/api/tokens` | 管理员 | 撤回 API Token |
 | GET | `/api/backup/export` | 管理员 | 导出全站数据 JSON 备份 |
 | POST | `/api/backup/import` | 管理员 | 导入全站数据（支持 merge / overwrite） |
-| POST | `/api/sample/clear` | 管理员 | 清空预置示例数据 |
 | POST | `/api/icons/purge` | 管理员 | 清理未被引用的图标文件 |
 | GET | `/api/favicon/*` | 公开（防盗链） | 抓取或返回站点 Favicon 图标缓存 |
 | GET | `/icons/*` | 公开 | 图标静态资源托管 |
@@ -260,7 +259,7 @@
 
 ### PATCH /api/links/{id}
 
-只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `iconPath` / `iconUrl` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引；用户编辑后该条 `is_sample` 置 0。`iconPath` 传 `null` 表示清除上传图标；`iconUrl` 传 `null` 表示清除图标链接。响应 `200` + 完整更新后的链接对象。
+只传需要改的字段（`categoryId` / `title` / `url` / `backupUrl` / `description` / `iconPath` / `iconUrl` / `sort` / `isPrivate`）。任何字段变化都会重算搜索索引。`iconPath` 传 `null` 表示清除上传图标；`iconUrl` 传 `null` 表示清除图标链接。响应 `200` + 完整更新后的链接对象。
 
 ### DELETE /api/links/{id}
 
@@ -408,7 +407,7 @@
 }
 ```
 
-可改 `name` / `parentId` / `icon` (`iconPath`) / `sort` / `isPrivate` / `description`。改 `name` 触发其下链接的搜索索引重算（后台任务）。用户编辑后 `is_sample` 置 0，并连同子分类。
+可改 `name` / `parentId` / `icon` (`iconPath`) / `sort` / `isPrivate` / `description`。改 `name` 触发其下链接的搜索索引重算（后台任务）。
 
 响应 `200`：
 ```json
@@ -539,15 +538,7 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 
 ---
 
-## 9. 示例数据与备份
-
-### POST /api/sample/clear
-
-```json
-{ "deletedCategories": 11, "deletedLinks": 49 }
-```
-
-只删 `is_sample = 1` 的记录。若用户编辑过其中某条，该条已置 0，不会被删。
+## 9. 数据备份
 
 ### GET /api/backup/export
 

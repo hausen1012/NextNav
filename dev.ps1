@@ -8,7 +8,7 @@
     .\dev.ps1 test     run all tests
 
     Env overrides: PORT (backend), DATA_DIR, WEB_PORT (vite), WEB_HOST (vite), GOTOOLCHAIN,
-    ADMIN_USERNAME, ADMIN_PASSWORD, SEED_SAMPLE.
+    ADMIN_USERNAME, ADMIN_PASSWORD, IMPORT_SAMPLE_DATA.
 
 .EXAMPLE
     .\dev.ps1
@@ -34,7 +34,7 @@ if (-not $env:DATA_DIR)       { $env:DATA_DIR = Join-Path $Root 'data' }
 if (-not $env:GOTOOLCHAIN)    { $env:GOTOOLCHAIN = 'local' }
 if (-not $env:ADMIN_USERNAME) { $env:ADMIN_USERNAME = 'admin' }
 if (-not $env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD = 'admin123' }
-if (-not $env:SEED_SAMPLE)    { $env:SEED_SAMPLE = '1' }
+if (-not $env:IMPORT_SAMPLE_DATA) { $env:IMPORT_SAMPLE_DATA = 'true' }
 
 # PowerShell 5.1 writes native stderr as errors; keep going anyway.
 $PSNativeCommandUseErrorActionPreference = $false

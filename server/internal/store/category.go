@@ -11,7 +11,7 @@ import (
 // ListCategories returns all categories ordered by hierarchy and sort index.
 func (s *Store) ListCategories() ([]Category, error) {
 	rows, err := s.DB.Query(
-		`SELECT id, name, icon_path, parent_id, sort, is_private, is_sample, description, created_at, updated_at
+		`SELECT id, name, icon_path, parent_id, sort, is_private, description, created_at, updated_at
 		 FROM category ORDER BY parent_id IS NOT NULL, sort ASC, created_at ASC, id ASC`)
 	if err != nil {
 		return nil, err
@@ -25,19 +25,17 @@ func (s *Store) ListCategories() ([]Category, error) {
 			iconPath sql.NullString
 			parentID sql.NullInt64
 			priv     int64
-			sample   int64
 			desc     sql.NullString
 		)
 		if err := rows.Scan(
 			&c.ID, &c.Name, &iconPath, &parentID, &c.Sort,
-			&priv, &sample, &desc, &c.CreatedAt, &c.UpdatedAt,
+			&priv, &desc, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
 		c.IconPath = nilIfEmptyStr(iconPath)
 		c.ParentID = nilIfZeroInt64(parentID)
 		c.IsPrivate = priv == 1
-		c.IsSample = sample == 1
 		c.Description = nilIfEmptyStr(desc)
 		list = append(list, c)
 	}
@@ -51,13 +49,12 @@ func (s *Store) GetCategory(id int64) (*Category, error) {
 		iconPath sql.NullString
 		parentID sql.NullInt64
 		priv     int64
-		sample   int64
 		desc     sql.NullString
 	)
 	err := s.DB.QueryRow(
-		`SELECT id, name, icon_path, parent_id, sort, is_private, is_sample, description, created_at, updated_at
+		`SELECT id, name, icon_path, parent_id, sort, is_private, description, created_at, updated_at
 		 FROM category WHERE id = ?`, id,
-	).Scan(&c.ID, &c.Name, &iconPath, &parentID, &c.Sort, &priv, &sample, &desc, &c.CreatedAt, &c.UpdatedAt)
+	).Scan(&c.ID, &c.Name, &iconPath, &parentID, &c.Sort, &priv, &desc, &c.CreatedAt, &c.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -67,7 +64,6 @@ func (s *Store) GetCategory(id int64) (*Category, error) {
 	c.IconPath = nilIfEmptyStr(iconPath)
 	c.ParentID = nilIfZeroInt64(parentID)
 	c.IsPrivate = priv == 1
-	c.IsSample = sample == 1
 	c.Description = nilIfEmptyStr(desc)
 	return &c, nil
 }
@@ -93,15 +89,11 @@ func (s *Store) CreateCategory(c *Category) (int64, error) {
 	if c.IsPrivate {
 		priv = 1
 	}
-	sample := 0
-	if c.IsSample {
-		sample = 1
-	}
 
 	res, err := s.DB.Exec(
-		`INSERT INTO category(name, icon_path, parent_id, sort, is_private, is_sample, description, created_at, updated_at)
-		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		c.Name, nullableString(c.IconPath), nullableInt64(c.ParentID), c.Sort, priv, sample, nullableString(c.Description), now, now,
+		`INSERT INTO category(name, icon_path, parent_id, sort, is_private, description, created_at, updated_at)
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
+		c.Name, nullableString(c.IconPath), nullableInt64(c.ParentID), c.Sort, priv, nullableString(c.Description), now, now,
 	)
 	if err != nil {
 		return 0, err
@@ -124,7 +116,7 @@ func (s *Store) UpdateCategory(c *Category, renameLinks bool) error {
 	now := time.Now().UnixMilli()
 
 	if _, err := tx.Exec(
-		`UPDATE category SET name = ?, icon_path = ?, parent_id = ?, sort = ?, is_private = ?, description = ?, is_sample = 0, updated_at = ?
+		`UPDATE category SET name = ?, icon_path = ?, parent_id = ?, sort = ?, is_private = ?, description = ?, updated_at = ?
 		 WHERE id = ?`,
 		c.Name, nullableString(c.IconPath), nullableInt64(c.ParentID), c.Sort, priv, nullableString(c.Description), now, c.ID,
 	); err != nil {

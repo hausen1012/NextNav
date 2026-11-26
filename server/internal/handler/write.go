@@ -399,17 +399,6 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, response)
 }
 
-// --- sample data ---
-
-func (a *API) ClearSample(w http.ResponseWriter, r *http.Request) {
-	res, err := a.Service.ClearSample()
-	if err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", "清理失败")
-		return
-	}
-	httpx.JSON(w, http.StatusOK, res)
-}
-
 // --- batch operations ---
 
 func (a *API) BatchDeleteLinks(w http.ResponseWriter, r *http.Request) {

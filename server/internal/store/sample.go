@@ -1,9 +1,7 @@
 package store
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -107,8 +105,7 @@ type sampleDoc struct {
 	} `json:"groups"`
 }
 
-// SeedSample writes the demo content in a single transaction. Every row gets
-// is_sample = 1 so it can be removed later without touching user data.
+// SeedSample writes the demo content in a single transaction.
 func (s *Store) SeedSample() error {
 	var doc sampleDoc
 	if err := json.Unmarshal([]byte(sampleJSON), &doc); err != nil {
@@ -125,8 +122,8 @@ func (s *Store) SeedSample() error {
 
 	for gi, g := range doc.Groups {
 		res, err := tx.Exec(
-			`INSERT INTO category(name, parent_id, sort, is_private, is_sample, created_at, updated_at)
-			 VALUES(?, NULL, ?, 0, 1, ?, ?)`,
+			`INSERT INTO category(name, parent_id, sort, is_private, created_at, updated_at)
+			 VALUES(?, NULL, ?, 0, ?, ?)`,
 			g.Name, int64(gi+1)*10, now, now,
 		)
 		if err != nil {
@@ -136,8 +133,8 @@ func (s *Store) SeedSample() error {
 
 		for ci, c := range g.Categories {
 			cres, err := tx.Exec(
-				`INSERT INTO category(name, parent_id, sort, is_private, is_sample, created_at, updated_at)
-				 VALUES(?, ?, ?, 0, 1, ?, ?)`,
+				`INSERT INTO category(name, parent_id, sort, is_private, created_at, updated_at)
+				 VALUES(?, ?, ?, 0, ?, ?)`,
 				c.Name, groupID, int64(ci+1)*10, now, now,
 			)
 			if err != nil {
@@ -154,9 +151,9 @@ func (s *Store) SeedSample() error {
 				search := sampleJoinLower(title, host, desc, c.Name)
 				if _, err := tx.Exec(
 					`INSERT INTO link(category_id, title, url, description, sort,
-					                  is_private, is_sample, last_status,
+					                  is_private, last_status,
 					                  title_norm, host, search_text, created_at, updated_at)
-					 VALUES(?,?,?,?,?,0,1,'unknown',?,?,?,?,?)`,
+					 VALUES(?,?,?,?,?,0,'unknown',?,?,?,?,?)`,
 					catID, title, linkURL, desc, int64(li+1)*10,
 					sampleNormalize(title), host, search, now, now,
 				); err != nil {
@@ -166,99 +163,6 @@ func (s *Store) SeedSample() error {
 		}
 	}
 	return tx.Commit()
-}
-
-// ClearSample removes only rows still marked as sample content.
-//
-// Links the user edited (is_sample = 0) inside sample categories would be
-// destroyed by the category cascade. They are moved to a fallback category
-// first so "clear sample data" never deletes user content.
-func (s *Store) ClearSample() (map[string]int, error) {
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	var links, cats int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM link WHERE is_sample = 1`).Scan(&links); err != nil {
-		return nil, err
-	}
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM category WHERE is_sample = 1`).Scan(&cats); err != nil {
-		return nil, err
-	}
-
-	// Count user-owned links sitting in sample categories.
-	var keep int
-	if err := tx.QueryRow(
-		`SELECT COUNT(*) FROM link
-		 WHERE is_sample = 0
-		   AND category_id IN (SELECT id FROM category WHERE is_sample = 1)`,
-	).Scan(&keep); err != nil {
-		return nil, err
-	}
-
-	if keep > 0 {
-		fallbackID, err := ensureFallbackCategory(tx)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := tx.Exec(
-			`UPDATE link SET category_id = ?
-			 WHERE is_sample = 0
-			   AND category_id IN (SELECT id FROM category WHERE is_sample = 1)`,
-			fallbackID,
-		); err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := tx.Exec(`DELETE FROM link WHERE is_sample = 1`); err != nil {
-		return nil, err
-	}
-	if _, err := tx.Exec(`DELETE FROM category WHERE is_sample = 1`); err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return map[string]int{
-		"deletedCategories": cats,
-		"deletedLinks":      links,
-		"movedLinks":        keep,
-	}, nil
-}
-
-// ensureFallbackCategory returns the id of the "未分类" root category,
-// creating it if necessary. It is never marked as sample content.
-func ensureFallbackCategory(tx *sql.Tx) (int64, error) {
-	var id int64
-	err := tx.QueryRow(
-		`SELECT id FROM category WHERE name = '未分类' AND parent_id IS NULL ORDER BY id LIMIT 1`,
-	).Scan(&id)
-	if err == nil {
-		return id, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, err
-	}
-
-	var maxSort int64
-	if err := tx.QueryRow(
-		`SELECT COALESCE(MAX(sort), 0) FROM category WHERE parent_id IS NULL`,
-	).Scan(&maxSort); err != nil {
-		return 0, err
-	}
-	now := time.Now().UnixMilli()
-	res, err := tx.Exec(
-		`INSERT INTO category(name, parent_id, sort, is_private, is_sample, created_at, updated_at)
-		 VALUES('未分类', NULL, ?, 0, 0, ?, ?)`,
-		maxSort+10, now, now,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return res.LastInsertId()
 }
 
 func sampleNormalize(s string) string {

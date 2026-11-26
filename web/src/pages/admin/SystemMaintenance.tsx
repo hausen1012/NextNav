@@ -4,7 +4,7 @@ import { useInvalidateHome } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Notice } from '@/components/Field'
-import { AlertTriangle, RefreshCw, Download, Upload, Database, HardDrive } from 'lucide-react'
+import { RefreshCw, Download, Upload, Database, HardDrive } from 'lucide-react'
 
 export function AdminSystemMaintenancePage() {
   const invalidate = useInvalidateHome()
@@ -12,28 +12,11 @@ export function AdminSystemMaintenancePage() {
 
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [clearing, setClearing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importMode, setImportMode] = useState<'merge' | 'overwrite'>('merge')
   const [importFile, setImportFile] = useState<File | null>(null)
   const [purgingIcons, setPurgingIcons] = useState(false)
-
-  async function clearSample() {
-    if (!window.confirm('将删除所有标记为示例的分类与链接，确定吗？')) return
-    setNotice(null)
-    setError(null)
-    setClearing(true)
-    try {
-      const r = await api.clearSample()
-      invalidate()
-      setNotice(`已清理 ${r.deletedCategories} 个示例分类、${r.deletedLinks} 条示例链接`)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : '操作失败')
-    } finally {
-      setClearing(false)
-    }
-  }
 
   async function handleExport() {
     setExporting(true)
@@ -104,7 +87,7 @@ export function AdminSystemMaintenancePage() {
       <div>
         <h1 className='text-2xl font-bold tracking-tight'>运维维护</h1>
         <p className='text-sm text-muted-foreground'>
-          数据备份与恢复、缓存刷新及演示数据清理。
+          数据备份恢复与缓存刷新。
         </p>
       </div>
 
@@ -184,27 +167,6 @@ export function AdminSystemMaintenancePage() {
               <span>{importing ? '正在导入...' : '开始导入'}</span>
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Clear Sample Data */}
-      <Card className='shadow-xs border-destructive/30'>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2 text-destructive'>
-            <AlertTriangle className='size-5' />
-            <span>示例数据清理</span>
-          </CardTitle>
-          <CardDescription>
-            清理系统初始化时预置的演示数据。
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-4'>
-          <p className='text-sm text-muted-foreground'>
-            仅删除预置的示例分类与链接，自行添加的内容不受影响。
-          </p>
-          <Button variant='destructive' onClick={clearSample} disabled={clearing}>
-            {clearing ? '正在清理...' : '清除示例数据'}
-          </Button>
         </CardContent>
       </Card>
 

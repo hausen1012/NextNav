@@ -11,12 +11,12 @@ services:
     environment:
       # How often link checks run. Accepts Go durations: 6h, 1d, 24h, or "off".
       CHECK_INTERVAL: ${CHECK_INTERVAL:-1d}
-      # Set to 1 when served over HTTPS so the session cookie gets the Secure flag.
-      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      # Set to true when served over HTTPS so the session cookie gets the Secure flag.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       # Initial admin credentials and demo data import on first startup
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
-      SEED_SAMPLE: ${SEED_SAMPLE:-0}
+      IMPORT_SAMPLE_DATA: ${IMPORT_SAMPLE_DATA:-false}
       # Favicon 防盗链 Referer 白名单；内网 IP 始终允许
       FAVICON_ALLOWED_DOMAINS: ${FAVICON_ALLOWED_DOMAINS:-}
     logging:

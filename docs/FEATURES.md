@@ -56,10 +56,9 @@
 ```
 setting        key, value                       # 站点名、logo 等
 admin          id, username, password_hash, created_at  # 单行，首次安装向导写入
-category       id, name, icon, parent_id, sort, is_private, description, is_sample, created_at
+category       id, name, icon, parent_id, sort, is_private, description, created_at
 link           id, category_id, title, url, backup_url, description,
-               icon_path, sort, is_private, is_sample,
-               created_at, updated_at
+               icon_path, sort, is_private, created_at, updated_at
 link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 ```
 
@@ -98,14 +97,14 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 
 | ID | 功能 | 优先级 | 说明与验收 |
 |---|---|---|---|
-| C1 | 环境变量初始化 | P0 | 启动时通过环境变量（`ADMIN_USERNAME`、`ADMIN_PASSWORD`、`SEED_SAMPLE`）自动初始化管理员账号与可选示例数据。密码服务端 hash（argon2/bcrypt），会话 cookie 30 天（HttpOnly/Secure/SameSite） |
+| C1 | 环境变量初始化 | P0 | 启动时通过环境变量（`ADMIN_USERNAME`、`ADMIN_PASSWORD`、`IMPORT_SAMPLE_DATA`）自动初始化管理员账号与可选示例数据。密码服务端 hash（argon2/bcrypt），会话 cookie 30 天（HttpOnly/Secure/SameSite） |
 | C2 | 登录 | P0 | 用户名 + 密码登录；连续失败限流（10 次/10 分钟） |
 | C3 | 管理控制台 | P0 | 提供独立管理控制台（`/admin`）：包含概览看板、两级分类管理、链接管理（列表、筛选与编辑）、站点配置、账户安全与运维维护 |
 | C4 | 快速添加 | P0 | 粘贴 URL 录入链接，支持标题、描述、分类归属与自定义排序。键盘 Esc 取消 |
 | C5 | 分类管理 | P0 | 新建 / 改名 / 换图标 / 排序 / 私有标记 / 描述 / 删除（删除时支持级联删除或迁移链接） |
 | C6 | 批量操作 | P1 | 多选后批量删除 / 移动分类 / 检测 |
-| C7 | 系统设置与维护 | P0 | 管理控制台提供站点设置（站点名、描述、背景、默认打开方式）、账户安全（修改用户名/密码）、运维维护（清空示例数据） |
-| C8 | 预置演示数据 | P1 | 安装完成后写入预置一级分类、二级分类与大厂站点链接（见第 8 节），让首次进来就有内容可看。设置页提供「清空示例数据」，只删标记为 `is_sample` 的记录，不影响用户自己添加的内容 |
+| C7 | 系统设置与维护 | P0 | 管理控制台提供站点设置（站点名、描述、背景、默认打开方式）、账户安全（修改用户名/密码）、运维维护（数据备份与恢复、缓存刷新） |
+| C8 | 预置演示数据 | P1 | 安装完成后写入预置一级分类、二级分类与大厂站点链接（见第 8 节），让首次进来就有内容可看 |
 
 ### D. 链接增强
 
@@ -178,7 +177,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 5. 私有语义：分类私有 → 整块不显示；链接私有 → 只隐藏该条。
 6. 健康检测频率由环境变量 `CHECK_INTERVAL` 决定，默认每天一次。
 7. 站点名为 NextNav，本期不做图形 logo，页头直接排文字字标；管理员可在设置页修改站点名/描述/背景，并可选上传自己的 logo。
-8. 安装向导支持勾选是否导入预置演示数据（默认不勾选，见第 8 节）；设置页提供「清空示例数据」按钮。
+8. 安装向导支持勾选是否导入预置演示数据（默认不勾选，见第 8 节）。
 9. 技术栈：Go（`go:embed` 内嵌前端）+ SQLite，前端 React + shadcn/ui。纯 SPA，不做 SSR。
 10. API 统一为 `/api`：中间件按 Bearer token 或 cookie 判定身份（游客只读公开内容），写操作仅对 cookie 身份做 CSRF 同源校验。
 
@@ -186,7 +185,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 
 ## 8. 附录：预置演示数据
 
-安装向导完成后自动写入。所有记录标 `is_sample = 1`，用于「清空示例数据」。
+安装向导完成后自动写入。
 
 层级：**一级分类（parent_id = NULL）→ 二级分类 → 链接**。一级分类本身可挂链接或作为首页的一个区块。
 
@@ -310,7 +309,6 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 
 ### 8.3 实现约定
 
-- 预置数据写成一份种子文件（`seed/sample.json` 或等效 TS 模块），与用户数据共用同一套 schema，只是额外打 `is_sample` 标记。
+- 预置数据与用户数据共用同一套 schema，由 `IMPORT_SAMPLE_DATA` 环境变量控制是否写入。
 - 图标同样走 A6 的抓取流程；离线环境下全部回退到首字母占位，不阻塞安装。
-- 「清空示例数据」先询问再删，且只删 `is_sample = 1`；若用户编辑过某条示例，编辑动作应清除该标记（视为用户自己的内容，不再被清理）。
 - 示例链接的字号与排版要和真实数据一致，**不做特殊视觉标记**——它的目的是让首页「看起来正常」，而不是展示 demo 横幅。

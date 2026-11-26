@@ -14,7 +14,7 @@ type Config struct {
 	SecureCookie          bool
 	AdminUsername         string
 	AdminPassword         string
-	SeedSample            bool
+	ImportSampleData      bool
 	FaviconAllowedDomains string
 }
 
@@ -27,7 +27,7 @@ func Load() Config {
 		SecureCookie:          envBool("COOKIE_SECURE", false),
 		AdminUsername:         env("ADMIN_USERNAME", "admin"),
 		AdminPassword:         env("ADMIN_PASSWORD", "admin123"),
-		SeedSample:            envBool("SEED_SAMPLE", false),
+		ImportSampleData:      envBool("IMPORT_SAMPLE_DATA", false),
 		FaviconAllowedDomains: env("FAVICON_ALLOWED_DOMAINS", ""),
 	}
 }

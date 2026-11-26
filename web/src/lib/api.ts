@@ -234,11 +234,6 @@ export const api = {
     return request<void>(`/api/categories/${id}?${params}`, { method: 'DELETE' })
   },
 
-  clearSample: () =>
-    request<{ deletedCategories: number; deletedLinks: number }>('/api/sample/clear', {
-      method: 'POST',
-    }),
-
   updateAccount: (body: {
     currentPassword: string
     username?: string

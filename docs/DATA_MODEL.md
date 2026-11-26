@@ -97,7 +97,6 @@ CREATE TABLE category (
   sort        INTEGER NOT NULL DEFAULT 10,           -- 排序值，数字越小越靠前，相同按添加时间先后排序
   is_private  INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
   description TEXT,                                  -- 分类描述，可空
-  is_sample   INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL,
   CHECK (parent_id IS NULL OR parent_id <> id)
@@ -121,7 +120,6 @@ CREATE TABLE link (
   icon_url        TEXT,
   sort            INTEGER NOT NULL DEFAULT 10,
   is_private      INTEGER NOT NULL DEFAULT 0 CHECK (is_private IN (0,1)),
-  is_sample       INTEGER NOT NULL DEFAULT 0 CHECK (is_sample IN (0,1)),
   -- 最近一次检测结果，denormalize 到主表，列表页无需 join
   last_status     TEXT    NOT NULL DEFAULT 'unknown'
                           CHECK (last_status IN ('ok','warn','dead','unknown')),
@@ -249,18 +247,17 @@ data/
 
 - 分类用 `ref`/`parentRef` 表达层级，**不导出数据库 id**，避免导入到另一实例时冲突。
 - `settings` 中剔除所有 `secret.*`，剔除 `site.logo_path` 指向的自定义 logo（文件不在 JSON 里，导入后为空，回退文字字标）。
-- 不导出 `link_check`、`api_token`、`admin`、`is_sample`（导入的数据一律视为用户数据，`is_sample = 0`）。
+- 不导出 `link_check`、`api_token`、`admin`。
 - 导入 `merge` 的匹配规则：分类按「`name` + 父级」匹配，链接按「`url` + 所属分类」匹配；匹配到则更新，未匹配则新建。`replace` 先清空分类与链接再全量写入。
 
 ---
 
 ## 6. 初始数据
 
-安装向导成功后写入第 8 节所列示例数据，全部 `is_sample = 1`。
+安装向导成功后写入第 8 节所列示例数据。
 
 - 分类与链接同一事务写入，任一失败整体回滚。
 - 示例数据写入后立即返回，**图标抓取异步进行**，不阻塞安装完成。
-- 用户对任一示例条目执行编辑操作时，服务端把该条 `is_sample` 置 0（分类改动时连同其子分类一并置 0）。
 
 ---
 

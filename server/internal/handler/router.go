@@ -62,11 +62,10 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("DELETE /api/settings/logo", a.RequireAdmin(a.RemoveLogo))
 	mux.HandleFunc("POST /api/settings/account", a.RequireAdmin(a.UpdateAccount))
 
-	// --- icons & sample data ---
+	// --- icons ---
 	mux.HandleFunc("GET /icons/", a.ServeIcon)
 	mux.HandleFunc("GET /api/favicon/", a.faviconAccess(a.ServeFavicon))
 	mux.HandleFunc("POST /api/icons/purge", a.RequireAdmin(a.PurgeOrphanIcons))
-	mux.HandleFunc("POST /api/sample/clear", a.RequireAdmin(a.ClearSample))
 
 	// Everything else is the SPA (client-side routing + static assets).
 	mux.Handle("/", a.spaHandler)

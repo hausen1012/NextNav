@@ -10,7 +10,7 @@ import (
 // ListLinks returns all links. If admin is false, private links are omitted.
 func (s *Store) ListLinks(admin bool) ([]Link, error) {
 	q := `SELECT id, category_id, title, url, backup_url, description, icon_path, icon_source, icon_url,
-	             sort, is_private, is_sample, last_status,
+	             sort, is_private, last_status,
 	             last_checked_at, title_norm, host, search_text,
 	             created_at, updated_at
 	      FROM link`
@@ -40,7 +40,7 @@ func (s *Store) ListLinks(admin bool) ([]Link, error) {
 func (s *Store) GetLink(id int64) (*Link, error) {
 	row := s.DB.QueryRow(
 		`SELECT id, category_id, title, url, backup_url, description, icon_path, icon_source, icon_url,
-		        sort, is_private, is_sample, last_status,
+		        sort, is_private, last_status,
 		        last_checked_at, title_norm, host, search_text,
 		        created_at, updated_at
 		 FROM link WHERE id = ?`, id,
@@ -69,10 +69,6 @@ func (s *Store) CreateLink(l *Link) (int64, error) {
 	if l.IsPrivate {
 		priv = 1
 	}
-	sample := 0
-	if l.IsSample {
-		sample = 1
-	}
 	status := l.LastStatus
 	if status == "" {
 		status = "unknown"
@@ -80,12 +76,12 @@ func (s *Store) CreateLink(l *Link) (int64, error) {
 
 	res, err := s.DB.Exec(
 		`INSERT INTO link(category_id, title, url, backup_url, description, icon_path, icon_source, icon_url,
-		                  sort, is_private, is_sample, last_status,
+		                  sort, is_private, last_status,
 		                  last_checked_at, title_norm, host, search_text,
 		                  created_at, updated_at)
-		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
+		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
 		l.CategoryID, l.Title, l.URL, nullableString(l.BackupURL), nullableString(l.Description),
-		nullableString(l.IconPath), nullableString(l.IconSource), nullableString(l.IconURL), l.Sort, priv, sample,
+		nullableString(l.IconPath), nullableString(l.IconSource), nullableString(l.IconURL), l.Sort, priv,
 		status, l.TitleNorm, l.Host, l.SearchText, now, now,
 	)
 	if err != nil {
@@ -107,7 +103,7 @@ func (s *Store) UpdateLink(l *Link) error {
 
 	_, err := s.DB.Exec(
 		`UPDATE link SET category_id = ?, title = ?, url = ?, backup_url = ?, description = ?,
-		                 icon_path = ?, icon_source = ?, icon_url = ?, sort = ?, is_private = ?, is_sample = 0,
+		                 icon_path = ?, icon_source = ?, icon_url = ?, sort = ?, is_private = ?,
 		                 title_norm = ?, host = ?, search_text = ?,
 		                 updated_at = ?
 		 WHERE id = ?`,
@@ -269,11 +265,11 @@ func scanLinkRow(rows *sql.Rows) (Link, error) {
 	var (
 		backup, desc, iconPath, iconSrc, iconURL sql.NullString
 		lastCheck                                sql.NullInt64
-		priv, sample                             int64
+		priv                                     int64
 	)
 	err := rows.Scan(
 		&l.ID, &l.CategoryID, &l.Title, &l.URL, &backup, &desc, &iconPath, &iconSrc, &iconURL,
-		&l.Sort, &priv, &sample, &l.LastStatus,
+		&l.Sort, &priv, &l.LastStatus,
 		&lastCheck, &l.TitleNorm, &l.Host, &l.SearchText,
 		&l.CreatedAt, &l.UpdatedAt,
 	)
@@ -287,7 +283,6 @@ func scanLinkRow(rows *sql.Rows) (Link, error) {
 	l.IconURL = nilIfEmptyStr(iconURL)
 	l.LastCheckedAt = nilIfZeroInt64(lastCheck)
 	l.IsPrivate = priv == 1
-	l.IsSample = sample == 1
 	return l, nil
 }
 
@@ -296,11 +291,11 @@ func scanLinkSingle(row *sql.Row) (Link, error) {
 	var (
 		backup, desc, iconPath, iconSrc, iconURL sql.NullString
 		lastCheck                                sql.NullInt64
-		priv, sample                             int64
+		priv                                     int64
 	)
 	err := row.Scan(
 		&l.ID, &l.CategoryID, &l.Title, &l.URL, &backup, &desc, &iconPath, &iconSrc, &iconURL,
-		&l.Sort, &priv, &sample, &l.LastStatus,
+		&l.Sort, &priv, &l.LastStatus,
 		&lastCheck, &l.TitleNorm, &l.Host, &l.SearchText,
 		&l.CreatedAt, &l.UpdatedAt,
 	)
@@ -314,6 +309,5 @@ func scanLinkSingle(row *sql.Row) (Link, error) {
 	l.IconURL = nilIfEmptyStr(iconURL)
 	l.LastCheckedAt = nilIfZeroInt64(lastCheck)
 	l.IsPrivate = priv == 1
-	l.IsSample = sample == 1
 	return l, nil
 }
