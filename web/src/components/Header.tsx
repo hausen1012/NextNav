@@ -20,7 +20,7 @@ export function Header({ siteName }: { siteName: string }) {
     if (refreshing) return
     setRefreshing(true)
     try {
-      await invalidatePwaData()
+      await invalidatePwaData(false)
       await Promise.all([
         qc.refetchQueries({ queryKey: ['home'] }),
         qc.refetchQueries({ queryKey: ['me'] }),

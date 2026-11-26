@@ -97,7 +97,7 @@ export function useInvalidateHome() {
   return () => {
     void qc.cancelQueries({ queryKey: ['home'] })
     void qc.cancelQueries({ queryKey: ['me'] })
-    void invalidatePwaData().then(() => {
+    void invalidatePwaData(false).then(() => {
       void qc.invalidateQueries({ queryKey: ['home'] })
       void qc.invalidateQueries({ queryKey: ['me'] })
     })

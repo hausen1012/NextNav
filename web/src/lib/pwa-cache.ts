@@ -232,7 +232,7 @@ export async function observeSession(session: { auth: string; authMethod?: strin
   if (currentState.scope === 'private') await resetPwaCache('public')
 }
 
-export async function invalidatePwaData() {
+export async function invalidatePwaData(notify = true) {
   const reset = await createResetState(currentState.scope, currentState.expiresAt, 'data')
   await applyState(reset.state, false)
   if (typeof caches !== 'undefined') {
@@ -245,5 +245,5 @@ export async function invalidatePwaData() {
   clearImageCache()
   broadcastState(reset.state)
   postToWorker({ type: CACHE_MESSAGES.reset, ...reset })
-  dispatchStateChange()
+  if (notify) dispatchStateChange()
 }
