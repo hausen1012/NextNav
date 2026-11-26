@@ -294,7 +294,7 @@
 
 ### POST /api/meta
 
-添加链接前的预览。服务端抓取，**3 秒超时**。
+添加链接前的预览。服务端抓取，**3 秒总超时**；仅允许 HTTP/HTTPS 公网地址，DNS 解析结果、实际连接与每次重定向均会校验。
 
 ```json
 // 请求
@@ -510,7 +510,7 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 - `/api/favicon/www.baidu.com.png`
 - `/api/favicon/github.com`
 
-抓取成功后自动落盘缓存于 `data/icons` 并在 `favicon_cache` 表记录，后续请求直接命中缓存。返回 `200` 及对应 Content-Type，若目标站点不可达或无可用图标则返回 `404`。
+抓取成功后自动落盘缓存于 `data/icons` 并在 `favicon_cache` 表记录，后续请求直接命中缓存。服务端仅访问 HTTP/HTTPS 公网地址，DNS 解析结果、实际连接与每次重定向均会校验。返回 `200` 及对应 Content-Type，若目标站点不可达、被安全策略拒绝或无可用图标则返回 `404`。
 
 ---
 

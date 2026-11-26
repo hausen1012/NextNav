@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"nextnav/internal/httpx"
@@ -877,8 +878,10 @@ func TestHealthCheckAPI(t *testing.T) {
 	}
 }
 
-func TestFetchMetaAPI(t *testing.T) {
+func TestFetchMetaAPIRejectsPrivateAddress(t *testing.T) {
+	var hits atomic.Int32
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><title>Meta API Title</title><meta name="description" content="Meta API Desc"/></head><body></body></html>`))
 	}))
@@ -908,11 +911,11 @@ func TestFetchMetaAPI(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &metaResp); err != nil {
 		t.Fatalf("unmarshal meta resp: %v", err)
 	}
-	if metaResp["title"] != "Meta API Title" {
-		t.Errorf("expected title 'Meta API Title', got %v", metaResp["title"])
+	if metaResp["title"] != "" || metaResp["description"] != "" {
+		t.Errorf("expected empty metadata for blocked target, got %v", metaResp)
 	}
-	if metaResp["description"] != "Meta API Desc" {
-		t.Errorf("expected description 'Meta API Desc', got %v", metaResp["description"])
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected no requests to private target, got %d", got)
 	}
 }
 

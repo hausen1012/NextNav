@@ -1,4 +1,4 @@
-package service_test
+package service
 
 import (
 	"net/http"
@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
-	"nextnav/internal/service"
 	"nextnav/internal/store"
 )
 
@@ -54,7 +54,8 @@ func TestFetchMetaAndIcon(t *testing.T) {
 	}
 	defer st.Close()
 
-	svc := service.New(st)
+	svc := New(st)
+	svc.fetchClient = ts.Client()
 
 	res, err := svc.FetchMeta(ts.URL)
 	if err != nil {
@@ -81,6 +82,33 @@ func TestFetchMetaAndIcon(t *testing.T) {
 	}
 }
 
+func TestFetchMetaBlocksPrivateAddress(t *testing.T) {
+	var hits atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		_, _ = w.Write([]byte("<title>private</title>"))
+	}))
+	defer ts.Close()
+
+	dir := t.TempDir()
+	st, err := store.Open(dir)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer st.Close()
+
+	res, err := New(st).FetchMeta(ts.URL)
+	if err != nil {
+		t.Fatalf("fetch meta failed: %v", err)
+	}
+	if res.Title != "" || res.IconPath != nil {
+		t.Fatalf("expected empty metadata for blocked target, got %+v", res)
+	}
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected no requests to private target, got %d", got)
+	}
+}
+
 func TestSaveAndRemoveLogo(t *testing.T) {
 	dir := t.TempDir()
 	st, err := store.Open(dir)
@@ -89,7 +117,7 @@ func TestSaveAndRemoveLogo(t *testing.T) {
 	}
 	defer st.Close()
 
-	svc := service.New(st)
+	svc := New(st)
 
 	// Save valid logo
 	logoURL, err := svc.SaveLogo(samplePNG, "logo.png")

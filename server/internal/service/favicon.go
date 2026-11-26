@@ -104,16 +104,10 @@ func (s *Service) GetOrFetchFavicon(ctx context.Context, domain string) (string,
 }
 
 func (s *Service) fetchFaviconForDomain(ctx context.Context, dom string) (string, error) {
-	client := &http.Client{
-		Timeout: 4 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 {
-				return errors.New("too many redirects")
-			}
-			return nil
-		},
-	}
+	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
 
+	client := s.fetchClient
 	schemes := []string{"https://", "http://"}
 	for _, scheme := range schemes {
 		targetURL := scheme + dom
@@ -130,7 +124,7 @@ func (s *Service) fetchFaviconForDomain(ctx context.Context, dom string) (string
 			resp.Body.Close()
 
 			if iconURL != "" {
-				if path, err := s.fetchAndSaveFavicon(ctx, client, iconURL); err == nil && path != "" {
+				if path, err := s.fetchAndSaveFavicon(ctx, iconURL); err == nil && path != "" {
 					return path, nil
 				}
 			}
@@ -138,7 +132,7 @@ func (s *Service) fetchFaviconForDomain(ctx context.Context, dom string) (string
 
 		// Fallback directly to /favicon.ico
 		directFavicon := scheme + dom + "/favicon.ico"
-		if path, err := s.fetchAndSaveFavicon(ctx, client, directFavicon); err == nil && path != "" {
+		if path, err := s.fetchAndSaveFavicon(ctx, directFavicon); err == nil && path != "" {
 			return path, nil
 		}
 	}

@@ -48,16 +48,7 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	client := &http.Client{
-		Timeout: 3 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 {
-				return errors.New("too many redirects")
-			}
-			return nil
-		},
-	}
-
+	client := s.fetchClient
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return res, nil
@@ -115,7 +106,7 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 	}
 
 	if iconAbsURL != "" {
-		iconPath, err := s.fetchAndSaveFavicon(ctx, client, iconAbsURL)
+		iconPath, err := s.fetchAndSaveFavicon(ctx, iconAbsURL)
 		if err == nil && iconPath != "" {
 			res.IconPath = &iconPath
 			u := "/" + iconPath
@@ -126,7 +117,8 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 	return res, nil
 }
 
-func (s *Service) fetchAndSaveFavicon(ctx context.Context, client *http.Client, favURL string) (string, error) {
+func (s *Service) fetchAndSaveFavicon(ctx context.Context, favURL string) (string, error) {
+	client := s.fetchClient
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, favURL, nil)
 	if err != nil {
 		return "", err

@@ -2,6 +2,9 @@ package service
 
 import (
 	"errors"
+	"net/http"
+	"time"
+
 	"nextnav/internal/store"
 )
 
@@ -18,12 +21,16 @@ var (
 )
 
 type Service struct {
-	store     *store.Store
-	cookieKey []byte
+	store       *store.Store
+	cookieKey   []byte
+	fetchClient *http.Client
 }
 
 func New(st *store.Store, cookieSecret ...string) *Service {
-	svc := &Service{store: st}
+	svc := &Service{
+		store:       st,
+		fetchClient: newSafeHTTPClient(4 * time.Second),
+	}
 	sec := ""
 	if len(cookieSecret) > 0 {
 		sec = cookieSecret[0]
