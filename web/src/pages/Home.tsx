@@ -1223,10 +1223,10 @@ export function HomePage() {
             <button
               type='button'
               onClick={() => openCreateLinkModal()}
-              className='flex size-9 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-xs hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition'
+              className='flex size-9 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white transition'
               title='添加链接'
             >
-              <Plus className='size-5' />
+              <Plus className='size-4' />
             </button>
           )}
 
