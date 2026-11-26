@@ -11,38 +11,7 @@ import (
 	"time"
 )
 
-var (
-	errBlockedOutboundAddress = errors.New("outbound address is not public")
-	dnsProxyFakeIPPrefix      = netip.MustParsePrefix("198.18.0.0/15")
-)
-
-var blockedOutboundPrefixes = []netip.Prefix{
-	netip.MustParsePrefix("0.0.0.0/8"),
-	netip.MustParsePrefix("10.0.0.0/8"),
-	netip.MustParsePrefix("100.64.0.0/10"),
-	netip.MustParsePrefix("127.0.0.0/8"),
-	netip.MustParsePrefix("169.254.0.0/16"),
-	netip.MustParsePrefix("172.16.0.0/12"),
-	netip.MustParsePrefix("192.0.0.0/24"),
-	netip.MustParsePrefix("192.0.2.0/24"),
-	netip.MustParsePrefix("192.88.99.0/24"),
-	netip.MustParsePrefix("192.168.0.0/16"),
-	netip.MustParsePrefix("198.18.0.0/15"),
-	netip.MustParsePrefix("198.51.100.0/24"),
-	netip.MustParsePrefix("203.0.113.0/24"),
-	netip.MustParsePrefix("224.0.0.0/4"),
-	netip.MustParsePrefix("240.0.0.0/4"),
-	netip.MustParsePrefix("::/96"),
-	netip.MustParsePrefix("::1/128"),
-	netip.MustParsePrefix("64:ff9b::/96"),
-	netip.MustParsePrefix("64:ff9b:1::/48"),
-	netip.MustParsePrefix("100::/64"),
-	netip.MustParsePrefix("2001:db8::/32"),
-	netip.MustParsePrefix("2002::/16"),
-	netip.MustParsePrefix("fc00::/7"),
-	netip.MustParsePrefix("fe80::/10"),
-	netip.MustParsePrefix("ff00::/8"),
-}
+var errBlockedOutboundAddress = errors.New("outbound address is not public")
 
 type outboundResolver interface {
 	LookupIPAddr(context.Context, string) ([]net.IPAddr, error)
@@ -62,24 +31,36 @@ func (t safeOutboundTransport) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 func newSafeHTTPClient(timeout time.Duration) *http.Client {
-	dialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
-	return newSafeHTTPClientWith(timeout, net.DefaultResolver, dialer.DialContext)
+	policy := defaultFetchPolicy()
+	policy.ClientTimeout = timeout
+	return newSafeHTTPClientForPolicy(policy)
+}
+
+func newSafeHTTPClientForPolicy(policy FetchPolicy) *http.Client {
+	dialer := &net.Dialer{Timeout: policy.DialTimeout, KeepAlive: policy.KeepAlive}
+	return newSafeHTTPClientWithPolicy(policy, net.DefaultResolver, dialer.DialContext)
 }
 
 func newSafeHTTPClientWith(timeout time.Duration, resolver outboundResolver, dial outboundDialFunc) *http.Client {
+	policy := defaultFetchPolicy()
+	policy.ClientTimeout = timeout
+	return newSafeHTTPClientWithPolicy(policy, resolver, dial)
+}
+
+func newSafeHTTPClientWithPolicy(policy FetchPolicy, resolver outboundResolver, dial outboundDialFunc) *http.Client {
 	transport := &http.Transport{
 		Proxy:                 nil,
-		DialContext:           safeOutboundDialContext(resolver, dial),
-		TLSHandshakeTimeout:   5 * time.Second,
-		ResponseHeaderTimeout: 5 * time.Second,
+		DialContext:           safeOutboundDialContextWithPolicy(resolver, dial, policy),
+		TLSHandshakeTimeout:   policy.TLSHandshakeTimeout,
+		ResponseHeaderTimeout: policy.ResponseHeaderTimeout,
 	}
 	return &http.Client{
-		Timeout: timeout,
+		Timeout: policy.ClientTimeout,
 		Transport: safeOutboundTransport{
 			base: transport,
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 {
+			if len(via) >= policy.MaxRedirects {
 				return errors.New("too many redirects")
 			}
 			return validateOutboundURL(req.URL)
@@ -98,7 +79,7 @@ func validateOutboundURL(u *url.URL) error {
 	return nil
 }
 
-func safeOutboundDialContext(resolver outboundResolver, dial outboundDialFunc) func(context.Context, string, string) (net.Conn, error) {
+func safeOutboundDialContextWithPolicy(resolver outboundResolver, dial outboundDialFunc, policy FetchPolicy) func(context.Context, string, string) (net.Conn, error) {
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {
@@ -112,7 +93,7 @@ func safeOutboundDialContext(resolver outboundResolver, dial outboundDialFunc) f
 
 		var lastErr error
 		for _, ipAddr := range ips {
-			if !isAllowedOutboundIP(host, ipAddr.IP) {
+			if !isAllowedOutboundIP(host, ipAddr.IP, policy) {
 				continue
 			}
 			conn, dialErr := dial(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
@@ -128,24 +109,28 @@ func safeOutboundDialContext(resolver outboundResolver, dial outboundDialFunc) f
 	}
 }
 
-func isAllowedOutboundIP(host string, ip net.IP) bool {
-	if isPublicOutboundIP(ip) {
+func isAllowedOutboundIP(host string, ip net.IP, policy FetchPolicy) bool {
+	if isPublicOutboundIPWithPolicy(ip, policy) {
 		return true
 	}
-	// 本地代理软件常用 198.18.0.0/15 作为域名 fake-ip，拨号由代理接管；
+	// 本地代理软件常用 fake-ip 段作为域名解析结果，拨号由代理接管；
 	// 仅允许域名解析结果，不允许 URL 直接写死该地址。
-	return net.ParseIP(host) == nil && isFakeOutboundIP(ip)
+	return net.ParseIP(host) == nil && isFakeOutboundIPWithPolicy(ip, policy)
 }
 
-func isFakeOutboundIP(ip net.IP) bool {
+func isFakeOutboundIPWithPolicy(ip net.IP, policy FetchPolicy) bool {
 	addr, ok := netip.AddrFromSlice(ip)
 	if !ok {
 		return false
 	}
-	return dnsProxyFakeIPPrefix.Contains(addr.Unmap())
+	return policy.FakeIPPrefix.Contains(addr.Unmap())
 }
 
 func isPublicOutboundIP(ip net.IP) bool {
+	return isPublicOutboundIPWithPolicy(ip, defaultFetchPolicy())
+}
+
+func isPublicOutboundIPWithPolicy(ip net.IP, policy FetchPolicy) bool {
 	if ip == nil {
 		return false
 	}
@@ -158,7 +143,7 @@ func isPublicOutboundIP(ip net.IP) bool {
 		addr.IsLinkLocalUnicast() || addr.IsMulticast() {
 		return false
 	}
-	for _, prefix := range blockedOutboundPrefixes {
+	for _, prefix := range policy.BlockedOutboundPrefixes {
 		if prefix.Contains(addr) {
 			return false
 		}

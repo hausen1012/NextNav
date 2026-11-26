@@ -16,7 +16,7 @@ import (
 
 var (
 	ErrInvalidImageType = errors.New("invalid image type")
-	ErrImageTooLarge    = errors.New("image exceeds 1MB limit")
+	ErrImageTooLarge    = errors.New("image exceeds size limit")
 )
 
 const (
@@ -78,7 +78,7 @@ func DetectImageType(data []byte, filename string) (string, error) {
 
 // SaveIconContent stores image data under icons/ab/cd/abcdef0123456789.<ext>
 func (s *Service) SaveIconContent(data []byte, filename string) (string, error) {
-	if len(data) > 1024*1024 {
+	if int64(len(data)) > s.fetchPolicy.IconMaxBytes {
 		return "", ErrImageTooLarge
 	}
 	ext, err := DetectImageType(data, filename)

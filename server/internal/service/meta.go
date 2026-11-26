@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type MetaResult struct {
@@ -45,16 +44,14 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 		Host:        hostOf(rawURL),
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), s.fetchPolicy.MetaTimeout)
 	defer cancel()
 
 	client := s.fetchClient
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	req, err := newFetchRequest(ctx, http.MethodGet, rawURL, s.fetchPolicy.HTMLUserAgent, s.fetchPolicy.HTMLAccept)
 	if err != nil {
 		return res, nil
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -67,8 +64,7 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 		res.Host = hostOf(res.ResolvedURL)
 	}
 
-	// Limit read to 512 KB
-	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, s.fetchPolicy.HTMLMaxBytes))
 	bodyStr := string(bodyBytes)
 
 	// 1. Extract Title
@@ -84,14 +80,7 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 	}
 
 	// 3. Extract and fetch Favicon
-	iconHref := ""
-	if match := iconRegex1.FindStringSubmatch(bodyStr); len(match) > 1 {
-		iconHref = strings.TrimSpace(match[1])
-	} else if match := iconRegex2.FindStringSubmatch(bodyStr); len(match) > 1 {
-		iconHref = strings.TrimSpace(match[1])
-	} else if match := appleIcon.FindStringSubmatch(bodyStr); len(match) > 1 {
-		iconHref = strings.TrimSpace(match[1])
-	}
+	iconHref := extractIconHref(bodyStr)
 
 	var iconAbsURL string
 	if iconHref != "" {
@@ -119,12 +108,10 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 
 func (s *Service) fetchAndSaveFavicon(ctx context.Context, favURL string) (string, error) {
 	client := s.fetchClient
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, favURL, nil)
+	req, err := newFetchRequest(ctx, http.MethodGet, favURL, s.fetchPolicy.IconUserAgent, s.fetchPolicy.IconAccept)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-	req.Header.Set("Accept", "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -136,7 +123,7 @@ func (s *Service) fetchAndSaveFavicon(ctx context.Context, favURL string) (strin
 		return "", errors.New("icon status not ok")
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, s.fetchPolicy.IconMaxBytes))
 	if err != nil || len(data) == 0 {
 		return "", err
 	}

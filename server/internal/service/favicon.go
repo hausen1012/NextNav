@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 var (
@@ -104,23 +103,21 @@ func (s *Service) GetOrFetchFavicon(ctx context.Context, domain string) (string,
 }
 
 func (s *Service) fetchFaviconForDomain(ctx context.Context, dom string) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, s.fetchPolicy.FaviconTimeout)
 	defer cancel()
 
 	client := s.fetchClient
 	schemes := []string{"https://", "http://"}
 	for _, scheme := range schemes {
 		targetURL := scheme + dom
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+		req, err := newFetchRequest(ctx, http.MethodGet, targetURL, s.fetchPolicy.HTMLUserAgent, s.fetchPolicy.HTMLAccept)
 		if err != nil {
 			continue
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 
 		resp, err := client.Do(req)
 		if err == nil {
-			iconURL := extractIconURLFromResp(resp)
+			iconURL := extractIconURLFromResp(resp, s.fetchPolicy.HTMLMaxBytes)
 			resp.Body.Close()
 
 			if iconURL != "" {
@@ -140,22 +137,13 @@ func (s *Service) fetchFaviconForDomain(ctx context.Context, dom string) (string
 	return "", ErrFaviconNotFound
 }
 
-func extractIconURLFromResp(resp *http.Response) string {
+func extractIconURLFromResp(resp *http.Response, maxBytes int64) string {
 	if resp == nil || resp.Body == nil {
 		return ""
 	}
-	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
-	bodyStr := string(bodyBytes)
+	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, maxBytes))
 
-	iconHref := ""
-	if match := iconRegex1.FindStringSubmatch(bodyStr); len(match) > 1 {
-		iconHref = strings.TrimSpace(match[1])
-	} else if match := iconRegex2.FindStringSubmatch(bodyStr); len(match) > 1 {
-		iconHref = strings.TrimSpace(match[1])
-	} else if match := appleIcon.FindStringSubmatch(bodyStr); len(match) > 1 {
-		iconHref = strings.TrimSpace(match[1])
-	}
-
+	iconHref := extractIconHref(string(bodyBytes))
 	if iconHref != "" {
 		if u, err := url.Parse(iconHref); err == nil {
 			if resp.Request != nil && resp.Request.URL != nil {

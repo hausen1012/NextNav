@@ -42,12 +42,11 @@ type checkerState struct {
 
 var globalChecker checkerState
 
-// HTTP client configured with 10s timeout and up to 5 redirects.
-func newCheckClient() *http.Client {
+func newCheckClient(policy FetchPolicy) *http.Client {
 	return &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: policy.HealthTimeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 {
+			if len(via) >= policy.HealthMaxRedirects {
 				return errors.New("stopped after 5 redirects")
 			}
 			return nil
@@ -61,7 +60,8 @@ func newCheckClient() *http.Client {
 
 // PerformCheck conducts a single URL health check and classifies the outcome.
 func PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, latencyMs *int64, errorType *string) {
-	client := newCheckClient()
+	policy := defaultFetchPolicy()
+	client := newCheckClient(policy)
 
 	start := time.Now()
 	req, err := http.NewRequest(http.MethodHead, targetURL, nil)
@@ -70,7 +70,7 @@ func PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, la
 		errStr := "other"
 		return "dead", false, nil, &lat, &errStr
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; NextNav/1.0; +https://github.com)")
+	req.Header.Set("User-Agent", policy.HealthUserAgent)
 
 	resp, err := client.Do(req)
 
@@ -86,7 +86,7 @@ func PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, la
 	if shouldFallbackGet {
 		getReq, getErr := http.NewRequest(http.MethodGet, targetURL, nil)
 		if getErr == nil {
-			getReq.Header.Set("User-Agent", "Mozilla/5.0 (compatible; NextNav/1.0; +https://github.com)")
+			getReq.Header.Set("User-Agent", policy.HealthUserAgent)
 			getResp, gErr := client.Do(getReq)
 			if gErr == nil {
 				resp = getResp
@@ -104,7 +104,7 @@ func PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, la
 	}
 	defer resp.Body.Close()
 	// Drain a small amount to prevent lingering socket resources
-	_, _ = io.CopyN(io.Discard, resp.Body, 512)
+	_, _ = io.CopyN(io.Discard, resp.Body, policy.HealthDrainBytes)
 
 	code := resp.StatusCode
 	httpStatus = &code
@@ -181,7 +181,7 @@ func (s *Service) CheckLink(linkID int64) (*CheckResult, error) {
 	}, nil
 }
 
-// StartCheckAll runs health check for all links in the background with concurrency limit 5.
+// StartCheckAll runs health check for all links in the background with the configured concurrency.
 func (s *Service) StartCheckAll() (int, error) {
 	globalChecker.mu.Lock()
 	if globalChecker.running {
@@ -209,7 +209,7 @@ func (s *Service) StartCheckAll() (int, error) {
 			globalChecker.mu.Unlock()
 		}()
 
-		concurrency := 5
+		concurrency := s.fetchPolicy.HealthConcurrency
 		sem := make(chan struct{}, concurrency)
 		var wg sync.WaitGroup
 

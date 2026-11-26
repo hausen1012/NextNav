@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"sync"
-	"time"
 
 	"nextnav/internal/store"
 )
@@ -25,13 +24,16 @@ type Service struct {
 	store       *store.Store
 	cookieKeyMu sync.RWMutex
 	cookieKey   []byte
+	fetchPolicy FetchPolicy
 	fetchClient *http.Client
 }
 
 func New(st *store.Store) *Service {
+	policy := defaultFetchPolicy()
 	svc := &Service{
 		store:       st,
-		fetchClient: newSafeHTTPClient(4 * time.Second),
+		fetchPolicy: policy,
+		fetchClient: newSafeHTTPClientForPolicy(policy),
 	}
 	svc.initCookieKey()
 	return svc
