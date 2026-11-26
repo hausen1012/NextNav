@@ -39,8 +39,8 @@ import {
 
 // 搜索引擎配置
 const SEARCH_ENGINES = [
-  { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
   { id: 'google', name: '谷歌', url: 'https://www.google.com/search?q=' },
+  { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
   { id: 'bing', name: '必应', url: 'https://www.bing.com/search?q=' },
   { id: 'github', name: 'GitHub', url: 'https://github.com/search?q=' },
   { id: 'local', name: '站内', url: '' },
@@ -911,7 +911,7 @@ export function HomePage() {
         </div>
 
         {/* 右侧主内容容器 (水平居中、左右对称留白) */}
-        <div className='w-full max-w-6xl mx-auto px-6 sm:px-10 lg:px-12 py-8 pb-44 space-y-10'>
+        <div className='w-full max-w-6xl mx-auto px-6 sm:px-10 lg:px-12 py-8 space-y-10'>
           {/* 顶部搜索区 (经典胶囊搜索框 - 黑白灰风格) */}
           <div className='max-w-3xl mx-auto w-full'>
             <form onSubmit={handleSearchSubmit} className='relative w-full'>
