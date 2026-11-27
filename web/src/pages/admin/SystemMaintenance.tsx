@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react'
 import { api, ApiError } from '@/lib/api'
-import { useInvalidateHome } from '@/lib/query'
+import { useInvalidateNavigationData } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Notice } from '@/components/Field'
 import { RefreshCw, Download, Upload, Database, HardDrive } from 'lucide-react'
 
 export function AdminSystemMaintenancePage() {
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [notice, setNotice] = useState<string | null>(null)

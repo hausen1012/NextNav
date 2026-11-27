@@ -16,7 +16,7 @@ import {
   Activity,
   RefreshCw,
 } from 'lucide-react'
-import { useAdminCategories, useAdminLinks, useInvalidateHome, useCheckStatus } from '@/lib/query'
+import { useAdminCategories, useAdminLinks, useInvalidateNavigationData, useCheckStatus } from '@/lib/query'
 import { api, type LinkDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,7 +51,7 @@ export interface LinkWithMeta extends LinkDTO {
 export function AdminLinksPage() {
   const { data: linkData, isLoading } = useAdminLinks()
   const { data: categoryData } = useAdminCategories()
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
 
   // Filter & Search states
   const [keyword, setKeyword] = useState('')

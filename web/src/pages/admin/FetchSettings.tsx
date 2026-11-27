@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError, type FetchSettingsDTO } from '@/lib/api'
-import { useFetchSettings, useInvalidateHome } from '@/lib/query'
+import { useFetchSettings, useInvalidateNavigationData } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ function mbToBytes(val: string): number {
 
 export function AdminFetchSettingsPage() {
   const { data } = useFetchSettings()
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
 
   const [settings, setSettings] = useState<FetchSettingsDTO | null>(null)
   const [htmlMaxMB, setHtmlMaxMB] = useState('')

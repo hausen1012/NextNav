@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import QRCode from 'qrcode'
-import { useHome, useMe, useInvalidateHome, clearSessionCache } from '@/lib/query'
+import { useHome, useMe, useInvalidateNavigationData, clearSessionCache } from '@/lib/query'
 import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -49,7 +49,7 @@ const COMMON_ICONS = ['folder', 'globe', 'compass', 'code', 'terminal', 'cpu', '
 export function HomePage() {
   const { data, isLoading, error } = useHome()
   const { data: me } = useMe()
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
   const isAdmin = me?.auth === 'admin'
 
   // 搜索相关状态

@@ -9,7 +9,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
 } from 'lucide-react'
-import { useAdminCategories, useInvalidateHome } from '@/lib/query'
+import { useAdminCategories, useInvalidateNavigationData } from '@/lib/query'
 import { api, type GroupDTO, type CategoryDTO } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,7 +52,7 @@ export interface FlatCategory {
 
 export function AdminCategoriesPage() {
   const { data, isLoading } = useAdminCategories()
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
 
   // Filter & Search
   const [keyword, setKeyword] = useState('')

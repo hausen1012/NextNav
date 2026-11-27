@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, type ReactNode } from 'react'
+import { useCallback, useEffect, type ReactNode } from 'react'
 import { ApiError, api } from './api'
 import {
   getCacheSnapshot,
@@ -133,19 +133,23 @@ export function useCheckStatus(polling = false) {
 
 export async function clearSessionCache() {
   await resetPwaCache('public', 0, false)
+  await invalidateSession()
 }
 
 const ADMIN_QUERY_KEYS = [['settings'], ['fetch-settings'], ['security-settings'], ['admin-categories'], ['admin-links']] as const
 
-export function useInvalidateHome() {
+export function useInvalidateNavigationData() {
   const qc = useQueryClient()
-  return () => {
+  return useCallback(() => {
     ADMIN_QUERY_KEYS.forEach((queryKey) => void qc.invalidateQueries({ queryKey }))
     void qc.cancelQueries({ queryKey: ['home'] })
-    void qc.cancelQueries({ queryKey: ['me'] })
-    void invalidatePwaData(false).then(() => {
+    return invalidatePwaData(false).then(() => {
       void qc.invalidateQueries({ queryKey: ['home'] })
-      void qc.invalidateQueries({ queryKey: ['me'] })
     })
-  }
+  }, [qc])
+}
+
+export async function invalidateSession() {
+  void queryClient.cancelQueries({ queryKey: ['me'] })
+  await queryClient.invalidateQueries({ queryKey: ['me'] })
 }

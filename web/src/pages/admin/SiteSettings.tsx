@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '@/lib/api'
-import { useInvalidateHome, useSettings } from '@/lib/query'
+import { useInvalidateNavigationData, useSettings } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { Logo } from '@/components/Logo'
 
 export function AdminSiteSettingsPage() {
   const { data: settings } = useSettings()
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')

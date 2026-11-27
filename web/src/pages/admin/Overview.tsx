@@ -9,7 +9,7 @@ import {
   ExternalLink,
   ArrowUpRight,
 } from 'lucide-react'
-import { useAdminCategories, useAdminLinks, useInvalidateHome } from '@/lib/query'
+import { useAdminCategories, useAdminLinks, useInvalidateNavigationData } from '@/lib/query'
 import type { LinkDTO } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ export function AdminOverviewPage() {
   const { data: categoryData, isLoading: categoriesLoading } = useAdminCategories()
   const { data: linkData, isLoading: linksLoading } = useAdminLinks()
   const isLoading = categoriesLoading || linksLoading
-  const invalidate = useInvalidateHome()
+  const invalidate = useInvalidateNavigationData()
 
   // Quick dialog states
   const [addLinkOpen, setAddLinkOpen] = useState(false)
