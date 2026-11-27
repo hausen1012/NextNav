@@ -40,10 +40,10 @@ const navGroups: NavGroupType[] = [
 ]
 
 export function AppSidebar({ siteName, me }: AppSidebarProps) {
-  const { collapsible, variant } = useLayout()
+  const { variant } = useLayout()
 
   return (
-    <Sidebar collapsible={collapsible} variant={variant}>
+    <Sidebar collapsible='icon' variant={variant}>
       {/* Brand Header */}
       <SidebarHeader>
         <SidebarMenu>

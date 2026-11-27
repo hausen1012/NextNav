@@ -32,6 +32,10 @@ type LayoutProviderProps = {
 export function LayoutProvider({ children }: LayoutProviderProps) {
   const [collapsible, _setCollapsible] = useState<Collapsible>(() => {
     const saved = getCookie(LAYOUT_COLLAPSIBLE_COOKIE_NAME)
+    if (saved && saved !== 'icon') {
+      setCookie(LAYOUT_COLLAPSIBLE_COOKIE_NAME, 'icon', LAYOUT_COOKIE_MAX_AGE)
+      return 'icon'
+    }
     return (saved as Collapsible) || DEFAULT_COLLAPSIBLE
   })
 
