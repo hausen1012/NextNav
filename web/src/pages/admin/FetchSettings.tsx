@@ -4,6 +4,7 @@ import { useFetchSettings, useInvalidateHome } from '@/lib/query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Field, Notice } from '@/components/Field'
 import { Check } from 'lucide-react'
 
@@ -76,8 +77,9 @@ export function AdminFetchSettingsPage() {
           </CardHeader>
           <CardContent className='space-y-4'>
             <Field label='网页请求 UA' htmlFor='fetch-html-ua'>
-              <Input
+              <Textarea
                 id='fetch-html-ua'
+                rows={2}
                 value={settings?.htmlUserAgent ?? ''}
                 onChange={(e) => setSettings((prev) => prev && { ...prev, htmlUserAgent: e.target.value })}
               />
@@ -126,8 +128,9 @@ export function AdminFetchSettingsPage() {
           </CardHeader>
           <CardContent className='space-y-4'>
             <Field label='图标请求 UA' htmlFor='fetch-icon-ua'>
-              <Input
+              <Textarea
                 id='fetch-icon-ua'
+                rows={2}
                 value={settings?.iconUserAgent ?? ''}
                 onChange={(e) => setSettings((prev) => prev && { ...prev, iconUserAgent: e.target.value })}
               />
@@ -176,8 +179,9 @@ export function AdminFetchSettingsPage() {
           </CardHeader>
           <CardContent className='space-y-4'>
             <Field label='健康检测 UA' htmlFor='fetch-health-ua'>
-              <Input
+              <Textarea
                 id='fetch-health-ua'
+                rows={2}
                 value={settings?.healthUserAgent ?? ''}
                 onChange={(e) => setSettings((prev) => prev && { ...prev, healthUserAgent: e.target.value })}
               />
