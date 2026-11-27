@@ -25,6 +25,7 @@ export function LoginPage() {
   const [theme, setThemeState] = useState<Theme>(getTheme())
 
   const siteName = homeData?.site.name || 'NextNav'
+  const brandText = homeData?.site.brandText?.trim() ?? '极简个人导航系统'
   const redirectTo = searchParams.get('redirect') || '/'
 
   const handleToggleTheme = () => {
@@ -82,7 +83,7 @@ export function LoginPage() {
             <LoginForm onSuccess={() => navigate(redirectTo, { replace: true })} />
           </CardContent>
           <CardFooter className='justify-center border-t py-4 text-xs text-muted-foreground'>
-            <span>NextNav 极简个人导航系统</span>
+            <span>{brandText ? `${siteName} ${brandText}` : siteName}</span>
           </CardFooter>
         </Card>
       </div>

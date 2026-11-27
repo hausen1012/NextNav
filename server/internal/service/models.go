@@ -45,6 +45,7 @@ type GroupDTO struct {
 type PublicSiteDTO struct {
 	Name              string  `json:"name"`
 	Description       string  `json:"description"`
+	BrandText         string  `json:"brandText"`
 	Background        string  `json:"background"`
 	LogoURL           *string `json:"logoUrl"`
 	OpenInNewTab      bool    `json:"openInNewTab"`

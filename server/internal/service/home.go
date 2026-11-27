@@ -45,6 +45,7 @@ func (s *Service) resolveDisplayIconURL(iconPath, customIconURL *string, linkURL
 func (s *Service) GetPublicSite() PublicSiteDTO {
 	name := s.store.GetSetting("site.name", "NextNav")
 	desc := s.store.GetSetting("site.description", "")
+	brandText := s.store.GetSetting("site.brand_text", "极简个人导航系统")
 	bg := s.store.GetSetting("site.background", "")
 	logo := s.store.GetSetting("site.logo_path", "")
 	openNew := s.store.GetSetting("link.open_in_new_tab", "1") == "1"
@@ -59,6 +60,7 @@ func (s *Service) GetPublicSite() PublicSiteDTO {
 	return PublicSiteDTO{
 		Name:              name,
 		Description:       desc,
+		BrandText:         brandText,
 		Background:        bg,
 		LogoURL:           logoURL,
 		OpenInNewTab:      openNew,

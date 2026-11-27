@@ -14,6 +14,7 @@ export function AdminSiteSettingsPage() {
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [brandText, setBrandText] = useState('')
   const [background, setBackground] = useState('')
   const [faviconServiceUrl, setFaviconServiceUrl] = useState('')
   const [openInNewTab, setOpenInNewTab] = useState(true)
@@ -28,6 +29,7 @@ export function AdminSiteSettingsPage() {
     if (settings) {
       setName(settings.site.name)
       setDescription(settings.site.description)
+      setBrandText(settings.site.brandText)
       setBackground(settings.site.background)
       setFaviconServiceUrl(settings.site.faviconServiceUrl || '')
       setOpenInNewTab(settings.site.openInNewTab ?? true)
@@ -78,7 +80,7 @@ export function AdminSiteSettingsPage() {
     setNotice(null)
     setError(null)
     try {
-      await api.updateSettings({ name, description, background, faviconServiceUrl, openInNewTab })
+      await api.updateSettings({ name, description, brandText, background, faviconServiceUrl, openInNewTab })
       invalidate()
       setNotice('站点设置已成功保存')
     } catch (err) {
@@ -171,6 +173,20 @@ export function AdminSiteSettingsPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder='例如：我的个人常用导航站'
+              />
+            </Field>
+
+            <Field
+              label='登录页品牌文案'
+              htmlFor='site-brand-text'
+              hint='与站点标题组合显示在登录页底部，留空则只显示站点标题'
+            >
+              <Input
+                id='site-brand-text'
+                value={brandText}
+                onChange={(e) => setBrandText(e.target.value)}
+                maxLength={64}
+                placeholder='例如：极简个人导航系统'
               />
             </Field>
           </CardContent>

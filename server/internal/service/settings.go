@@ -5,6 +5,7 @@ import "strings"
 type UpdateSettingsInput struct {
 	Name              *string
 	Description       *string
+	BrandText         *string
 	Background        *string
 	FaviconServiceURL *string
 	OpenInNewTab      *bool
@@ -16,6 +17,9 @@ func (s *Service) UpdateSettings(input UpdateSettingsInput) PublicSiteDTO {
 	}
 	if input.Description != nil {
 		_ = s.store.SetSetting("site.description", strings.TrimSpace(*input.Description))
+	}
+	if input.BrandText != nil {
+		_ = s.store.SetSetting("site.brand_text", strings.TrimSpace(*input.BrandText))
 	}
 	if input.Background != nil {
 		_ = s.store.SetSetting("site.background", strings.TrimSpace(*input.Background))
