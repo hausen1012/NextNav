@@ -541,7 +541,9 @@ export function HomePage() {
   return (
     <div
       className='min-h-screen bg-[#f4f5f7] dark:bg-[#0f1114] text-zinc-800 dark:text-zinc-100 transition-colors duration-200 font-sans'
-      style={{ background: data.site.background || undefined }}
+      style={{
+        background: (theme === 'dark' ? data.site.backgroundDark : data.site.backgroundLight) || undefined,
+      }}
     >
       {/* 移动端侧边栏抽屉遮罩 */}
       {sidebarOpen && (

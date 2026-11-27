@@ -352,7 +352,8 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		Name              *string `json:"name"`
 		Description       *string `json:"description"`
 		BrandText         *string `json:"brandText"`
-		Background        *string `json:"background"`
+		BackgroundLight   *string `json:"backgroundLight"`
+		BackgroundDark    *string `json:"backgroundDark"`
 		FaviconServiceURL *string `json:"faviconServiceUrl"`
 		OpenInNewTab      *bool   `json:"openInNewTab"`
 	}
@@ -377,7 +378,8 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		Name:              req.Name,
 		Description:       req.Description,
 		BrandText:         req.BrandText,
-		Background:        req.Background,
+		BackgroundLight:   req.BackgroundLight,
+		BackgroundDark:    req.BackgroundDark,
 		FaviconServiceURL: req.FaviconServiceURL,
 		OpenInNewTab:      req.OpenInNewTab,
 	})

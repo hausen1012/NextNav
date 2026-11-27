@@ -46,7 +46,11 @@ func (s *Service) GetPublicSite() PublicSiteDTO {
 	name := s.store.GetSetting("site.name", "NextNav")
 	desc := s.store.GetSetting("site.description", "")
 	brandText := s.store.GetSetting("site.brand_text", "极简个人导航系统")
-	bg := s.store.GetSetting("site.background", "")
+	bgLight := s.store.GetSetting("site.backgroundLight", "")
+	if bgLight == "" {
+		bgLight = s.store.GetSetting("site.background", "")
+	}
+	bgDark := s.store.GetSetting("site.backgroundDark", "")
 	logo := s.store.GetSetting("site.logo_path", "")
 	openNew := s.store.GetSetting("link.open_in_new_tab", "1") == "1"
 	favService := s.store.GetSetting("site.favicon_service_url", "")
@@ -61,7 +65,8 @@ func (s *Service) GetPublicSite() PublicSiteDTO {
 		Name:              name,
 		Description:       desc,
 		BrandText:         brandText,
-		Background:        bg,
+		BackgroundLight:   bgLight,
+		BackgroundDark:    bgDark,
 		LogoURL:           logoURL,
 		OpenInNewTab:      openNew,
 		FaviconServiceURL: favService,

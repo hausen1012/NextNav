@@ -160,7 +160,8 @@
   "site": {
     "name": "NextNav",
     "description": "",
-    "background": "",
+    "backgroundLight": "",
+    "backgroundDark": "",
     "logoUrl": null,
     "openInNewTab": true
   },
@@ -453,12 +454,12 @@
 
 ### GET /api/settings
 
-游客可用，只返回公开子集（站点名、描述、背景、logoUrl、openInNewTab、faviconServiceUrl）。**不得**返回任何 `secret.*`。
+游客可用，只返回公开子集（站点名、描述、亮色/暗色背景、logoUrl、openInNewTab、faviconServiceUrl）。**不得**返回任何 `secret.*`。
 
 ### PATCH /api/settings
 
 ```json
-{ "name": "我的导航", "description": "...", "background": "#0f1115",
+{ "name": "我的导航", "description": "...", "backgroundLight": "#f4f5f7", "backgroundDark": "#0f1115",
   "openInNewTab": true, "faviconServiceUrl": "https://a.favicon.im/" }
 ```
 

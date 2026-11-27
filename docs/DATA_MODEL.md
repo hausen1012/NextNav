@@ -39,13 +39,16 @@ CREATE TABLE setting (
 |---|---|---|---|
 | `site.name` | string | `NextNav` | 站点名 |
 | `site.description` | string | `""` | 副标题 |
-| `site.background` | string | `""` | 背景，CSS 色值或图片路径 |
+| `site.backgroundLight` | string | `""` | 亮色背景，CSS 色值或图片路径 |
+| `site.backgroundDark` | string | `""` | 暗色背景，CSS 色值或图片路径 |
 | `site.logo_path` | string | `""` | 自定义 logo 路径，空表示用文字字标 |
 | `site.favicon_service_url` | string | `""` | 全局 Favicon 服务地址模板（支持 `{domain}` 占位符或前缀） |
 | `favicon.allowed_domains` | string | `""` | Favicon 可访问域名白名单，逗号或换行分隔；空表示仅本站可用 |
 | `link.open_in_new_tab` | bool | `true` | 点击卡片打开方式 |
 | `check.interval` | string | 取自环境变量 | 最近一次生效的检测间隔，仅用于展示 |
 | `secret.cookie_key` | string | 首次启动生成 | 会话 cookie 的 HMAC 密钥（32 字节随机，hex 存储） |
+
+> `site.background` 为旧版单一背景键，仅在 `site.backgroundLight` 为空时作为亮色回退读取，不再写入。
 
 > `secret.*` 在备份导出时**必须剔除**，否则导出的文件等于泄露会话密钥。
 

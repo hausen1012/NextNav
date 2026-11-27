@@ -20,3 +20,21 @@ func TestSiteBrandTextSetting(t *testing.T) {
 		t.Errorf("更新后品牌文案 = %q，期望 %q", got, brandText)
 	}
 }
+
+func TestSiteBackgroundLightAndDark(t *testing.T) {
+	svc, _ := newTestService(t)
+
+	light, dark := "#ffffff", "#0f1114"
+	svc.UpdateSettings(service.UpdateSettingsInput{
+		BackgroundLight: &light,
+		BackgroundDark:  &dark,
+	})
+
+	site := svc.GetPublicSite()
+	if site.BackgroundLight != light {
+		t.Errorf("亮色背景 = %q，期望 %q", site.BackgroundLight, light)
+	}
+	if site.BackgroundDark != dark {
+		t.Errorf("暗色背景 = %q，期望 %q", site.BackgroundDark, dark)
+	}
+}

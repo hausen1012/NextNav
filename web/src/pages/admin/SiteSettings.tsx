@@ -15,7 +15,8 @@ export function AdminSiteSettingsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [brandText, setBrandText] = useState('')
-  const [background, setBackground] = useState('')
+  const [backgroundLight, setBackgroundLight] = useState('')
+  const [backgroundDark, setBackgroundDark] = useState('')
   const [faviconServiceUrl, setFaviconServiceUrl] = useState('')
   const [openInNewTab, setOpenInNewTab] = useState(true)
 
@@ -30,7 +31,8 @@ export function AdminSiteSettingsPage() {
       setName(settings.site.name)
       setDescription(settings.site.description)
       setBrandText(settings.site.brandText)
-      setBackground(settings.site.background)
+      setBackgroundLight(settings.site.backgroundLight)
+      setBackgroundDark(settings.site.backgroundDark)
       setFaviconServiceUrl(settings.site.faviconServiceUrl || '')
       setOpenInNewTab(settings.site.openInNewTab ?? true)
     }
@@ -80,7 +82,15 @@ export function AdminSiteSettingsPage() {
     setNotice(null)
     setError(null)
     try {
-      await api.updateSettings({ name, description, brandText, background, faviconServiceUrl, openInNewTab })
+      await api.updateSettings({
+        name,
+        description,
+        brandText,
+        backgroundLight,
+        backgroundDark,
+        faviconServiceUrl,
+        openInNewTab,
+      })
       invalidate()
       setNotice('站点设置已成功保存')
     } catch (err) {
@@ -95,7 +105,7 @@ export function AdminSiteSettingsPage() {
       <div>
         <h1 className='text-xl font-semibold tracking-tight'>基础设置</h1>
         <p className='text-sm text-muted-foreground'>
-          配置站点基本信息、全局展示风格与访问偏好。
+          配置站点基本信息、图标服务、展示风格与访问偏好。
         </p>
       </div>
 
@@ -192,35 +202,13 @@ export function AdminSiteSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* 2. 显示与偏好 */}
+        {/* 2. 图标服务 */}
         <Card className='shadow-xs'>
           <CardHeader>
-            <CardTitle>显示与偏好</CardTitle>
-            <CardDescription>自定义全局背景色彩、Favicon 图标源与链接打开偏好。</CardDescription>
+            <CardTitle>图标服务</CardTitle>
+            <CardDescription>配置未单独设置图标的链接所使用的图标来源。</CardDescription>
           </CardHeader>
-          <CardContent className='space-y-4'>
-            <Field
-              label='全局背景色'
-              htmlFor='site-bg'
-              hint='支持 HEX 或 CSS 颜色值，留空使用默认背景'
-            >
-              <div className='flex items-center gap-3'>
-                <Input
-                  id='site-bg'
-                  value={background}
-                  onChange={(e) => setBackground(e.target.value)}
-                  placeholder='#ffffff 或 #0f1115'
-                />
-                {background && (
-                  <div
-                    className='size-9 shrink-0 rounded-md border shadow-2xs'
-                    style={{ backgroundColor: background }}
-                    title='颜色预览'
-                  />
-                )}
-              </div>
-            </Field>
-
+          <CardContent>
             <Field
               label='全局图标服务 (Favicon)'
               htmlFor='site-favicon-service'
@@ -261,8 +249,70 @@ export function AdminSiteSettingsPage() {
                 </div>
               </div>
             </Field>
+          </CardContent>
+        </Card>
 
-            <div className='flex items-center gap-2 pt-2'>
+        {/* 3. 显示设置 */}
+        <Card className='shadow-xs'>
+          <CardHeader>
+            <CardTitle>显示设置</CardTitle>
+            <CardDescription>自定义全局背景色彩，亮色与暗色分别设置。</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-4'>
+            <Field
+              label='亮色背景'
+              htmlFor='site-bg-light'
+              hint='支持 HEX 或 CSS 颜色值，留空使用默认背景'
+            >
+              <div className='flex items-center gap-3'>
+                <Input
+                  id='site-bg-light'
+                  value={backgroundLight}
+                  onChange={(e) => setBackgroundLight(e.target.value)}
+                  placeholder='#f4f5f7'
+                />
+                {backgroundLight && (
+                  <div
+                    className='size-9 shrink-0 rounded-md border shadow-2xs'
+                    style={{ backgroundColor: backgroundLight }}
+                    title='颜色预览'
+                  />
+                )}
+              </div>
+            </Field>
+
+            <Field
+              label='暗色背景'
+              htmlFor='site-bg-dark'
+              hint='支持 HEX 或 CSS 颜色值，留空使用默认背景'
+            >
+              <div className='flex items-center gap-3'>
+                <Input
+                  id='site-bg-dark'
+                  value={backgroundDark}
+                  onChange={(e) => setBackgroundDark(e.target.value)}
+                  placeholder='#0f1114'
+                />
+                {backgroundDark && (
+                  <div
+                    className='size-9 shrink-0 rounded-md border shadow-2xs'
+                    style={{ backgroundColor: backgroundDark }}
+                    title='颜色预览'
+                  />
+                )}
+              </div>
+            </Field>
+          </CardContent>
+        </Card>
+
+        {/* 4. 访问偏好 */}
+        <Card className='shadow-xs'>
+          <CardHeader>
+            <CardTitle>访问偏好</CardTitle>
+            <CardDescription>配置链接的默认打开方式。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='flex items-center gap-2'>
               <input
                 type='checkbox'
                 id='site-open-tab'

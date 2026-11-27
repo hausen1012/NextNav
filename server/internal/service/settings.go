@@ -6,7 +6,8 @@ type UpdateSettingsInput struct {
 	Name              *string
 	Description       *string
 	BrandText         *string
-	Background        *string
+	BackgroundLight   *string
+	BackgroundDark    *string
 	FaviconServiceURL *string
 	OpenInNewTab      *bool
 }
@@ -21,8 +22,11 @@ func (s *Service) UpdateSettings(input UpdateSettingsInput) PublicSiteDTO {
 	if input.BrandText != nil {
 		_ = s.store.SetSetting("site.brand_text", strings.TrimSpace(*input.BrandText))
 	}
-	if input.Background != nil {
-		_ = s.store.SetSetting("site.background", strings.TrimSpace(*input.Background))
+	if input.BackgroundLight != nil {
+		_ = s.store.SetSetting("site.backgroundLight", strings.TrimSpace(*input.BackgroundLight))
+	}
+	if input.BackgroundDark != nil {
+		_ = s.store.SetSetting("site.backgroundDark", strings.TrimSpace(*input.BackgroundDark))
 	}
 	if input.FaviconServiceURL != nil {
 		_ = s.store.SetSetting("site.favicon_service_url", strings.TrimSpace(*input.FaviconServiceURL))

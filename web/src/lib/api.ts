@@ -49,7 +49,8 @@ export interface SiteDTO {
   name: string
   description: string
   brandText: string
-  background: string
+  backgroundLight: string
+  backgroundDark: string
   logoUrl: string | null
   openInNewTab: boolean
   faviconServiceUrl?: string
@@ -207,7 +208,8 @@ export const api = {
     name: string
     description: string
     brandText: string
-    background: string
+    backgroundLight: string
+    backgroundDark: string
     openInNewTab: boolean
     faviconServiceUrl: string
   }>) => request<{ site: SiteDTO }>('/api/settings', { method: 'PATCH', ...json(patch) }),

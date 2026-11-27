@@ -46,7 +46,8 @@ type PublicSiteDTO struct {
 	Name              string  `json:"name"`
 	Description       string  `json:"description"`
 	BrandText         string  `json:"brandText"`
-	Background        string  `json:"background"`
+	BackgroundLight   string  `json:"backgroundLight"`
+	BackgroundDark    string  `json:"backgroundDark"`
 	LogoURL           *string `json:"logoUrl"`
 	OpenInNewTab      bool    `json:"openInNewTab"`
 	FaviconServiceURL string  `json:"faviconServiceUrl"`
