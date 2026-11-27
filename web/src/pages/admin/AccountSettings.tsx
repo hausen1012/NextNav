@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, type TokenInfo } from '@/lib/api'
-import { useMe } from '@/lib/query'
+import { useMe, useSecuritySettings } from '@/lib/query'
 import { startPrivateSession } from '@/lib/pwa-cache'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,16 +15,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ShieldCheck, Key, Copy, Check, Trash2, Plus } from 'lucide-react'
+import { ShieldCheck, Key, Clock, Copy, Check, Trash2, Plus } from 'lucide-react'
 
 export function AdminAccountSettingsPage() {
   const qc = useQueryClient()
   const { data: me } = useMe()
+  const { data: securitySettings } = useSecuritySettings()
 
   const [username, setUsername] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [sessionTtlHours, setSessionTtlHours] = useState('720')
+  const [sessionSaving, setSessionSaving] = useState(false)
 
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +56,32 @@ export function AdminAccountSettingsPage() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (securitySettings) setSessionTtlHours(String(securitySettings.sessionTtlHours))
+  }, [securitySettings])
+
+  async function handleSessionUpdate(e: React.FormEvent) {
+    e.preventDefault()
+    setNotice(null)
+    setError(null)
+    const hours = Number(sessionTtlHours)
+    if (!Number.isInteger(hours) || hours < 1 || hours > 8760) {
+      setError('会话有效期需为 1–8760 小时')
+      return
+    }
+    setSessionSaving(true)
+    try {
+      const res = await api.updateSecuritySettings({ sessionTtlHours: hours })
+      setSessionTtlHours(String(res.security.sessionTtlHours))
+      void qc.invalidateQueries({ queryKey: ['security-settings'] })
+      setNotice('会话有效期已更新，新登录后生效')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '保存会话设置失败')
+    } finally {
+      setSessionSaving(false)
+    }
+  }
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
@@ -198,6 +227,36 @@ export function AdminAccountSettingsPage() {
                 {saving ? '保存中...' : '更新安全凭据'}
               </Button>
             </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* 会话有效期 */}
+      <Card className='shadow-xs'>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-2'>
+            <Clock className='size-5 text-primary' />
+            <span>会话有效期</span>
+          </CardTitle>
+          <CardDescription>设置管理员登录会话的有效时长，到期后需重新登录。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSessionUpdate} className='space-y-4'>
+            <Field label='有效期（小时）' htmlFor='acc-session-ttl' hint='范围 1–8760 小时；修改后仅对新登录生效'>
+              <Input
+                id='acc-session-ttl'
+                type='number'
+                min={1}
+                max={8760}
+                step={1}
+                value={sessionTtlHours}
+                onChange={(e) => setSessionTtlHours(e.target.value)}
+                required
+              />
+            </Field>
+            <Button type='submit' disabled={sessionSaving}>
+              {sessionSaving ? '保存中...' : '保存会话设置'}
+            </Button>
           </form>
         </CardContent>
       </Card>

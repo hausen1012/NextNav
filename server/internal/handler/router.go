@@ -60,6 +60,8 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("PATCH /api/settings", a.RequireAdmin(a.UpdateSettings))
 	mux.HandleFunc("GET /api/settings/fetch", a.RequireAdmin(a.GetFetchSettings))
 	mux.HandleFunc("PATCH /api/settings/fetch", a.RequireAdmin(a.UpdateFetchSettings))
+	mux.HandleFunc("GET /api/settings/security", a.RequireAdmin(a.GetSecuritySettings))
+	mux.HandleFunc("PATCH /api/settings/security", a.RequireAdmin(a.UpdateSecuritySettings))
 	mux.HandleFunc("POST /api/settings/logo", a.RequireAdmin(a.UploadLogo))
 	mux.HandleFunc("DELETE /api/settings/logo", a.RequireAdmin(a.RemoveLogo))
 	mux.HandleFunc("POST /api/settings/account", a.RequireAdmin(a.UpdateAccount))

@@ -48,10 +48,15 @@ export interface GroupDTO {
 export interface SiteDTO {
   name: string
   description: string
+  brandText: string
   background: string
   logoUrl: string | null
   openInNewTab: boolean
   faviconServiceUrl?: string
+}
+
+export interface SecuritySettingsDTO {
+  sessionTtlHours: number
 }
 
 export interface FetchSettingsDTO {
@@ -188,6 +193,11 @@ export const api = {
   updateFetchSettings: (patch: Partial<FetchSettingsDTO>) =>
     request<{ fetch: FetchSettingsDTO }>('/api/settings/fetch', { method: 'PATCH', ...json(patch) }),
 
+  securitySettings: () => request<{ security: SecuritySettingsDTO }>('/api/settings/security'),
+
+  updateSecuritySettings: (patch: Partial<SecuritySettingsDTO>) =>
+    request<{ security: SecuritySettingsDTO }>('/api/settings/security', { method: 'PATCH', ...json(patch) }),
+
   adminCategories: () => request<{ groups: GroupDTO[] }>('/api/admin/categories'),
 
   adminLinks: () => request<{ items: LinkDTO[] }>('/api/admin/links'),
@@ -195,6 +205,7 @@ export const api = {
   updateSettings: (patch: Partial<{
     name: string
     description: string
+    brandText: string
     background: string
     openInNewTab: boolean
     faviconServiceUrl: string

@@ -96,6 +96,15 @@ export function useFetchSettings(enabled = true) {
   })
 }
 
+export function useSecuritySettings() {
+  return useQuery({
+    queryKey: ['security-settings'],
+    queryFn: api.securitySettings,
+    select: (data) => data.security,
+    refetchOnWindowFocus: 'always',
+  })
+}
+
 export function useAdminCategories() {
   return useQuery({
     queryKey: ['admin-categories'],
@@ -126,7 +135,7 @@ export async function clearSessionCache() {
   await resetPwaCache('public', 0, false)
 }
 
-const ADMIN_QUERY_KEYS = [['settings'], ['fetch-settings'], ['admin-categories'], ['admin-links']] as const
+const ADMIN_QUERY_KEYS = [['settings'], ['fetch-settings'], ['security-settings'], ['admin-categories'], ['admin-links']] as const
 
 export function useInvalidateHome() {
   const qc = useQueryClient()

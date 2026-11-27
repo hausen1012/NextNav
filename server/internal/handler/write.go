@@ -351,6 +351,7 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name              *string `json:"name"`
 		Description       *string `json:"description"`
+		BrandText         *string `json:"brandText"`
 		Background        *string `json:"background"`
 		FaviconServiceURL *string `json:"faviconServiceUrl"`
 		OpenInNewTab      *bool   `json:"openInNewTab"`
@@ -367,15 +368,36 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if req.BrandText != nil && len([]rune(strings.TrimSpace(*req.BrandText))) > 64 {
+		httpx.FailField(w, http.StatusBadRequest, "invalid_brand_text", "品牌文案需不超过 64 个字符", "brandText")
+		return
+	}
 
 	site := a.Service.UpdateSettings(service.UpdateSettingsInput{
 		Name:              req.Name,
 		Description:       req.Description,
+		BrandText:         req.BrandText,
 		Background:        req.Background,
 		FaviconServiceURL: req.FaviconServiceURL,
 		OpenInNewTab:      req.OpenInNewTab,
 	})
 	httpx.JSON(w, http.StatusOK, map[string]any{"site": site})
+}
+
+func (a *API) UpdateSecuritySettings(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SessionTTLHours int `json:"sessionTtlHours"`
+	}
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
+		return
+	}
+	security, err := a.Service.UpdateSecuritySettings(req.SessionTTLHours)
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid_security_setting", err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"security": security})
 }
 
 func (a *API) UpdateFetchSettings(w http.ResponseWriter, r *http.Request) {

@@ -13,7 +13,6 @@ import (
 )
 
 const sessionCookieName = "nn_session"
-const sessionTTL = 30 * 24 * time.Hour
 
 func (a *API) cookieKey() []byte {
 	return a.Service.CookieKey()
@@ -154,7 +153,8 @@ func requestIsSecure(r *http.Request) bool {
 }
 
 func (a *API) issueSession(w http.ResponseWriter, r *http.Request) int64 {
-	expiresAt := time.Now().Add(sessionTTL).Truncate(time.Second)
+	ttl := a.Service.SessionTTL()
+	expiresAt := time.Now().Add(ttl).Truncate(time.Second)
 	value := auth.SignSession(a.cookieKey(), expiresAt, "admin")
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
@@ -163,7 +163,7 @@ func (a *API) issueSession(w http.ResponseWriter, r *http.Request) int64 {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   requestIsSecure(r),
-		MaxAge:   int(sessionTTL / time.Second),
+		MaxAge:   int(ttl / time.Second),
 	})
 	return expiresAt.UnixMilli()
 }

@@ -76,6 +76,10 @@ func (a *API) GetFetchSettings(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"fetch": a.Service.GetFetchSettings()})
 }
 
+func (a *API) GetSecuritySettings(w http.ResponseWriter, r *http.Request) {
+	httpx.JSON(w, http.StatusOK, map[string]any{"security": a.Service.GetSecuritySettings()})
+}
+
 func parseID(r *http.Request) (int64, bool) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	return id, err == nil && id > 0

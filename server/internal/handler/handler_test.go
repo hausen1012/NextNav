@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
@@ -141,6 +142,44 @@ func TestSessionCookieSecureFollowsRequest(t *testing.T) {
 				t.Fatal("no session cookie in response")
 			}
 		})
+	}
+}
+
+func TestSessionCookieTTLFollowsSecuritySettings(t *testing.T) {
+	api, h := newTestAPI(t)
+	if err := api.Service.InitAdmin("admin", "nextnav123", false); err != nil {
+		t.Fatalf("init admin: %v", err)
+	}
+	if _, err := api.Service.UpdateSecuritySettings(24); err != nil {
+		t.Fatalf("update session TTL: %v", err)
+	}
+
+	before := time.Now().UnixMilli()
+	rec := do(t, h, "POST", "/api/login", reqOpts{
+		body: map[string]string{"username": "admin", "password": "nextnav123"},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login: %d %s", rec.Code, rec.Body)
+	}
+
+	var cookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == sessionCookieName {
+			cookie = c
+			break
+		}
+	}
+	if cookie == nil {
+		t.Fatal("no session cookie in response")
+	}
+	if cookie.MaxAge != 24*60*60 {
+		t.Errorf("MaxAge = %d，期望 %d", cookie.MaxAge, 24*60*60)
+	}
+	body := decode[struct {
+		ExpiresAt int64 `json:"expiresAt"`
+	}](t, rec)
+	if body.ExpiresAt < before+24*time.Hour.Milliseconds()-1000 || body.ExpiresAt > time.Now().Add(24*time.Hour).UnixMilli() {
+		t.Errorf("会话到期时间 %d 不在 24h 范围内", body.ExpiresAt)
 	}
 }
 
