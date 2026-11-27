@@ -10,12 +10,11 @@ import (
 )
 
 // NewAPI constructs the handler set. spaFS is the embedded frontend build.
-func NewAPI(svc *service.Service, spaFS fs.FS, faviconAllowedDomains string) *API {
+func NewAPI(svc *service.Service, spaFS fs.FS) *API {
 	return &API{
-		Service:       svc,
-		limiter:       newIPLimiter(),
-		spaHandler:    newSPAHandler(spaFS),
-		faviconPolicy: newFaviconAccessPolicy(faviconAllowedDomains),
+		Service:    svc,
+		limiter:    newIPLimiter(),
+		spaHandler: newSPAHandler(spaFS),
 	}
 }
 

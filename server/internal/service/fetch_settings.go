@@ -9,16 +9,17 @@ import (
 )
 
 const (
-	settingFetchHTMLUserAgent   = "fetch.html_user_agent"
-	settingFetchIconUserAgent   = "fetch.icon_user_agent"
-	settingFetchHealthUserAgent = "fetch.health_user_agent"
-	settingFetchClientTimeout   = "fetch.client_timeout_ms"
-	settingFetchMetaTimeout     = "fetch.meta_timeout_ms"
-	settingFetchFaviconTimeout  = "fetch.favicon_timeout_ms"
-	settingFetchHealthTimeout   = "fetch.health_timeout_ms"
-	settingFetchHTMLMaxBytes    = "fetch.html_max_bytes"
-	settingFetchIconMaxBytes    = "fetch.icon_max_bytes"
-	settingFetchHealthWorkers   = "fetch.health_concurrency"
+	settingFetchHTMLUserAgent    = "fetch.html_user_agent"
+	settingFetchIconUserAgent    = "fetch.icon_user_agent"
+	settingFetchHealthUserAgent  = "fetch.health_user_agent"
+	settingFetchClientTimeout    = "fetch.client_timeout_ms"
+	settingFetchMetaTimeout      = "fetch.meta_timeout_ms"
+	settingFetchFaviconTimeout   = "fetch.favicon_timeout_ms"
+	settingFetchHealthTimeout    = "fetch.health_timeout_ms"
+	settingFetchHTMLMaxBytes     = "fetch.html_max_bytes"
+	settingFetchIconMaxBytes     = "fetch.icon_max_bytes"
+	settingFetchHealthWorkers    = "fetch.health_concurrency"
+	settingFaviconAllowedDomains = "favicon.allowed_domains"
 )
 
 const (
@@ -30,32 +31,34 @@ const (
 	maxFetchUALength  = 512
 )
 
-// FetchSettingsDTO 是可运行时修改的网络请求与外联参数；安全基线保持只读。
+// FetchSettingsDTO 是可运行时修改的网络请求、图标与防盗链参数；安全基线保持只读。
 type FetchSettingsDTO struct {
-	HTMLUserAgent     string `json:"htmlUserAgent"`
-	IconUserAgent     string `json:"iconUserAgent"`
-	HealthUserAgent   string `json:"healthUserAgent"`
-	ClientTimeoutMs   int    `json:"clientTimeoutMs"`
-	MetaTimeoutMs     int    `json:"metaTimeoutMs"`
-	FaviconTimeoutMs  int    `json:"faviconTimeoutMs"`
-	HealthTimeoutMs   int    `json:"healthTimeoutMs"`
-	HTMLMaxBytes      int    `json:"htmlMaxBytes"`
-	IconMaxBytes      int    `json:"iconMaxBytes"`
-	HealthConcurrency int    `json:"healthConcurrency"`
+	HTMLUserAgent         string `json:"htmlUserAgent"`
+	IconUserAgent         string `json:"iconUserAgent"`
+	HealthUserAgent       string `json:"healthUserAgent"`
+	ClientTimeoutMs       int    `json:"clientTimeoutMs"`
+	MetaTimeoutMs         int    `json:"metaTimeoutMs"`
+	FaviconTimeoutMs      int    `json:"faviconTimeoutMs"`
+	HealthTimeoutMs       int    `json:"healthTimeoutMs"`
+	HTMLMaxBytes          int    `json:"htmlMaxBytes"`
+	IconMaxBytes          int    `json:"iconMaxBytes"`
+	HealthConcurrency     int    `json:"healthConcurrency"`
+	FaviconAllowedDomains string `json:"faviconAllowedDomains"`
 }
 
 // UpdateFetchSettingsInput 的 nil 字段表示不修改；空字符串或 0 表示恢复代码默认值。
 type UpdateFetchSettingsInput struct {
-	HTMLUserAgent     *string `json:"htmlUserAgent"`
-	IconUserAgent     *string `json:"iconUserAgent"`
-	HealthUserAgent   *string `json:"healthUserAgent"`
-	ClientTimeoutMs   *int    `json:"clientTimeoutMs"`
-	MetaTimeoutMs     *int    `json:"metaTimeoutMs"`
-	FaviconTimeoutMs  *int    `json:"faviconTimeoutMs"`
-	HealthTimeoutMs   *int    `json:"healthTimeoutMs"`
-	HTMLMaxBytes      *int    `json:"htmlMaxBytes"`
-	IconMaxBytes      *int    `json:"iconMaxBytes"`
-	HealthConcurrency *int    `json:"healthConcurrency"`
+	HTMLUserAgent         *string `json:"htmlUserAgent"`
+	IconUserAgent         *string `json:"iconUserAgent"`
+	HealthUserAgent       *string `json:"healthUserAgent"`
+	ClientTimeoutMs       *int    `json:"clientTimeoutMs"`
+	MetaTimeoutMs         *int    `json:"metaTimeoutMs"`
+	FaviconTimeoutMs      *int    `json:"faviconTimeoutMs"`
+	HealthTimeoutMs       *int    `json:"healthTimeoutMs"`
+	HTMLMaxBytes          *int    `json:"htmlMaxBytes"`
+	IconMaxBytes          *int    `json:"iconMaxBytes"`
+	HealthConcurrency     *int    `json:"healthConcurrency"`
+	FaviconAllowedDomains *string `json:"faviconAllowedDomains"`
 }
 
 func defaultFetchSettings() FetchSettingsDTO {
@@ -86,6 +89,7 @@ func (s *Service) fetchSettingsFromStore() FetchSettingsDTO {
 	d.HTMLMaxBytes = s.settingInt(settingFetchHTMLMaxBytes, d.HTMLMaxBytes)
 	d.IconMaxBytes = s.settingInt(settingFetchIconMaxBytes, d.IconMaxBytes)
 	d.HealthConcurrency = s.settingInt(settingFetchHealthWorkers, d.HealthConcurrency)
+	d.FaviconAllowedDomains = s.store.GetSetting(settingFaviconAllowedDomains, d.FaviconAllowedDomains)
 	return d
 }
 
@@ -192,6 +196,9 @@ func (s *Service) UpdateFetchSettings(input UpdateFetchSettingsInput) (FetchSett
 		return FetchSettingsDTO{}, err
 	}
 	if err := s.writeFetchInt(settingFetchHealthWorkers, input.HealthConcurrency); err != nil {
+		return FetchSettingsDTO{}, err
+	}
+	if err := s.writeFetchString(settingFaviconAllowedDomains, input.FaviconAllowedDomains); err != nil {
 		return FetchSettingsDTO{}, err
 	}
 

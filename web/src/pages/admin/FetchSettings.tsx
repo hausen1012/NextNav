@@ -124,7 +124,7 @@ export function AdminFetchSettingsPage() {
         <Card className='shadow-xs'>
           <CardHeader>
             <CardTitle>站点图标</CardTitle>
-            <CardDescription>自动抓取并本地缓存站点 Favicon 图标的请求参数。</CardDescription>
+            <CardDescription>站点图标的抓取参数与访问来源白名单。</CardDescription>
           </CardHeader>
           <CardContent className='space-y-4'>
             <Field label='图标请求 UA' htmlFor='fetch-icon-ua'>
@@ -133,6 +133,19 @@ export function AdminFetchSettingsPage() {
                 rows={2}
                 value={settings?.iconUserAgent ?? ''}
                 onChange={(e) => setSettings((prev) => prev && { ...prev, iconUserAgent: e.target.value })}
+              />
+            </Field>
+
+            <Field
+              label='Favicon 来源白名单'
+              htmlFor='fetch-favicon-domains'
+              hint='逗号或换行分隔；仅这些域名可访问，example.com 精确匹配，*.example.com 含主域及子域，* 允许任意来源；留空仅本站可用。'
+            >
+              <Textarea
+                id='fetch-favicon-domains'
+                rows={2}
+                value={settings?.faviconAllowedDomains ?? ''}
+                onChange={(e) => setSettings((prev) => prev && { ...prev, faviconAllowedDomains: e.target.value })}
               />
             </Field>
 

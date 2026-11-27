@@ -15,8 +15,6 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       IMPORT_SAMPLE_DATA: ${IMPORT_SAMPLE_DATA:-false}
-      # Favicon 防盗链 Referer 白名单；内网 IP 始终允许
-      FAVICON_ALLOWED_DOMAINS: ${FAVICON_ALLOWED_DOMAINS:-}
     logging:
       driver: json-file
       options:

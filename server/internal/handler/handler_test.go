@@ -39,10 +39,13 @@ func newTestAPIWithFaviconDomains(t *testing.T, faviconAllowedDomains string) (*
 	t.Cleanup(func() { _ = st.Close() })
 
 	svc := service.New(st)
+	if _, err := svc.UpdateFetchSettings(service.UpdateFetchSettingsInput{FaviconAllowedDomains: &faviconAllowedDomains}); err != nil {
+		t.Fatalf("set favicon allowed domains: %v", err)
+	}
 	mockFS := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<!doctype html><html><body>ok</body></html>")},
 	}
-	api := NewAPI(svc, mockFS, faviconAllowedDomains)
+	api := NewAPI(svc, mockFS)
 	return api, NewRouter(api)
 }
 

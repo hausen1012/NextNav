@@ -16,7 +16,7 @@ type faviconAccessPolicy struct {
 
 func newFaviconAccessPolicy(raw string) faviconAccessPolicy {
 	policy := faviconAccessPolicy{exact: make(map[string]struct{})}
-	for _, entry := range strings.Split(raw, ",") {
+	for _, entry := range strings.FieldsFunc(raw, func(r rune) bool { return r == ',' || r == '\n' || r == '\r' }) {
 		domain := strings.ToLower(strings.TrimSpace(entry))
 		if domain == "" {
 			continue
@@ -74,7 +74,14 @@ func (p faviconAccessPolicy) allowsRequest(r *http.Request) bool {
 	if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
 		return p.allowsURL(origin)
 	}
-	return strings.EqualFold(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site")), "same-origin")
+	if strings.EqualFold(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site")), "same-origin") {
+		return true
+	}
+	return p.allowsHost(requestHostname(r))
+}
+
+func requestHostname(r *http.Request) string {
+	return (&url.URL{Host: r.Host}).Hostname()
 }
 
 func (p faviconAccessPolicy) allowsURL(raw string) bool {
@@ -87,7 +94,12 @@ func (p faviconAccessPolicy) allowsURL(raw string) bool {
 
 func (a *API) faviconAccess(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if isPrivateOrLocalIP(clientIP(r)) || a.faviconPolicy.allowsRequest(r) {
+		raw := a.Service.GetFetchSettings().FaviconAllowedDomains
+		if strings.TrimSpace(raw) == "" {
+			raw = requestHostname(r)
+		}
+		policy := newFaviconAccessPolicy(raw)
+		if policy.allowsRequest(r) {
 			w.Header().Add("Vary", "Referer")
 			w.Header().Add("Vary", "Origin")
 			w.Header().Add("Vary", "Sec-Fetch-Site")

@@ -552,7 +552,7 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 
 ### GET /api/favicon/{target}
 
-公开端点，但默认启用防盗链。内网、回环及链路本地 IP 始终允许；公网请求需 `Referer` 或 `Origin` 命中 `FAVICON_ALLOWED_DOMAINS`。无来源头时仅放行 `Sec-Fetch-Site: same-origin`，配置为 `*` 时允许任意来源。不匹配返回 `403`。该配置用于防盗链，Referer 可伪造，不作为身份认证。
+公开端点，但默认启用防盗链。管理后台「网络请求 → 站点图标 → Favicon 来源白名单」控制可访问域名：请求带 `Referer`/`Origin` 时校验其域名，无来源头时校验请求 Host；白名单为空时仅允许请求 Host 自身。设为 `*` 时允许任意来源。不匹配返回 `403`。判断与客户端 IP 无关，反向代理无需透传真实 IP。Referer 可伪造，不作为身份认证。
 
 根据给定的域名或地址获取 favicon 图标。支持直接携带图片格式后缀（如 `.ico`、`.png`、`.jpg`、`.webp`），例如：
 - `/api/favicon/www.baidu.com.ico`

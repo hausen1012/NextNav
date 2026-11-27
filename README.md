@@ -80,7 +80,6 @@ docker run -d \
 | `ADMIN_USERNAME` | `admin` | 首次启动初始化的管理员用户名（1–32 字符） |
 | `ADMIN_PASSWORD` | `admin123` | 首次启动初始化的管理员密码（至少 8 位） |
 | `IMPORT_SAMPLE_DATA` | `false` | 首次启动是否导入示例数据，设为 `true` 开启 |
-| `FAVICON_ALLOWED_DOMAINS` | 空 | Favicon 防盗链 Referer 白名单，逗号分隔；`example.com` 仅精确匹配，`*.example.com` 匹配主域及子域，`*` 允许任意来源；内网 IP 始终允许 |
 
 ## 文档
 

@@ -70,7 +70,8 @@ export interface FetchSettingsDTO {
   htmlMaxBytes: number
   iconMaxBytes: number
   healthConcurrency: number
-}
+  faviconAllowedDomains: string
+  }
 
 export interface HomeResponse {
   site: SiteDTO
