@@ -4,7 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 const settingsNav = [
-  { title: '站点展示', url: '/admin/settings', icon: Globe, end: true },
+  { title: '基础设置', url: '/admin/settings', icon: Globe, end: true },
   { title: '网络请求', url: '/admin/settings/fetch', icon: SlidersHorizontal },
   { title: '账户与令牌', url: '/admin/settings/account', icon: ShieldCheck },
   { title: '运维维护', url: '/admin/settings/maintenance', icon: Wrench },
@@ -15,7 +15,7 @@ export function SettingsLayout() {
   return (
     <div className='space-y-6'>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>设置</h1>
+        <h1 className='text-2xl font-bold tracking-tight'>系统设置</h1>
         <p className='text-sm text-muted-foreground'>管理站点配置、显示偏好与管理员账户。</p>
       </div>
 

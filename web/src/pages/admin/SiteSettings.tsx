@@ -91,22 +91,23 @@ export function AdminSiteSettingsPage() {
   return (
     <div className='max-w-2xl space-y-6'>
       <div>
-        <h1 className='text-xl font-semibold tracking-tight'>站点展示</h1>
+        <h1 className='text-xl font-semibold tracking-tight'>基础设置</h1>
         <p className='text-sm text-muted-foreground'>
-          自定义站点名称、描述与全局偏好配置。
+          配置站点基本信息、全局展示风格与访问偏好。
         </p>
       </div>
 
-      <Card className='shadow-xs'>
-        <CardHeader>
-          <CardTitle>基础展示配置</CardTitle>
-          <CardDescription>对外公开展示的基本信息与访问偏好。</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={save} className='space-y-4'>
-            {notice && <Notice kind='success'>{notice}</Notice>}
-            {error && <Notice kind='error'>{error}</Notice>}
+      <form onSubmit={save} className='space-y-6'>
+        {notice && <Notice kind='success'>{notice}</Notice>}
+        {error && <Notice kind='error'>{error}</Notice>}
 
+        {/* 1. 站点信息 */}
+        <Card className='shadow-xs'>
+          <CardHeader>
+            <CardTitle>站点信息</CardTitle>
+            <CardDescription>站点的基本标识与描述，用于页面顶部展示与浏览器元信息。</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-4'>
             <Field label='站点图标 / Logo' htmlFor='site-logo'>
               <div className='flex items-center gap-4 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 p-4'>
                 <div className='flex size-14 shrink-0 items-center justify-center rounded-xl border bg-muted/30 shadow-2xs overflow-hidden'>
@@ -172,7 +173,16 @@ export function AdminSiteSettingsPage() {
                 placeholder='例如：我的个人常用导航站'
               />
             </Field>
+          </CardContent>
+        </Card>
 
+        {/* 2. 显示与偏好 */}
+        <Card className='shadow-xs'>
+          <CardHeader>
+            <CardTitle>显示与偏好</CardTitle>
+            <CardDescription>自定义全局背景色彩、Favicon 图标源与链接打开偏好。</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-4'>
             <Field
               label='全局背景色'
               htmlFor='site-bg'
@@ -248,16 +258,16 @@ export function AdminSiteSettingsPage() {
                 点击链接默认在新标签页打开
               </label>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className='pt-4'>
-              <Button type='submit' disabled={saving} className='gap-2'>
-                <Check className='size-4' />
-                <span>{saving ? '保存中...' : '保存更改'}</span>
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className='flex items-center gap-3 pt-2'>
+          <Button type='submit' disabled={saving} className='gap-2'>
+            <Check className='size-4' />
+            <span>{saving ? '保存中...' : '保存更改'}</span>
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

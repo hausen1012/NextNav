@@ -34,7 +34,7 @@ const navGroups: NavGroupType[] = [
   {
     title: '系统与配置',
     items: [
-      { title: '设置', url: '/admin/settings', icon: SlidersHorizontal },
+      { title: '系统设置', url: '/admin/settings', icon: SlidersHorizontal },
     ],
   },
 ]
