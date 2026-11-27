@@ -64,6 +64,13 @@ func TestClassifyError(t *testing.T) {
 }
 
 func TestPerformCheck(t *testing.T) {
+	st, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer st.Close()
+	svc := New(st)
+
 	// Test HTTP 200 OK
 	tsOk := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -71,7 +78,7 @@ func TestPerformCheck(t *testing.T) {
 	}))
 	defer tsOk.Close()
 
-	status, ok, httpStatus, latency, errType := PerformCheck(tsOk.URL)
+	status, ok, httpStatus, latency, errType := svc.PerformCheck(tsOk.URL)
 	if status != "ok" || !ok || httpStatus == nil || *httpStatus != 200 || errType != nil {
 		t.Fatalf("expected ok 200, got status=%s, ok=%v, http=%v, errType=%v", status, ok, httpStatus, errType)
 	}
@@ -85,7 +92,7 @@ func TestPerformCheck(t *testing.T) {
 	}))
 	defer ts404.Close()
 
-	status, ok, httpStatus, _, errType = PerformCheck(ts404.URL)
+	status, ok, httpStatus, _, errType = svc.PerformCheck(ts404.URL)
 	if status != "dead" || ok || httpStatus == nil || *httpStatus != 404 || errType == nil || *errType != "http" {
 		t.Fatalf("expected dead 404, got status=%s, ok=%v, http=%v, errType=%v", status, ok, httpStatus, errType)
 	}
@@ -96,7 +103,7 @@ func TestPerformCheck(t *testing.T) {
 	}))
 	defer ts500.Close()
 
-	status, ok, httpStatus, _, errType = PerformCheck(ts500.URL)
+	status, ok, httpStatus, _, errType = svc.PerformCheck(ts500.URL)
 	if status != "warn" || ok || httpStatus == nil || *httpStatus != 500 || errType == nil || *errType != "http" {
 		t.Fatalf("expected warn 500, got status=%s, ok=%v, http=%v, errType=%v", status, ok, httpStatus, errType)
 	}

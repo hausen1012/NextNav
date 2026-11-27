@@ -372,6 +372,21 @@ func (a *API) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"site": site})
 }
 
+func (a *API) UpdateFetchSettings(w http.ResponseWriter, r *http.Request) {
+	var req service.UpdateFetchSettingsInput
+	if err := httpx.DecodeJSON(r, &req); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "bad_request", "请求格式不正确")
+		return
+	}
+
+	fetch, err := a.Service.UpdateFetchSettings(req)
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid_fetch_setting", err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"fetch": fetch})
+}
+
 func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		CurrentPassword string `json:"currentPassword"`

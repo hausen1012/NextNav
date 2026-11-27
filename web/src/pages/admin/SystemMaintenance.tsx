@@ -85,7 +85,7 @@ export function AdminSystemMaintenancePage() {
   return (
     <div className='max-w-2xl space-y-6'>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>运维维护</h1>
+        <h1 className='text-xl font-semibold tracking-tight'>运维维护</h1>
         <p className='text-sm text-muted-foreground'>
           数据备份恢复与缓存刷新。
         </p>

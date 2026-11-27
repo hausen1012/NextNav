@@ -4,10 +4,12 @@ import { LoginPage } from './pages/Login'
 
 // Admin Layout & Pages (shadcn-admin architecture)
 import { AdminLayout } from './components/admin/AdminLayout'
+import { SettingsLayout } from './components/admin/SettingsLayout'
 import { AdminOverviewPage } from './pages/admin/Overview'
 import { AdminCategoriesPage } from './pages/admin/Categories'
 import { AdminLinksPage } from './pages/admin/Links'
 import { AdminSiteSettingsPage } from './pages/admin/SiteSettings'
+import { AdminFetchSettingsPage } from './pages/admin/FetchSettings'
 import { AdminAccountSettingsPage } from './pages/admin/AccountSettings'
 import { AdminSystemMaintenancePage } from './pages/admin/SystemMaintenance'
 
@@ -84,9 +86,19 @@ const router = createBrowserRouter([
       { index: true, element: <AdminOverviewPage /> },
       { path: 'categories', element: <AdminCategoriesPage /> },
       { path: 'links', element: <AdminLinksPage /> },
-      { path: 'settings', element: <AdminSiteSettingsPage /> },
-      { path: 'account', element: <AdminAccountSettingsPage /> },
-      { path: 'system', element: <AdminSystemMaintenancePage /> },
+      {
+        path: 'settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <AdminSiteSettingsPage /> },
+          { path: 'fetch', element: <AdminFetchSettingsPage /> },
+          { path: 'account', element: <AdminAccountSettingsPage /> },
+          { path: 'maintenance', element: <AdminSystemMaintenancePage /> },
+        ],
+      },
+      { path: 'fetch-settings', element: <Navigate to='/admin/settings/fetch' replace /> },
+      { path: 'account', element: <Navigate to='/admin/settings/account' replace /> },
+      { path: 'system', element: <Navigate to='/admin/settings/maintenance' replace /> },
     ],
   },
 ])

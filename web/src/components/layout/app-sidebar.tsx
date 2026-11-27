@@ -1,12 +1,5 @@
 import { Link } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  FolderTree,
-  Link2,
-  SlidersHorizontal,
-  ShieldCheck,
-  Wrench,
-} from 'lucide-react'
+import { LayoutDashboard, FolderTree, Link2, SlidersHorizontal } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import {
   Sidebar,
@@ -41,9 +34,7 @@ const navGroups: NavGroupType[] = [
   {
     title: '系统与配置',
     items: [
-      { title: '站点设置', url: '/admin/settings', icon: SlidersHorizontal },
-      { title: '账户安全', url: '/admin/account', icon: ShieldCheck },
-      { title: '运维维护', url: '/admin/system', icon: Wrench },
+      { title: '设置', url: '/admin/settings', icon: SlidersHorizontal },
     ],
   },
 ]

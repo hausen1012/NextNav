@@ -87,6 +87,15 @@ export function useSettings(enabled = true) {
   })
 }
 
+export function useFetchSettings(enabled = true) {
+  return useQuery({
+    queryKey: ['fetch-settings'],
+    queryFn: api.fetchSettings,
+    enabled,
+    refetchOnWindowFocus: enabled,
+  })
+}
+
 export function useAdminCategories() {
   return useQuery({
     queryKey: ['admin-categories'],
@@ -117,7 +126,7 @@ export async function clearSessionCache() {
   await resetPwaCache('public', 0, false)
 }
 
-const ADMIN_QUERY_KEYS = [['settings'], ['admin-categories'], ['admin-links']] as const
+const ADMIN_QUERY_KEYS = [['settings'], ['fetch-settings'], ['admin-categories'], ['admin-links']] as const
 
 export function useInvalidateHome() {
   const qc = useQueryClient()

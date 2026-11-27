@@ -464,6 +464,31 @@
 
 logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 `POST /api/settings/logo`（multipart，≤ 1 MB，png/jpeg/webp）。**不接受 SVG。**
 
+### GET /api/settings/fetch
+
+管理员可用，返回当前生效的抓取参数（未配置时为代码默认值）：
+
+```json
+{ "fetch": {
+  "htmlUserAgent": "Mozilla/5.0 ...", "iconUserAgent": "Mozilla/5.0 ...",
+  "healthUserAgent": "Mozilla/5.0 (compatible; NextNav/1.0; +https://github.com)",
+  "clientTimeoutMs": 4000, "metaTimeoutMs": 3000, "faviconTimeoutMs": 8000,
+  "healthTimeoutMs": 10000, "htmlMaxBytes": 524288, "iconMaxBytes": 1048576,
+  "healthConcurrency": 5 } }
+```
+
+出站 IP 段、fake-ip 例外、协议白名单与重定向上限属于安全基线，不在此接口暴露。
+
+### PATCH /api/settings/fetch
+
+管理员可用，字段可省略；字符串传 `""` 或数字传 `0` 表示恢复代码默认值。保存后立即生效，无需重启。
+
+```json
+{ "metaTimeoutMs": 5000, "htmlUserAgent": "Mozilla/5.0 ...", "healthConcurrency": 3 }
+```
+
+范围：超时 `100–120000` 毫秒，字节数 `1024–10485760`，并发数 `1–50`，UA 为单行且不超过 512 字符。响应为 `200` + 与 GET 相同的 `{ "fetch": ... }`。
+
 ### POST /api/settings/account
 
 ```json

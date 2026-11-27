@@ -103,21 +103,21 @@ func (s *Service) GetOrFetchFavicon(ctx context.Context, domain string) (string,
 }
 
 func (s *Service) fetchFaviconForDomain(ctx context.Context, dom string) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.fetchPolicy.FaviconTimeout)
+	policy, client := s.fetchRuntime()
+	ctx, cancel := context.WithTimeout(ctx, policy.FaviconTimeout)
 	defer cancel()
 
-	client := s.fetchClient
 	schemes := []string{"https://", "http://"}
 	for _, scheme := range schemes {
 		targetURL := scheme + dom
-		req, err := newFetchRequest(ctx, http.MethodGet, targetURL, s.fetchPolicy.HTMLUserAgent, s.fetchPolicy.HTMLAccept)
+		req, err := newFetchRequest(ctx, http.MethodGet, targetURL, policy.HTMLUserAgent, policy.HTMLAccept)
 		if err != nil {
 			continue
 		}
 
 		resp, err := client.Do(req)
 		if err == nil {
-			iconURL := extractIconURLFromResp(resp, s.fetchPolicy.HTMLMaxBytes)
+			iconURL := extractIconURLFromResp(resp, policy.HTMLMaxBytes)
 			resp.Body.Close()
 
 			if iconURL != "" {

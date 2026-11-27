@@ -44,11 +44,11 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 		Host:        hostOf(rawURL),
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.fetchPolicy.MetaTimeout)
+	policy, client := s.fetchRuntime()
+	ctx, cancel := context.WithTimeout(context.Background(), policy.MetaTimeout)
 	defer cancel()
 
-	client := s.fetchClient
-	req, err := newFetchRequest(ctx, http.MethodGet, rawURL, s.fetchPolicy.HTMLUserAgent, s.fetchPolicy.HTMLAccept)
+	req, err := newFetchRequest(ctx, http.MethodGet, rawURL, policy.HTMLUserAgent, policy.HTMLAccept)
 	if err != nil {
 		return res, nil
 	}
@@ -64,7 +64,7 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 		res.Host = hostOf(res.ResolvedURL)
 	}
 
-	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, s.fetchPolicy.HTMLMaxBytes))
+	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, policy.HTMLMaxBytes))
 	bodyStr := string(bodyBytes)
 
 	// 1. Extract Title
@@ -107,8 +107,8 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 }
 
 func (s *Service) fetchAndSaveFavicon(ctx context.Context, favURL string) (string, error) {
-	client := s.fetchClient
-	req, err := newFetchRequest(ctx, http.MethodGet, favURL, s.fetchPolicy.IconUserAgent, s.fetchPolicy.IconAccept)
+	policy, client := s.fetchRuntime()
+	req, err := newFetchRequest(ctx, http.MethodGet, favURL, policy.IconUserAgent, policy.IconAccept)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +123,7 @@ func (s *Service) fetchAndSaveFavicon(ctx context.Context, favURL string) (strin
 		return "", errors.New("icon status not ok")
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, s.fetchPolicy.IconMaxBytes))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, policy.IconMaxBytes))
 	if err != nil || len(data) == 0 {
 		return "", err
 	}

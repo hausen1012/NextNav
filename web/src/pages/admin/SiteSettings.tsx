@@ -91,7 +91,7 @@ export function AdminSiteSettingsPage() {
   return (
     <div className='max-w-2xl space-y-6'>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>站点设置</h1>
+        <h1 className='text-xl font-semibold tracking-tight'>站点展示</h1>
         <p className='text-sm text-muted-foreground'>
           自定义站点名称、描述与全局偏好配置。
         </p>

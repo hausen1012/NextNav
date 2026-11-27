@@ -54,6 +54,19 @@ export interface SiteDTO {
   faviconServiceUrl?: string
 }
 
+export interface FetchSettingsDTO {
+  htmlUserAgent: string
+  iconUserAgent: string
+  healthUserAgent: string
+  clientTimeoutMs: number
+  metaTimeoutMs: number
+  faviconTimeoutMs: number
+  healthTimeoutMs: number
+  htmlMaxBytes: number
+  iconMaxBytes: number
+  healthConcurrency: number
+}
+
 export interface HomeResponse {
   site: SiteDTO
   groups: GroupDTO[]
@@ -169,6 +182,11 @@ export const api = {
   home: () => request<HomeResponse>('/api/home', { headers: getCacheRequestHeaders() }),
 
   settings: () => request<{ site: SiteDTO }>('/api/settings'),
+
+  fetchSettings: () => request<{ fetch: FetchSettingsDTO }>('/api/settings/fetch'),
+
+  updateFetchSettings: (patch: Partial<FetchSettingsDTO>) =>
+    request<{ fetch: FetchSettingsDTO }>('/api/settings/fetch', { method: 'PATCH', ...json(patch) }),
 
   adminCategories: () => request<{ groups: GroupDTO[] }>('/api/admin/categories'),
 

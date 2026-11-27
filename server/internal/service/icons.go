@@ -78,7 +78,8 @@ func DetectImageType(data []byte, filename string) (string, error) {
 
 // SaveIconContent stores image data under icons/ab/cd/abcdef0123456789.<ext>
 func (s *Service) SaveIconContent(data []byte, filename string) (string, error) {
-	if int64(len(data)) > s.fetchPolicy.IconMaxBytes {
+	policy, _ := s.fetchRuntime()
+	if int64(len(data)) > policy.IconMaxBytes {
 		return "", ErrImageTooLarge
 	}
 	ext, err := DetectImageType(data, filename)

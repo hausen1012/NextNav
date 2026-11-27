@@ -59,8 +59,8 @@ func newCheckClient(policy FetchPolicy) *http.Client {
 }
 
 // PerformCheck conducts a single URL health check and classifies the outcome.
-func PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, latencyMs *int64, errorType *string) {
-	policy := defaultFetchPolicy()
+func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, latencyMs *int64, errorType *string) {
+	policy, _ := s.fetchRuntime()
 	client := newCheckClient(policy)
 
 	start := time.Now()
@@ -167,7 +167,7 @@ func (s *Service) CheckLink(linkID int64) (*CheckResult, error) {
 		return nil, err
 	}
 
-	status, ok, httpStatus, latencyMs, errorType := PerformCheck(link.URL)
+	status, ok, httpStatus, latencyMs, errorType := s.PerformCheck(link.URL)
 	if err := s.store.RecordLinkCheck(linkID, ok, httpStatus, latencyMs, errorType, status); err != nil {
 		return nil, err
 	}
@@ -209,7 +209,8 @@ func (s *Service) StartCheckAll() (int, error) {
 			globalChecker.mu.Unlock()
 		}()
 
-		concurrency := s.fetchPolicy.HealthConcurrency
+		policy, _ := s.fetchRuntime()
+		concurrency := policy.HealthConcurrency
 		sem := make(chan struct{}, concurrency)
 		var wg sync.WaitGroup
 
@@ -227,7 +228,7 @@ func (s *Service) StartCheckAll() (int, error) {
 					globalChecker.mu.Unlock()
 				}()
 
-				status, ok, httpStatus, latencyMs, errorType := PerformCheck(linkItem.URL)
+				status, ok, httpStatus, latencyMs, errorType := s.PerformCheck(linkItem.URL)
 				_ = s.store.RecordLinkCheck(linkItem.ID, ok, httpStatus, latencyMs, errorType, status)
 			}()
 		}

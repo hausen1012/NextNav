@@ -21,20 +21,18 @@ var (
 )
 
 type Service struct {
-	store       *store.Store
-	cookieKeyMu sync.RWMutex
-	cookieKey   []byte
-	fetchPolicy FetchPolicy
-	fetchClient *http.Client
+	store         *store.Store
+	cookieKeyMu   sync.RWMutex
+	cookieKey     []byte
+	fetchMu       sync.RWMutex
+	fetchSettings FetchSettingsDTO
+	fetchPolicy   FetchPolicy
+	fetchClient   *http.Client
 }
 
 func New(st *store.Store) *Service {
-	policy := defaultFetchPolicy()
-	svc := &Service{
-		store:       st,
-		fetchPolicy: policy,
-		fetchClient: newSafeHTTPClientForPolicy(policy),
-	}
+	svc := &Service{store: st}
+	svc.applyFetchSettings()
 	svc.initCookieKey()
 	return svc
 }

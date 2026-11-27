@@ -130,7 +130,7 @@ export function AdminAccountSettingsPage() {
   return (
     <div className='max-w-2xl space-y-6'>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>账户安全</h1>
+        <h1 className='text-xl font-semibold tracking-tight'>账户与令牌</h1>
         <p className='text-sm text-muted-foreground'>
           修改管理员账户凭据与外部 API 访问令牌。
         </p>
