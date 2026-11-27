@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 const settingsNav = [
   { title: '站点展示', url: '/admin/settings', icon: Globe, end: true },
-  { title: '抓取参数', url: '/admin/settings/fetch', icon: SlidersHorizontal },
+  { title: '网络请求', url: '/admin/settings/fetch', icon: SlidersHorizontal },
   { title: '账户与令牌', url: '/admin/settings/account', icon: ShieldCheck },
   { title: '运维维护', url: '/admin/settings/maintenance', icon: Wrench },
 ]

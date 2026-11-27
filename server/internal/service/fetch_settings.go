@@ -30,7 +30,7 @@ const (
 	maxFetchUALength  = 512
 )
 
-// FetchSettingsDTO 是可运行时修改的抓取参数；安全基线保持只读。
+// FetchSettingsDTO 是可运行时修改的网络请求与外联参数；安全基线保持只读。
 type FetchSettingsDTO struct {
 	HTMLUserAgent     string `json:"htmlUserAgent"`
 	IconUserAgent     string `json:"iconUserAgent"`
