@@ -7,6 +7,7 @@ import (
 
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
+	"nextnav/internal/slogx"
 )
 
 func (a *API) UploadLogo(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +36,7 @@ func (a *API) UploadLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("上传站点Logo失败", "filename", header.Filename, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存 Logo 失败")
 		return
 	}
@@ -44,6 +46,7 @@ func (a *API) UploadLogo(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) RemoveLogo(w http.ResponseWriter, r *http.Request) {
 	if err := a.Service.RemoveLogo(); err != nil {
+		slogx.Error("清除站点Logo失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "清除 Logo 失败")
 		return
 	}

@@ -3,12 +3,15 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"html"
 	"io"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+
+	"nextnav/internal/slogx"
 )
 
 type MetaResult struct {
@@ -36,6 +39,7 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 	}
 	parsed, err := url.Parse(rawURL)
 	if err != nil || parsed.Host == "" {
+		slogx.Warn("获取网站信息失败: 无效的URL", "url", rawURL)
 		return nil, errors.New("invalid url")
 	}
 
@@ -50,14 +54,20 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 
 	req, err := newFetchRequest(ctx, http.MethodGet, rawURL, policy.HTMLUserAgent, policy.HTMLAccept)
 	if err != nil {
+		slogx.Warn("获取网站信息失败: 创建请求失败", "url", rawURL, "err", err)
 		return res, nil
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
+		slogx.Warn("获取网站信息失败: 请求连接异常", "url", rawURL, "err", err)
 		return res, nil
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		slogx.Warn("获取网站信息警告: 响应状态码异常", "url", rawURL, "status", resp.StatusCode)
+	}
 
 	if resp.Request != nil && resp.Request.URL != nil {
 		res.ResolvedURL = resp.Request.URL.String()
@@ -96,7 +106,9 @@ func (s *Service) FetchMeta(rawURL string) (*MetaResult, error) {
 
 	if iconAbsURL != "" {
 		iconPath, err := s.fetchAndSaveFavicon(ctx, iconAbsURL)
-		if err == nil && iconPath != "" {
+		if err != nil {
+			slogx.Warn("获取网站信息警告: 获取网页图标失败", "url", rawURL, "iconUrl", iconAbsURL, "err", err)
+		} else if iconPath != "" {
 			res.IconPath = &iconPath
 			u := "/" + iconPath
 			res.IconURL = &u
@@ -120,11 +132,14 @@ func (s *Service) fetchAndSaveFavicon(ctx context.Context, favURL string) (strin
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", errors.New("icon status not ok")
+		return "", fmt.Errorf("icon status %d", resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(io.LimitReader(resp.Body, policy.IconMaxBytes))
 	if err != nil || len(data) == 0 {
+		if err == nil {
+			err = errors.New("empty icon data")
+		}
 		return "", err
 	}
 

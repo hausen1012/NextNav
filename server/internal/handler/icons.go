@@ -10,6 +10,7 @@ import (
 
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
+	"nextnav/internal/slogx"
 )
 
 // UploadLinkIcon replaces a link's icon with a user-supplied image.
@@ -47,6 +48,7 @@ func (a *API) UploadLinkIcon(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrInvalidImageType):
 		httpx.Fail(w, http.StatusBadRequest, "invalid_type", "仅支持 PNG、JPEG、WebP 或 ICO 格式的图片")
 	case err != nil:
+		slogx.Error("上传自定义链接图标失败", "linkId", id, "filename", header.Filename, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存图标失败")
 	default:
 		httpx.JSON(w, http.StatusOK, d)
@@ -67,6 +69,7 @@ func (a *API) ClearLinkIcon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("清除链接自定义图标失败", "linkId", id, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "清除图标失败")
 		return
 	}
@@ -77,6 +80,7 @@ func (a *API) ClearLinkIcon(w http.ResponseWriter, r *http.Request) {
 func (a *API) PurgeOrphanIcons(w http.ResponseWriter, r *http.Request) {
 	removed, err := a.Service.PurgeOrphanIcons()
 	if err != nil {
+		slogx.Error("清理孤立图标失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "清理图标缓存失败")
 		return
 	}
@@ -140,6 +144,7 @@ func (a *API) ServeFavicon(w http.ResponseWriter, r *http.Request) {
 
 	iconPath, err := a.Service.GetOrFetchFavicon(r.Context(), domain)
 	if err != nil {
+		slogx.Warn("获取网站图标未找到", "domain", domain, "err", err)
 		http.NotFound(w, r)
 		return
 	}

@@ -9,6 +9,7 @@ import (
 
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
+	"nextnav/internal/slogx"
 	"nextnav/internal/store"
 )
 
@@ -83,6 +84,7 @@ func (a *API) CreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("创建链接失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
@@ -156,6 +158,7 @@ func (a *API) UpdateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("更新链接失败", "linkId", id, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
@@ -173,6 +176,7 @@ func (a *API) DeleteLink(w http.ResponseWriter, r *http.Request) {
 			httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
 			return
 		}
+		slogx.Error("删除链接失败", "linkId", id, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "删除失败")
 		return
 	}
@@ -223,6 +227,7 @@ func (a *API) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("创建分类失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
@@ -291,6 +296,7 @@ func (a *API) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("更新分类失败", "id", id, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
@@ -404,6 +410,7 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("更新账户失败", "username", req.Username, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "保存失败")
 		return
 	}
@@ -426,6 +433,7 @@ func (a *API) BatchDeleteLinks(w http.ResponseWriter, r *http.Request) {
 	}
 	n, err := a.Service.BatchDeleteLinks(req.IDs)
 	if err != nil {
+		slogx.Error("批量删除链接失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "批量删除失败")
 		return
 	}
@@ -455,6 +463,7 @@ func (a *API) BatchMoveLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("批量移动链接失败", "categoryId", req.CategoryID, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "批量移动失败")
 		return
 	}
@@ -470,6 +479,7 @@ func (a *API) GetToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slogx.Error("查询Token失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "查询 Token 失败")
 		return
 	}
@@ -479,6 +489,7 @@ func (a *API) GetToken(w http.ResponseWriter, r *http.Request) {
 func (a *API) CreateToken(w http.ResponseWriter, r *http.Request) {
 	raw, info, err := a.Service.GenerateToken()
 	if err != nil {
+		slogx.Error("生成Token失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "生成 Token 失败")
 		return
 	}
@@ -490,6 +501,7 @@ func (a *API) CreateToken(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	if err := a.Service.RevokeToken(); err != nil {
+		slogx.Error("撤回Token失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "撤回 Token 失败")
 		return
 	}
@@ -501,6 +513,7 @@ func (a *API) DeleteToken(w http.ResponseWriter, r *http.Request) {
 func (a *API) ExportBackup(w http.ResponseWriter, r *http.Request) {
 	data, err := a.Service.ExportData()
 	if err != nil {
+		slogx.Error("导出备份数据失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "备份导出失败")
 		return
 	}
@@ -519,6 +532,7 @@ func (a *API) ImportBackup(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := a.Service.ImportData(&data, mode)
 	if err != nil {
+		slogx.Error("导入备份数据失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "备份导入失败")
 		return
 	}

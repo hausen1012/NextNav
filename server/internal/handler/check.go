@@ -7,6 +7,7 @@ import (
 
 	"nextnav/internal/httpx"
 	"nextnav/internal/service"
+	"nextnav/internal/slogx"
 )
 
 // CheckLink performs a synchronous health check for a single link.
@@ -24,6 +25,7 @@ func (a *API) CheckLink(w http.ResponseWriter, r *http.Request) {
 			httpx.Fail(w, http.StatusNotFound, "not_found", "链接不存在")
 			return
 		}
+		slogx.Error("执行单链健康检测失败", "linkId", id, "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "执行健康检测失败")
 		return
 	}
@@ -39,6 +41,7 @@ func (a *API) CheckAll(w http.ResponseWriter, r *http.Request) {
 			httpx.Fail(w, http.StatusConflict, "already_running", "健康检测已在运行中")
 			return
 		}
+		slogx.Error("启动全站健康检测失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "启动全站检测失败")
 		return
 	}
@@ -83,6 +86,7 @@ func (a *API) ListChecks(w http.ResponseWriter, r *http.Request) {
 
 	items, total, err := a.Service.ListChecks(status, categoryID, page, pageSize)
 	if err != nil {
+		slogx.Error("获取检测记录失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "获取检测记录失败")
 		return
 	}

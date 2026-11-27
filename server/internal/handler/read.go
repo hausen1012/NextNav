@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"nextnav/internal/httpx"
+	"nextnav/internal/slogx"
 )
 
 // --- /api/home ---
@@ -13,6 +14,7 @@ func (a *API) Home(w http.ResponseWriter, r *http.Request) {
 	admin := httpx.IdentityFrom(r.Context()).IsAdmin()
 	data, err := a.Service.GetHome(admin)
 	if err != nil {
+		slogx.Error("加载首页数据失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载首页失败")
 		return
 	}
@@ -34,6 +36,7 @@ func (a *API) ListCategories(w http.ResponseWriter, r *http.Request) {
 	admin := httpx.IdentityFrom(r.Context()).IsAdmin()
 	groups, err := a.Service.BuildCategoryTree(admin, false)
 	if err != nil {
+		slogx.Error("加载分类列表失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载分类失败")
 		return
 	}
@@ -45,6 +48,7 @@ func (a *API) ListCategories(w http.ResponseWriter, r *http.Request) {
 func (a *API) ListAdminCategories(w http.ResponseWriter, r *http.Request) {
 	groups, err := a.Service.ListAdminCategories()
 	if err != nil {
+		slogx.Error("加载管理端分类失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载分类失败")
 		return
 	}
@@ -54,6 +58,7 @@ func (a *API) ListAdminCategories(w http.ResponseWriter, r *http.Request) {
 func (a *API) ListAdminLinks(w http.ResponseWriter, r *http.Request) {
 	links, err := a.Service.ListAdminLinks()
 	if err != nil {
+		slogx.Error("加载管理端链接失败", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "加载链接失败")
 		return
 	}

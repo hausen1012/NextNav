@@ -33,17 +33,25 @@ func isStaticOrHealth(p string) bool {
 	return false
 }
 
-// AccessLog logs one line per request to stdout. Static asset requests are
-// logged at debug level to keep production logs readable.
+// AccessLog logs one line per request to stdout.
+// By default, successful requests (< 400) and static assets are logged at DEBUG
+// level so production logs are clean and not spammed by routine traffic.
+// Client errors (4xx) are logged at WARN level, and server errors (5xx) at ERROR level.
 func (a *API) AccessLog(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
 
-		level := slog.LevelInfo
-		if isStaticOrHealth(r.URL.Path) {
-			level = slog.LevelDebug
+		level := slog.LevelDebug
+		if rec.status >= 500 {
+			level = slog.LevelError
+		} else if rec.status >= 400 {
+			if isStaticOrHealth(r.URL.Path) {
+				level = slog.LevelDebug
+			} else {
+				level = slog.LevelWarn
+			}
 		}
 		slog.Log(r.Context(), level, "http",
 			"method", r.Method,

@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"nextnav/internal/slogx"
 )
 
 var (
@@ -80,6 +82,7 @@ func FormatFaviconURL(template, domain string) string {
 func (s *Service) GetOrFetchFavicon(ctx context.Context, domain string) (string, error) {
 	dom, err := CleanDomain(domain)
 	if err != nil {
+		slogx.Warn("获取网站图标失败: 无效的域名", "domain", domain, "err", err)
 		return "", err
 	}
 
@@ -94,11 +97,14 @@ func (s *Service) GetOrFetchFavicon(ctx context.Context, domain string) (string,
 	// 2. Fetch from remote
 	iconPath, err := s.fetchFaviconForDomain(ctx, dom)
 	if err != nil {
+		slogx.Warn("获取网站图标失败: 未能从远端获取图标", "domain", dom, "err", err)
 		return "", err
 	}
 
 	// 3. Cache result
-	_ = s.store.SetFaviconCache(dom, iconPath)
+	if cacheErr := s.store.SetFaviconCache(dom, iconPath); cacheErr != nil {
+		slogx.Error("保存图标缓存映射失败", "domain", dom, "iconPath", iconPath, "err", cacheErr)
+	}
 	return iconPath, nil
 }
 

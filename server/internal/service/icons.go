@@ -95,11 +95,13 @@ func (s *Service) SaveIconContent(data []byte, filename string) (string, error) 
 
 	dir := filepath.Join(s.DataDir(), "icons", p1, p2)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
+		slogx.Error("创建图标存储目录失败", "dir", dir, "err", err)
 		return "", fmt.Errorf("mkdir icon dir: %w", err)
 	}
 
 	fullPath := filepath.Join(dir, fn)
 	if err := os.WriteFile(fullPath, data, 0o644); err != nil {
+		slogx.Error("写入图标文件失败", "path", fullPath, "err", err)
 		return "", fmt.Errorf("write icon: %w", err)
 	}
 

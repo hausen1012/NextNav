@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -100,6 +101,7 @@ func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpSt
 
 	if err != nil {
 		errClass, st := classifyError(err)
+		slogx.Warn("健康检测异常: 网络或服务不可达", "url", targetURL, "status", st, "errorType", errClass, "latencyMs", *latencyMs, "err", err)
 		return st, false, nil, latencyMs, &errClass
 	}
 	defer resp.Body.Close()
@@ -114,10 +116,12 @@ func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpSt
 	}
 
 	errType := "http"
+	st := "dead"
 	if code >= 500 {
-		return "warn", false, httpStatus, latencyMs, &errType
+		st = "warn"
 	}
-	return "dead", false, httpStatus, latencyMs, &errType
+	slogx.Warn("健康检测异常: 返回非正常状态码", "url", targetURL, "status", st, "httpStatus", code, "errorType", errType, "latencyMs", *latencyMs)
+	return st, false, httpStatus, latencyMs, &errType
 }
 
 func classifyError(err error) (string, string) {
@@ -164,11 +168,13 @@ func (s *Service) CheckLink(linkID int64) (*CheckResult, error) {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, ErrNotFound
 		}
+		slogx.Error("健康检测查询链接失败", "linkId", linkID, "err", err)
 		return nil, err
 	}
 
 	status, ok, httpStatus, latencyMs, errorType := s.PerformCheck(link.URL)
 	if err := s.store.RecordLinkCheck(linkID, ok, httpStatus, latencyMs, errorType, status); err != nil {
+		slogx.Error("保存健康检测结果失败", "linkId", linkID, "url", link.URL, "err", err)
 		return nil, err
 	}
 
@@ -192,6 +198,7 @@ func (s *Service) StartCheckAll() (int, error) {
 	links, err := s.store.ListLinks(true)
 	if err != nil {
 		globalChecker.mu.Unlock()
+		slogx.Error("全站健康检测获取链接列表失败", "err", err)
 		return 0, err
 	}
 
@@ -213,6 +220,7 @@ func (s *Service) StartCheckAll() (int, error) {
 		concurrency := policy.HealthConcurrency
 		sem := make(chan struct{}, concurrency)
 		var wg sync.WaitGroup
+		var unhealthyCount atomic.Int64
 
 		for _, l := range links {
 			sem <- struct{}{}
@@ -229,12 +237,17 @@ func (s *Service) StartCheckAll() (int, error) {
 				}()
 
 				status, ok, httpStatus, latencyMs, errorType := s.PerformCheck(linkItem.URL)
-				_ = s.store.RecordLinkCheck(linkItem.ID, ok, httpStatus, latencyMs, errorType, status)
+				if !ok {
+					unhealthyCount.Add(1)
+				}
+				if err := s.store.RecordLinkCheck(linkItem.ID, ok, httpStatus, latencyMs, errorType, status); err != nil {
+					slogx.Error("保存健康检测结果失败", "linkId", linkItem.ID, "url", linkItem.URL, "err", err)
+				}
 			}()
 		}
 
 		wg.Wait()
-		slogx.Info("link check all completed", "total", total)
+		slogx.Info("全站链接健康检测完成", "total", total, "unhealthy", unhealthyCount.Load())
 	}()
 
 	return total, nil
@@ -299,8 +312,10 @@ func (s *Service) StartPeriodicChecker(ctx context.Context, intervalStr string) 
 				slogx.Info("periodic link checker stopped")
 				return
 			case <-ticker.C:
-				slogx.Info("running scheduled periodic link check")
-				_, _ = s.StartCheckAll()
+				slogx.Info("执行定时健康检测任务")
+				if _, err := s.StartCheckAll(); err != nil && !errors.Is(err, ErrAlreadyRunning) {
+					slogx.Error("定时健康检测启动失败", "err", err)
+				}
 			}
 		}
 	}()
