@@ -14,7 +14,7 @@ const (
 const (
 	defaultHTMLUserAgent   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 	defaultIconUserAgent   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-	defaultHealthUserAgent = "Mozilla/5.0 (compatible; NextNav/1.0; +https://github.com)"
+	defaultHealthUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 	defaultHTMLAccept      = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 	defaultIconAccept      = "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
 )

@@ -471,7 +471,7 @@ logo 通过 `POST /api/links/{id}/icon` 之外单独处理：设置页上传走 
 ```json
 { "fetch": {
   "htmlUserAgent": "Mozilla/5.0 ...", "iconUserAgent": "Mozilla/5.0 ...",
-  "healthUserAgent": "Mozilla/5.0 (compatible; NextNav/1.0; +https://github.com)",
+  "healthUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   "clientTimeoutMs": 4000, "metaTimeoutMs": 3000, "faviconTimeoutMs": 8000,
   "healthTimeoutMs": 10000, "htmlMaxBytes": 524288, "iconMaxBytes": 1048576,
   "healthConcurrency": 5 } }

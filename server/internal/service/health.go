@@ -59,6 +59,18 @@ func newCheckClient(policy FetchPolicy) *http.Client {
 	}
 }
 
+// applyHealthHeaders 为健康检测请求附加标准浏览器请求头，避免被目标站 WAF/反爬误拦。
+func applyHealthHeaders(req *http.Request, ua string) {
+	req.Header.Set("User-Agent", ua)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-User", "?1")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+}
+
 // PerformCheck conducts a single URL health check and classifies the outcome.
 func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpStatus *int, latencyMs *int64, errorType *string) {
 	policy, _ := s.fetchRuntime()
@@ -71,7 +83,7 @@ func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpSt
 		errStr := "other"
 		return "dead", false, nil, &lat, &errStr
 	}
-	req.Header.Set("User-Agent", policy.HealthUserAgent)
+	applyHealthHeaders(req, policy.HealthUserAgent)
 
 	resp, err := client.Do(req)
 
@@ -87,7 +99,7 @@ func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpSt
 	if shouldFallbackGet {
 		getReq, getErr := http.NewRequest(http.MethodGet, targetURL, nil)
 		if getErr == nil {
-			getReq.Header.Set("User-Agent", policy.HealthUserAgent)
+			applyHealthHeaders(getReq, policy.HealthUserAgent)
 			getResp, gErr := client.Do(getReq)
 			if gErr == nil {
 				resp = getResp
@@ -111,12 +123,26 @@ func (s *Service) PerformCheck(targetURL string) (status string, ok bool, httpSt
 	code := resp.StatusCode
 	httpStatus = &code
 
+	// 200 OK 为最常见健康状态，不打印告警日志
+	if code == http.StatusOK {
+		return "ok", true, httpStatus, latencyMs, nil
+	}
+
+	// 2xx（除200外）及 3xx（重定向）视为正常可达，但除200外均按要求打印告警日志
 	if code >= 200 && code < 400 {
+		slogx.Warn("健康检测异常: 返回非正常状态码", "url", targetURL, "status", "ok", "httpStatus", code, "errorType", "http", "latencyMs", *latencyMs)
+		return "ok", true, httpStatus, latencyMs, nil
+	}
+
+	// 401（需鉴权）与 403（受限/WAF反爬拦截）：服务器在线且网络联通，判定为正常（标绿），同时保留异常日志
+	if code == http.StatusUnauthorized || code == http.StatusForbidden {
+		slogx.Warn("健康检测异常: 返回非正常状态码", "url", targetURL, "status", "ok", "httpStatus", code, "errorType", "http", "latencyMs", *latencyMs)
 		return "ok", true, httpStatus, latencyMs, nil
 	}
 
 	errType := "http"
 	st := "dead"
+	// 5xx 服务端错误判定为 warn
 	if code >= 500 {
 		st = "warn"
 	}

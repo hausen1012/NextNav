@@ -71,8 +71,10 @@ func TestPerformCheck(t *testing.T) {
 	defer st.Close()
 	svc := New(st)
 
-	// Test HTTP 200 OK
+	// Test HTTP 200 OK and Headers verification
+	var receivedHeaders http.Header
 	tsOk := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	}))
@@ -84,6 +86,41 @@ func TestPerformCheck(t *testing.T) {
 	}
 	if latency == nil || *latency < 0 {
 		t.Fatalf("expected valid latency, got %v", latency)
+	}
+	if receivedHeaders.Get("Sec-Fetch-Dest") != "document" || receivedHeaders.Get("Accept") == "" {
+		t.Fatalf("expected browser headers, got %+v", receivedHeaders)
+	}
+
+	// Test HTTP 204 (2xx non-200)
+	ts204 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts204.Close()
+
+	status, ok, httpStatus, _, errType = svc.PerformCheck(ts204.URL)
+	if status != "ok" || !ok || httpStatus == nil || *httpStatus != 204 || errType != nil {
+		t.Fatalf("expected ok 204, got status=%s, ok=%v, http=%v, errType=%v", status, ok, httpStatus, errType)
+	}
+
+	// Test HTTP 401 & 403 OK (alive)
+	ts401 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer ts401.Close()
+
+	status, ok, httpStatus, _, errType = svc.PerformCheck(ts401.URL)
+	if status != "ok" || !ok || httpStatus == nil || *httpStatus != 401 || errType != nil {
+		t.Fatalf("expected ok 401, got status=%s, ok=%v, http=%v, errType=%v", status, ok, httpStatus, errType)
+	}
+
+	ts403 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer ts403.Close()
+
+	status, ok, httpStatus, _, errType = svc.PerformCheck(ts403.URL)
+	if status != "ok" || !ok || httpStatus == nil || *httpStatus != 403 || errType != nil {
+		t.Fatalf("expected ok 403, got status=%s, ok=%v, http=%v, errType=%v", status, ok, httpStatus, errType)
 	}
 
 	// Test HTTP 404 Dead
