@@ -1,7 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import QRCode from 'qrcode'
-import { useHome, useMe, useInvalidateNavigationData, clearSessionCache } from '@/lib/query'
+import {
+  useHome,
+  useMe,
+  useInvalidateNavigationData,
+  useRefreshNavigationData,
+  clearSessionCache,
+} from '@/lib/query'
 import { api, type CategoryDTO, type GroupDTO, type LinkDTO } from '@/lib/api'
 import { LinkCard } from '@/components/LinkCard'
 import { CategoryIcon } from '@/components/CategoryIcon'
@@ -50,6 +56,7 @@ export function HomePage() {
   const { data, isLoading, error } = useHome()
   const { data: me } = useMe()
   const invalidate = useInvalidateNavigationData()
+  const refreshData = useRefreshNavigationData()
   const isAdmin = me?.auth === 'admin'
 
   // 搜索相关状态
@@ -335,12 +342,12 @@ export function HomePage() {
     }
   }
 
-  // 刷新缓存数据
+  // 刷新导航数据：保留离线缓存，由 Service Worker 后台校验更新
   const handleRefresh = async () => {
     if (refreshing) return
     setRefreshing(true)
     try {
-      await invalidate()
+      await refreshData()
     } finally {
       setRefreshing(false)
     }

@@ -149,6 +149,15 @@ export function useInvalidateNavigationData() {
   }, [qc])
 }
 
+// 仅触发后台校验，保留已有缓存，服务不可用时仍能展示已缓存数据。
+export function useRefreshNavigationData() {
+  const qc = useQueryClient()
+  return useCallback(() => {
+    void qc.cancelQueries({ queryKey: ['home'] })
+    return qc.invalidateQueries({ queryKey: ['home'] })
+  }, [qc])
+}
+
 export async function invalidateSession() {
   void queryClient.cancelQueries({ queryKey: ['me'] })
   await queryClient.invalidateQueries({ queryKey: ['me'] })

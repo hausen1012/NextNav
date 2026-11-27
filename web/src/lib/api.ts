@@ -137,28 +137,48 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // FormData must keep the browser-generated multipart boundary; only plain
   // bodies get the JSON content type.
   const isForm = init?.body instanceof FormData
-  const res = await fetch(path, {
-    credentials: 'same-origin',
-    headers: {
-      ...(init?.body && !isForm ? { 'Content-Type': 'application/json' } : {}),
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  })
+  let res: Response
+  try {
+    res = await fetch(path, {
+      credentials: 'same-origin',
+      headers: {
+        ...(init?.body && !isForm ? { 'Content-Type': 'application/json' } : {}),
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    })
+  } catch {
+    throw new ApiError(0, 'network_error', '网络连接失败，请稍后重试')
+  }
 
   if (res.status === 204) {
     return undefined as T
   }
 
   const text = await res.text()
-  const data = text ? JSON.parse(text) : null
+  let data: unknown = null
+  if (text) {
+    try {
+      data = JSON.parse(text)
+    } catch {
+      throw new ApiError(
+        res.status,
+        'invalid_response',
+        res.status === 0 || !res.ok
+          ? '服务暂时不可用，请稍后重试'
+          : '服务返回了无效数据，请稍后重试',
+      )
+    }
+  }
 
   if (!res.ok) {
-    const detail = data?.error ?? {}
+    const detail = (data as { error?: { code?: string; message?: string; field?: string } } | null)?.error ?? {}
     throw new ApiError(
       res.status,
-      detail.code ?? 'unknown',
-      detail.message ?? res.statusText,
+      detail.code ?? (res.status === 0 ? 'network_error' : 'unknown'),
+      detail.message ?? (res.status === 0
+        ? '网络连接失败，请稍后重试'
+        : res.statusText || '请求失败，请稍后重试'),
       detail.field,
     )
   }
