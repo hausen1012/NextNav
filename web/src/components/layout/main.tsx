@@ -11,9 +11,10 @@ export function Main({ fixed, className, fluid, ...props }: MainProps) {
     <main
       data-layout={fixed ? 'fixed' : 'auto'}
       className={cn(
-        'px-4 py-6 sm:px-6',
+        'px-4 py-6',
         fixed && 'flex grow flex-col overflow-hidden',
-        !fluid && 'mx-auto w-full max-w-6xl space-y-6',
+        !fluid &&
+          '@7xl/content:mx-auto @7xl/content:w-full @7xl/content:max-w-7xl',
         className
       )}
       {...props}
