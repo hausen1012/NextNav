@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { LinkDTO } from '@/lib/api'
 import { useLongPress } from '@/hooks/useLongPress'
 import { SiteIcon } from '@/components/SiteIcon'
-import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check, Lock, Activity } from 'lucide-react'
+import { ExternalLink, Copy, QrCode, Edit2, Trash2, Check, Lock } from 'lucide-react'
 
 function StatusDot({ status }: { status: LinkDTO['status'] }) {
   if (status === 'dead') {
@@ -21,7 +21,6 @@ interface LinkCardProps {
   onShowQR: (url: string, title: string) => void
   onEdit?: (link: LinkDTO) => void
   onDelete?: (link: LinkDTO) => void
-  onCheck?: (link: LinkDTO) => void
 }
 
 export function LinkCard({
@@ -31,7 +30,6 @@ export function LinkCard({
   onShowQR,
   onEdit,
   onDelete,
-  onCheck,
 }: LinkCardProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
@@ -132,15 +130,6 @@ export function LinkCard({
           className='fixed z-50 min-w-40 rounded-xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-md dark:border-zinc-800 dark:bg-[#1a1d24]/95 text-xs text-zinc-700 dark:text-zinc-200 animate-in fade-in zoom-in-95 duration-100'
           style={{ left: menuPos.x, top: menuPos.y }}
         >
-          <button
-            type='button'
-            onClick={() => openURL(link.url)}
-            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
-          >
-            <ExternalLink className='size-3.5 text-zinc-400' />
-            <span>打开主链接</span>
-          </button>
-
           {link.backupUrl ? (
             <button
               type='button'
@@ -151,19 +140,6 @@ export function LinkCard({
               <span>打开备用链接</span>
             </button>
           ) : null}
-
-          <button
-            type='button'
-            onClick={() => copyToClipboard(link.url, 'main')}
-            className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
-          >
-            {copiedKey === 'main' ? (
-              <Check className='size-3.5 text-green-500' />
-            ) : (
-              <Copy className='size-3.5 text-zinc-400' />
-            )}
-            <span>{copiedKey === 'main' ? '已复制主链接' : '复制主链接'}</span>
-          </button>
 
           {link.backupUrl ? (
             <button
@@ -195,19 +171,6 @@ export function LinkCard({
           {isAdmin ? (
             <>
               <div className='my-1 border-t border-zinc-100 dark:border-zinc-800' />
-              {onCheck ? (
-                <button
-                  type='button'
-                  onClick={() => {
-                    setMenuPos(null)
-                    onCheck(link)
-                  }}
-                  className='flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                >
-                  <Activity className='size-3.5 text-zinc-400' />
-                  <span>检测健康</span>
-                </button>
-              ) : null}
               {onEdit ? (
                 <button
                   type='button'

@@ -491,15 +491,6 @@ export function HomePage() {
     }
   }
 
-  const handleCheckLink = async (l: LinkDTO) => {
-    try {
-      await api.checkLink(l.id)
-      invalidate()
-    } catch {
-      // ignore
-    }
-  }
-
   if (isLoading) {
     return (
       <div className='flex min-h-screen items-center justify-center bg-[#f4f5f7] dark:bg-[#0f1114]'>
@@ -942,7 +933,6 @@ export function HomePage() {
                           onShowQR={(url, title) => setQrModal({ open: true, url, title })}
                           onEdit={(l) => openEditLinkModal(l)}
                           onDelete={(l) => setDeletingLink(l)}
-                          onCheck={(l) => handleCheckLink(l)}
                         />
                       ))}
                     </div>
@@ -1013,7 +1003,6 @@ export function HomePage() {
                                 onShowQR={(url, title) => setQrModal({ open: true, url, title })}
                                 onEdit={(l) => openEditLinkModal(l)}
                                 onDelete={(l) => setDeletingLink(l)}
-                                onCheck={(l) => handleCheckLink(l)}
                               />
                             ))}
                           </div>
