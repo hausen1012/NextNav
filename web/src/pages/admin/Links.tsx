@@ -89,7 +89,6 @@ export function AdminLinksPage() {
   // Health check states
   const { data: checkStatus, refetch: refetchCheckStatus } = useCheckStatus()
   const [isStartingCheck, setIsStartingCheck] = useState(false)
-  const [checkingLinkId, setCheckingLinkId] = useState<number | null>(null)
   const wasRunningRef = useRef(false)
 
   useEffect(() => {
@@ -108,18 +107,6 @@ export function AdminLinksPage() {
       // 容错
     } finally {
       setIsStartingCheck(false)
-    }
-  }
-
-  async function handleSingleCheck(link: LinkWithMeta) {
-    try {
-      setCheckingLinkId(link.id)
-      await api.checkLink(link.id)
-      invalidate()
-    } catch {
-      // 容错
-    } finally {
-      setCheckingLinkId(null)
     }
   }
 
@@ -558,20 +545,6 @@ export function AdminLinksPage() {
 
                     <TableCell className='text-right'>
                       <div className='flex items-center justify-end gap-1'>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='size-7 text-muted-foreground hover:text-emerald-600'
-                          onClick={() => handleSingleCheck(link)}
-                          disabled={checkingLinkId === link.id}
-                          title='检测健康'
-                        >
-                          {checkingLinkId === link.id ? (
-                            <RefreshCw className='size-3.5 animate-spin' />
-                          ) : (
-                            <Activity className='size-3.5' />
-                          )}
-                        </Button>
                         <Button
                           variant='ghost'
                           size='icon'

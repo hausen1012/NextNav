@@ -146,7 +146,7 @@ func TestPerformCheck(t *testing.T) {
 	}
 }
 
-func TestCheckLinkAndListChecks(t *testing.T) {
+func TestListChecks(t *testing.T) {
 	dir := t.TempDir()
 	st, err := store.Open(dir)
 	if err != nil {
@@ -180,12 +180,12 @@ func TestCheckLinkAndListChecks(t *testing.T) {
 		t.Fatalf("create link: %v", err)
 	}
 
-	res, err := svc.CheckLink(linkID)
-	if err != nil {
-		t.Fatalf("check link: %v", err)
+	status, ok, httpStatus, latencyMs, errorType := svc.PerformCheck(ts.URL)
+	if status != "ok" || !ok || httpStatus == nil || *httpStatus != 200 {
+		t.Fatalf("unexpected check result: status=%s, ok=%v, http=%v", status, ok, httpStatus)
 	}
-	if res.Status != "ok" || res.HTTPStatus == nil || *res.HTTPStatus != 200 {
-		t.Fatalf("unexpected check result: %+v", res)
+	if err := st.RecordLinkCheck(linkID, ok, httpStatus, latencyMs, errorType, status); err != nil {
+		t.Fatalf("record check: %v", err)
 	}
 
 	// Check DB updated

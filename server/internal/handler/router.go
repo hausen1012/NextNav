@@ -37,7 +37,6 @@ func NewRouter(a *API) http.Handler {
 	mux.HandleFunc("POST /api/meta", a.RequireAdmin(a.FetchMeta))
 
 	// --- health checks ---
-	mux.HandleFunc("POST /api/links/{id}/check", a.RequireAdmin(a.CheckLink))
 	mux.HandleFunc("POST /api/links/check-all", a.RequireAdmin(a.CheckAll))
 	mux.HandleFunc("GET /api/check/status", a.RequireAdmin(a.GetCheckStatus))
 	mux.HandleFunc("GET /api/checks", a.RequireAdmin(a.ListChecks))

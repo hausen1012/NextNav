@@ -120,7 +120,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 |---|---|---|---|
 | E1 | 定时检测 | P1 | 频率由环境变量 `CHECK_INTERVAL` 设置（安装/启动时生效，**默认每日一次**；支持如 `6h`、`1d`、`off` 关闭）。先 HEAD 后 GET 降级；超时 10s；最多跟随 5 次重定向；记录状态码、耗时、错误类型（DNS / TIMEOUT / TLS / HTTP / REFUSED） |
 | E2 | 状态展示 | P1 | 仅异常时卡片显示角标（失效=红、超时/异常=黄）；正常不打扰 |
-| E3 | 手动检测 | P1 | 单条「重新检测」+ 全站「立即检测」，带进度反馈；并发限制（如 5）避免打爆业务站 |
+| E3 | 手动检测 | P1 | 全站「立即检测」，带进度反馈；并发限制（如 5）避免打爆业务站 |
 | E4 | 失效清单 | P1 | 编辑模式下的筛选视图，按状态/分类筛选，可一键删除或编辑 |
 | E5 | 通知 | P2 | 失效汇总推送到邮件 / Telegram / Webhook |
 
@@ -162,7 +162,7 @@ link_check     id, link_id, ok, http_status, latency_ms, error_type, checked_at
 | M0 骨架 | 仓库初始化（Go 服务 + 前端两个目录）、DB schema + 迁移、安装向导、登录、Dockerfile + compose | `npm run dev`（Vite 只代理 `/api` 到 Go）与 `docker compose up`（单一端口全包）都走完安装向导并登录进首页 |
 | M1 可用 | A1–A6 + B1–B2 + C3–C5 + C8（C1/C2 已在 M0 完成） | 完成安装后首页即有预置演示内容；能自行录入 20 个链接，完整浏览、即时搜索，手机可用，未登录可读公开内容 |
 | M2 增强 | D1–D2 + C6–C7 + F2–F3 | 备用链接/二维码/备份导入/API 全部可用 |
-| M3 健康 | E1–E4 | 检测能正确标红失效站，可筛选可手动重测 |
+| M3 健康 | E1–E4 | 检测能正确标红失效站，可筛选、可全站重测 |
 | M4 打磨 | F4–F5、E5、性能与动效 | Lighthouse 移动端 ≥ 90，全站交互流畅无卡顿 |
 
 ---

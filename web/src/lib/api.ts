@@ -120,14 +120,6 @@ export interface CheckStatusResponse {
   startedAt: number
 }
 
-export interface SingleCheckResponse {
-  status: 'ok' | 'warn' | 'dead' | 'unknown'
-  httpStatus?: number | null
-  latencyMs?: number | null
-  errorType?: string | null
-  checkedAt: number
-}
-
 export class ApiError extends Error {
   code: string
   field?: string
@@ -297,9 +289,6 @@ export const api = {
       method: 'POST',
       ...json(data),
     }),
-
-  checkLink: (id: number) =>
-    request<SingleCheckResponse>(`/api/links/${id}/check`, { method: 'POST' }),
 
   checkAll: () =>
     request<{ started: boolean; total: number }>('/api/links/check-all', { method: 'POST' }),

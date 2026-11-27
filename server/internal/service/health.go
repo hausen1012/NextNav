@@ -18,14 +18,6 @@ import (
 	"nextnav/internal/store"
 )
 
-type CheckResult struct {
-	Status     string  `json:"status"`
-	HTTPStatus *int    `json:"httpStatus,omitempty"`
-	LatencyMs  *int64  `json:"latencyMs,omitempty"`
-	ErrorType  *string `json:"errorType,omitempty"`
-	CheckedAt  int64   `json:"checkedAt"`
-}
-
 type CheckStatus struct {
 	Running   bool  `json:"running"`
 	Done      int   `json:"done"`
@@ -185,32 +177,6 @@ func classifyError(err error) (string, string) {
 	}
 
 	return "other", "dead"
-}
-
-// CheckLink checks a single link synchronously and writes the result to the store.
-func (s *Service) CheckLink(linkID int64) (*CheckResult, error) {
-	link, err := s.store.GetLink(linkID)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, ErrNotFound
-		}
-		slogx.Error("健康检测查询链接失败", "linkId", linkID, "err", err)
-		return nil, err
-	}
-
-	status, ok, httpStatus, latencyMs, errorType := s.PerformCheck(link.URL)
-	if err := s.store.RecordLinkCheck(linkID, ok, httpStatus, latencyMs, errorType, status); err != nil {
-		slogx.Error("保存健康检测结果失败", "linkId", linkID, "url", link.URL, "err", err)
-		return nil, err
-	}
-
-	return &CheckResult{
-		Status:     status,
-		HTTPStatus: httpStatus,
-		LatencyMs:  latencyMs,
-		ErrorType:  errorType,
-		CheckedAt:  time.Now().UnixMilli(),
-	}, nil
 }
 
 // StartCheckAll runs health check for all links in the background with the configured concurrency.

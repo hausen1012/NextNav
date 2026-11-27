@@ -109,7 +109,6 @@
 |---|---|---|---|
 | GET | `/api/links` | 任意 | 独立链接列表 / 服务端高级搜索 |
 | GET | `/api/links/{id}` | 任意 | 链接详情 |
-| POST | `/api/links/{id}/check` | 管理员 | 单条健康检测 |
 | POST | `/api/links/check-all` | 管理员 | 全站健康检测 |
 | GET | `/api/check/status` | 管理员 | 检测进度查询 |
 | POST | `/api/meta` | 管理员 | 抓取 URL 元信息预览 |
@@ -281,15 +280,6 @@
 ```
 
 `200 { "deleted": 2 }`。
-
-### POST /api/links/{id}/check
-
-同步执行单条检测，`200`：
-
-```json
-{ "status": "dead", "httpStatus": 404, "latencyMs": 812,
-  "errorType": "http", "checkedAt": 1764000000000 }
-```
 
 ### POST /api/links/check-all
 
